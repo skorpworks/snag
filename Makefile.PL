@@ -155,5 +155,5 @@ requires(
 #feature 'Create new database', 'SQL::Translator' => '0.09006';
  
  
- 
+auto_install; 
 WriteAll;
