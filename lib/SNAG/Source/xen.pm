@@ -1,9 +1,6 @@
 package SNAG::Source::xen;
 use base qw/SNAG::Source/;
 
-use 5.10.0;
-use feature qw(switch);
-
 use strict;
 use warnings;
 
@@ -165,49 +162,46 @@ sub new
           foreach my $line (`xe pif-list params=all host-uuid=$uuid`)
           {
             ($_) = ($line =~ m/^\s{0,}([\w\-]+)/);
-            given($_)
+            if($_ eq 'uuid')
             {
-              when('uuid')
-              {
-                $line =~ m/([\w\-]+)$/;
-                push @{$info->{xen_pif}}, { uuid => $1 };
-              }
-              when('device')
-              {
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{device} = $1;
-              }                                                                               
-              when('currently-attached')                                        
-              {                                                                 
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{attached} = $1;
-              }                                        
-              when('VLAN')                                                        
-              {                                                                   
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{vlan} = $1;
-              }                                                                   
-              when('bond-master-of')                                              
-              {                                                                   
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{bond_master_of} = $1 unless $1 =~ m/^bond-master/;
-              }                                                                   
-              when('bond-slave-of')                                               
-              {                                                                   
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{bond_slave_of} = $1 unless $1 =~ m/^bond-master/;
-              }                                                                   
-              when('network-uuid')                                                
-              {                                                                   
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{network_uuid} = $1;
-              }                                                                   
-              when('network-name-label')                                          
-              {                                                                   
-                $line =~ m/([\w-]+)$/;
-                @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{network_name_label} = $1;
-              }                                                                       
-            }                                                                         
+              $line =~ m/([\w\-]+)$/;
+              push @{$info->{xen_pif}}, { uuid => $1 };
+            }
+            if($_ eq 'device')
+            {
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{device} = $1;
+            }                                                                               
+            if($_ eq 'currently-attached')                                        
+            {                                                                 
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{attached} = $1;
+            }                                        
+            if($_ eq 'VLAN')                                                        
+            {                                                                   
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{vlan} = $1;
+            }                                                                   
+            if($_ eq 'bond-master-of')                                              
+            {                                                                   
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{bond_master_of} = $1 unless $1 =~ m/^bond-master/;
+            }                                                                   
+            if($_ eq 'bond-slave-of')                                               
+            {                                                                   
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{bond_slave_of} = $1 unless $1 =~ m/^bond-master/;
+            }                                                                   
+            if($_ eq 'network-uuid')                                                
+            {                                                                   
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{network_uuid} = $1;
+            }                                                                   
+            if($_ eq 'network-name-label')                                          
+            {                                                                   
+              $line =~ m/([\w-]+)$/;
+              @{$info->{xen_pif}}[$#{$info->{xen_pif}}]->{network_name_label} = $1;
+            }                                                                       
           }
 
           #if ($info->{xen_pool}->{master_uuid} eq $uuid)
@@ -215,42 +209,39 @@ sub new
             foreach my $line (`xe sr-list params=all type=nfs`, `xe sr-list params=all type=lvmoiscsi`)                  
             {                                                                      
               ($_) = ($line =~ m/^\s{0,}([\w\-]+)/);                               
-              given($_)                                                            
-              {                                                                    
-                when('uuid')                                                       
-                {                                                                  
-                  $line =~ m/([\w\-]+)$/;                                          
-                  push @{$info->{xen_sr}}, { uuid => $1 };                         
-                }                                                                  
-                when('host')                                           
-                {                                                                  
-                  $line =~ m/\): (.*)$/;                                           
-                  @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'owner'} = $1;      
-                }                                
-                when('name-label')                                                 
-                {                                                                  
-                  $line =~ m/([\w-]+)$/;                                           
-                  @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'name'} = $1;      
-                }                                
-                when('type')                                                       
-                {                                                                  
-                  $line =~ m/([\w-]+)$/;                                           
-                  @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'type'} = $1;      
-                }                                
-                when('name-description')                                           
-                {                                                                  
-                  #WIP 
-                  # Unmatched ) in regex; marked by <-- HERE in m/\[[(\d\.]+) <-- HERE [\:\s\(]+(\S+)[\]\)]+\]$/ at /opt/local/SNAG/modules/SNAG/Source/xen.pm line 246
-                  #NFS SR [10.106.152.253:/vol/xennfs1]
-                  #iSCSI SR [10.106.153.253 (iqn.1992-08.com.netapp:sn.118043982)]
-                  #$line =~ m/\): (.*)$/;                                           
-                  #@{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'description'} = $1;      
-                  #my ($ip, $ses) = ($line  =~ m/\[[(\d\.]+)[\:\s\(]+(\S+)[\]\)]+\]$/;
-                  #if (defined $ip, $ses)
-                  #{
-                  #  
-                  #}
-                }                                
+              if($_ eq 'uuid')                                                       
+              {                                                                  
+                $line =~ m/([\w\-]+)$/;                                          
+                push @{$info->{xen_sr}}, { uuid => $1 };                         
+              }                                                                  
+              if($_ eq 'host')                                           
+              {                                                                  
+                $line =~ m/\): (.*)$/;                                           
+                @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'owner'} = $1;      
+              }                                
+              if($_ eq 'name-label')                                                 
+              {                                                                  
+                $line =~ m/([\w-]+)$/;                                           
+                @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'name'} = $1;      
+              }                                
+              if($_ eq 'type')                                                       
+              {                                                                  
+                $line =~ m/([\w-]+)$/;                                           
+                @{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'type'} = $1;      
+              }                                
+              if($_ eq 'name-description')                                           
+              {                                                                  
+                #WIP 
+                # Unmatched ) in regex; marked by <-- HERE in m/\[[(\d\.]+) <-- HERE [\:\s\(]+(\S+)[\]\)]+\]$/ at /opt/local/SNAG/modules/SNAG/Source/xen.pm line 246
+                #NFS SR [10.106.152.253:/vol/xennfs1]
+                #iSCSI SR [10.106.153.253 (iqn.1992-08.com.netapp:sn.118043982)]
+                #$line =~ m/\): (.*)$/;                                           
+                #@{$info->{xen_sr}}[$#{$info->{xen_sr}}]->{'description'} = $1;      
+                #my ($ip, $ses) = ($line  =~ m/\[[(\d\.]+)[\:\s\(]+(\S+)[\]\)]+\]$/;
+                #if (defined $ip, $ses)
+                #{
+                #  
+                #}
               }
             }
           #}
