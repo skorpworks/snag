@@ -12,7 +12,7 @@ use Time::HiRes qw( gettimeofday tv_interval );
 use POE;
 use Carp qw(carp croak);
 use Devel::Size qw(total_size);;
-use Test::Memory::Cycle;
+
 use RRDTool::OO;
 use RRDs;
 use FileHandle;

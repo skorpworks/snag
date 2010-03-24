@@ -7,7 +7,6 @@ use Time::HiRes;
 use POE;
 use Carp qw(carp croak);
 use Devel::Size qw(total_size);
-use Test::Memory::Cycle;
 
 use POE::Component::EasyDBI;
 use RRDTool::OO;
