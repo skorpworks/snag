@@ -21,9 +21,12 @@
   <base_dir>/opt/snag</base_dir>
   <log_dir>/opt/snag/log</log_dir>
   <tmp_dir>/opt/snag/tmp</tmp_dir>
+  <state_dir>/opt/snag/tmp</state_dir>
+  <conf_dir>/opt/snag/conf</conf_dir>
 
   <!-- Email to catch configuration and run time errors -->
   <email>somebody@something.com</email>
+  <smtp>smtp.example.com</smtp>
 
   <!-- Seperators -->
   <rec_sep>~_~</rec_sep>

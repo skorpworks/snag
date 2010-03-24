@@ -2,7 +2,7 @@ package SNAG;
 
 our @ISA = qw(Exporter);
 
-our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR CLIENT_PASS);
+our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR SMTP SENDTO);
 
 use Exporter;
 
@@ -15,11 +15,14 @@ use Date::Manip;
 use Date::Format;
 use Mail::Sendmail;
 use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
+use XML::Simple;
 
 our %flags;
 
-our $VERSION = '4.1';
-sub VERSION { '4.1' };
+our $VERSION = '4.2';
+sub VERSION { $VERSION };
+
+my $conf = XMLin("snag.xml", ForceArray => qr/(poller|list)$/) or die $!;
 
 my ($os, $dist, $ver);
 if($^O =~ /linux/i)
@@ -191,23 +194,6 @@ sub CHECK_HOST_NAME
       $host = $ref->{Name} . '.' . $ref->{Domain};
     }
   }
-	elsif(-r "/home/ec2/bin/ec2-cmd")
-	{
-		my $contents;
-    # we're an amazon cloud machine :(
-    eval
-		{
-      require LWP::Simple;
-			import LWP::Simple;
-			$contents = get("http://169.254.169.254/latest/meta-data/public-keys/");
-      $contents =~ s/^\d+=//;
-		};
-		if($@)
-		{
-    	die "Fatal: Could not get cloud host name!";
-		}
-		$host = $contents;
-	}
   else
   {
     eval
@@ -223,8 +209,7 @@ sub CHECK_HOST_NAME
     }
   }
   
-  #$host =~ s/\.asu\.edu//gi;
-  $host =~ s/\.easynews\.com//gi;
+  $host =~ s/\.$confin->{domain}//gi;
   $host = lc($host);
 
   $host_name = $host;
@@ -239,95 +224,44 @@ sub HOST_NAME { $host_name };
 my $name = basename $0;
 sub SCRIPT_NAME { $name };
 
-sub REC_SEP { '~_~' };
-sub RRD_SEP { ':' };
-sub LINE_SEP { '_@%_' };
-sub PARCEL_SEP { '@%~%@' };
-sub INFO_SEP { ':%:' };
-sub CLIENT_PASS { 'tH1sIsmyG()N' };
-
+sub REC_SEP { $confin->{rec_sep} };
+sub RRD_SEP { $confin->{rrd_sep} };
+sub LINE_SEP { $confin->{line_sep} };
+sub PARCEL_SEP { $confin->{parcel_sep} };
+sub INFO_SEP { $confin-{info_sep} };
+sub SMTP { $confin->{smtp} };
+sub SENDTO { $confin->{email} };
 sub BASE_DIR 
 { 
-  if(OS eq 'Windows')
-  {
-    return catdir($ENV{PROGRAMFILES}, 'SNAG' );
-  }
-  else
-  {
-    return catdir(rootdir, 'opt', 'local', 'SNAG' ); 
-  }
+  return $confin->{base_dir};
 };
 
 sub LOG_DIR  
 { 
-  if(OS eq 'Windows')
-  {
-    catdir($ENV{PROGRAMFILES}, 'SNAG' );
-  }
-  else
-  {
-    catdir(rootdir, 'var', 'log', 'SNAG' ); 
-  }
+  return $confin->{log_dir};
 };
 
 sub TMP_DIR  
 { 
-  if(OS eq 'Windows')
-  {
-    catdir($ENV{PROGRAMFILES}, 'SNAG', 'tmp' );
-  }
-  else
-  {
-    catdir(rootdir, 'var', 'tmp', 'SNAG' ); 
-  }
+  return $confin->{tmp_dir};
 };
 
 sub STATE_DIR  
 { 
-  if(OS eq 'Windows')
-  {
-    catdir($ENV{PROGRAMFILES}, 'SNAG', 'lib' );
-  }
-  else
-  {
-    catdir(rootdir, 'var', 'lib', 'SNAG');
-  }
+  return $confin->{state_dir};
 };
 
 sub CFG_DIR  
 { 
-  if(OS eq 'Windows')
-  {
-    catdir($ENV{PROGRAMFILES}, 'SNAG', 'conf' );
-  }
-  else
-  {
-    catdir(rootdir, 'opt', 'local', 'SNAG', 'conf' );
-  }
+  return $confin->{conf_dir};
 };
 
 sub MOD_DIR  
 { 
-  if(OS eq 'Windows')
-  {
-    catdir($ENV{PROGRAMFILES}, 'SNAG', 'modules' );
-  }
-  else
-  {
-    catdir(rootdir, 'opt', 'local', 'SNAG', 'modules' );
-  }
+  catdir(rootdir, BASE_DIR, 'modules' );
 };
 
 push @INC, MOD_DIR;
-#$ENV{PATH} = BASE_DIR . ':' . $ENV{PATH};
-
-# Setting paths to required libs and binaries
-$ENV{PATH} = catdir(BASE_DIR, 'sbin') . ':' . $ENV{PATH};
-$ENV{PATH} = catdir(BASE_DIR, 'bin') . ':' . $ENV{PATH};
-$ENV{LD_LIBRARY_PATH} = catdir(BASE_DIR, 'lib') . ':' . $ENV{LD_LIBRARY_PATH};
-$ENV{LD_LIBRARY_PATH} = catdir(BASE_DIR, 'lib64') . ':' . $ENV{LD_LIBRARY_PATH};
-
-$ENV{PATH} .= (':' . catdir('usr', 'afs', 'bin'));
 
 ## Place SNAG.pm in a place where perl can find it easily
 sub SITE_PERL
@@ -438,22 +372,6 @@ sub logger
 
 	$kernel->alias_set('logger');
 
-#       require Sys::Syslog;
-	#*CORE::GLOBAL::die = sub
-	#{
-        #  my $msg = shift;
-        #  my $caller = caller;
-#
-#          my $error = 'SNAG died: hostname=' . HOST_NAME . ", msg=$msg, caller=$caller";
-#
-#          openlog('SNAGc.pl', 'ndelay', 'user');
-#          syslog('notice', $error);
-#          closelog();
-#
-#	  $kernel->call('logger' => 'log' => $error);
-#	  exit;
-#	};
-
 	$SIG{__WARN__} = sub
 	{
 	  $kernel->call('logger' => 'log' => "SNAG warning: @_");
@@ -519,55 +437,56 @@ sub logger
 
       alert => sub
       {
-	my ($kernel, $heap, $args) = @_[ KERNEL, HEAP, ARG0 ];
+        my ($kernel, $heap, $args) = @_[ KERNEL, HEAP, ARG0 ];
 
-	my %defaults = (
-			 smtp    => 'smtp.example.com',
-			 To      => 'SNAGdev@example',
-			 From    => 'SNAGdev@example.com',
-			 Subject => "SNAG alert from " . HOST_NAME . "!",
-			 Message => "Default message",
-		       );
+        my %defaults = 
+        (
+         smtp    => SMTP,
+         To      => SENDTO,
+         From    => SENDTO,
+         Subject => "SNAG alert from " . HOST_NAME . "!",
+         Message => "Default message",
+        );
 
-	my %mail = (%defaults, %$args);
+        my %mail = (%defaults, %$args);
 
         if(OS eq 'Windows')
-	{
-	   eval
-	   {
-	     sendmail(%mail) or die $Mail::Sendmail::error; 
-	   };
-	   if($@)
-	   {
-             $kernel->yield('log' => "Could not send alert because of an error.  Error: $@, Subject: $mail{Subject}, Message: $mail{Message}");
-	   }
-	}
-	else
-	{
+	      {
+	        eval
+	        {
+	          sendmail(%mail) or die $Mail::Sendmail::error; 
+	        };
+	        if($@)
+	        {
+            $kernel->yield('log' => "Could not send alert because of an error.  Error: $@, Subject: $mail{Subject}, Message: $mail{Message}");
+	        }
+	      }
+	      else
+	      {
           require POE::Wheel::Run;
 
           unless($heap->{alert_wheel})
           {
             $heap->{mail_args} = \%mail;
 
-	    $heap->{alert_wheel} = POE::Wheel::Run->new
-	    (
-	      Program => sub
-		         {
-			   sendmail(%mail) or die $Mail::Sendmail::error; 
-		         },
-	      StdioFilter  => POE::Filter::Line->new(),
-	      StderrFilter => POE::Filter::Line->new(),
-	      Conduit      => 'pipe',
-	      StdoutEvent  => 'alert_stdio',
-	      StderrEvent  => 'alert_stderr',
-	      CloseEvent   => "alert_close",
-	    );
+	          $heap->{alert_wheel} = POE::Wheel::Run->new
+            (
+              Program => sub
+              {
+                sendmail(%mail) or die $Mail::Sendmail::error; 
+              },
+              StdioFilter  => POE::Filter::Line->new(),
+              StderrFilter => POE::Filter::Line->new(),
+              Conduit      => 'pipe',
+              StdoutEvent  => 'alert_stdio',
+              StderrEvent  => 'alert_stderr',
+              CloseEvent   => "alert_close",
+            );
           }
           else
           { 
             $kernel->yield('log' => "Could not send alert because an alert wheel is already running.  Subject: $mail{Subject}, Message: $mail{Message}");
-	  }
+          }
         }
       },
     
@@ -577,13 +496,13 @@ sub logger
     
       alert_stderr => sub
       {
-	my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
+	      my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
         $kernel->yield('log' => "Could not send alert because of an error.  Error: $error, Subject: $heap->{mail_args}->{Subject}, Message: $heap->{mail_args}->{Message}");
       },
 
       alert_close => sub
       {
-	my ($kernel, $heap) = @_[ KERNEL, HEAP ];
+	      my ($kernel, $heap) = @_[ KERNEL, HEAP ];
         delete $heap->{alert_wheel};
       },
     }
