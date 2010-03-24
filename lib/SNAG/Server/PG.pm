@@ -9,7 +9,6 @@ use Date::Format;
 use Date::Parse;
 
 use MIME::QuotedPrint;
-use HTML::Entities;
 use Mail::Sendmail;
 
 use POE::Component::EasyDBI;
