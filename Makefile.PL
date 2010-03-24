@@ -14,8 +14,8 @@ requires(
   'Date::Manip' => 0,
   'Date::Parse' => 0,
   'Devel::Size' => 0,
-  'Digest::SHA qw(sha256_hex)' => 0,
-  'FreezeThaw qw(thaw freeze cmpStr cmpStrHard)' => 0,
+  'Digest::SHA' => 0,
+  'FreezeThaw' => 0,
   'HTML::Entities' => 0,
   'Mail::Sendmail' => 0,
   'Net::Nslookup' => 0,
@@ -32,12 +32,13 @@ requires(
   'RRDs' => 0,
   'Socket' => 0,
   'Statistics::Descriptive' => 0,
-  'Storable qw/dclone store retrieve/' => 0,
+  'Storable' => 0,
   'Text::Diff' => 0,
   'URI::Escape' => 0,
   'XML::Simple' => 0,
   'version' => 0,
 );
- 
+
+install_script glob('script/*.pl');
 auto_install; 
 WriteAll;
