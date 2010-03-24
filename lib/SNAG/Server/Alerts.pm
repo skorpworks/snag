@@ -15,7 +15,6 @@ use Mail::Sendmail;
 use POE::Component::EasyDBI;
 use POE::Wheel::Run;
 
-use Apache::DBI::Cache;
 use DBI;
 use FileHandle;
 use DBM::Deep;
