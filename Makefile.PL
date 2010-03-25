@@ -28,16 +28,18 @@ requires(
   'POE::Wheel::Run' => 0,
   'POE' => 0,
   'Proc::ProcessTable' => 0,
-  'RRDTool::OO' => 0,
-  'RRDs' => 0,
   'Socket' => 0,
   'Statistics::Descriptive' => 0,
   'Storable' => 0,
+  'Test::Pod' => 0,
   'Text::Diff' => 0,
   'URI::Escape' => 0,
   'XML::Simple' => 0,
   'version' => 0,
 );
+
+feature 'RRD Server', 'RRDs' => 0;
+feature 'RRD Server', 'RRDTool::OO' => 0;
 
 install_script glob('script/*.pl');
 auto_install; 
