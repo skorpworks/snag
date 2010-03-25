@@ -2,12 +2,10 @@ package SNAG::Source::apache;
 use base qw/SNAG::Source/;
 
 use strict;
-use Date::Manip;
 use SNAG;
 
 use FreezeThaw qw/freeze/;
 use LWP::UserAgent;
-use Date::Manip;
 use Date::Format;
 
 use POE;

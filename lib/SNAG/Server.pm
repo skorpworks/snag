@@ -7,7 +7,6 @@ use Socket;
 use POE::Component::Server::TCP;
 use Carp qw(carp croak);
 
-use Date::Manip;
 use Net::Nslookup;
 use Sys::Hostname;
 use FileHandle;

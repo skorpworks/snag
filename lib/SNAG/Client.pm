@@ -9,7 +9,6 @@ use POE::Component::Client::TCP;
 use FreezeThaw qw/freeze thaw/;
 use Carp qw(carp croak);
 
-use Date::Manip;
 use Date::Format;
 use Mail::Sendmail;
 use Crypt::CBC;

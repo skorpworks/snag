@@ -5,7 +5,7 @@ use strict;
 
 use POE;
 use SNAG;
-use Date::Manip;
+use Date::Parse;
 use Data::Dumper;
 
 my $del = REC_SEP;
@@ -48,7 +48,7 @@ sub filter
   {
     my ($timestamp, $level) = ($1, $2);
 
-    my $minute_epoch = UnixDate($timestamp, '%s');
+    my $minute_epoch = str2time($timestamp);
     while(++$minute_epoch % 60){}
 
     foreach my $hashref (@$keepers)

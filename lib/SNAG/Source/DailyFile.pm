@@ -8,7 +8,6 @@ use POE qw/Wheel::FollowTail Wheel::Run/;
 use Carp qw/carp croak/;
 
 use DBM::Deep;
-use Date::Manip;
 use Data::Dumper;
 
 our ($config, $alias, $debug, $verbose);

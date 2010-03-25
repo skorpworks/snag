@@ -2,16 +2,14 @@ package SNAG::Source::apache_logs;
 use base qw/SNAG::Source/;
 
 use strict;
-use Date::Manip;
-use SNAG;
 
+use SNAG;
 use SNAG::Source::File::web_error_log;
 use SNAG::Source::DailyFile::web_error_log;
-
 use SNAG::Source::File::web_access_log;
 use SNAG::Source::DailyFile::web_access_log;
-use LWP::UserAgent;
 
+use LWP::UserAgent;
 use File::Basename;
 use URI::Escape;
 

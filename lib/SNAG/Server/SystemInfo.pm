@@ -8,7 +8,6 @@ use Carp qw(carp croak);
 use FreezeThaw qw(thaw freeze cmpStr cmpStrHard);
 use Date::Format;
 use Date::Parse;
-use Date::Manip;
 use Data::Dumper;
 
 use DBI;

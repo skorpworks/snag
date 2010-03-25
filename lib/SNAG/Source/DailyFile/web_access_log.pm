@@ -5,7 +5,7 @@ use strict;
 
 use POE;
 use SNAG;
-use Date::Manip;
+use Date::Parse;
 use Data::Dumper;
 
 my %known_methods =
@@ -33,7 +33,7 @@ sub filter
   my ($kernel, $heap) = @_[ KERNEL, HEAP ];
   $_ = $_[ ARG0 ];
 
-
+# 04/Jan/2007:14:17:44 -0700
   if(/\[([^]]+)\] \"?(\w+)/)
   {
     my ($timestamp, $method) = ($1, $2);
@@ -41,7 +41,7 @@ sub filter
 
     if($current->{timestamp} ne $timestamp)
     {
-      my $minute_epoch = UnixDate($timestamp, "%s");
+      my $minute_epoch = str2time($timestamp);
       while(++$minute_epoch % 60){}
 
       $current->{minute_epoch} = $minute_epoch;
