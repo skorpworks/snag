@@ -21,7 +21,7 @@ our %flags;
 our $VERSION = '4.2';
 sub VERSION { $VERSION };
 
-my $conf = XMLin("snag.xml", ForceArray => qr/(poller|list)$/) or die $!;
+my $conf = XMLin("SNAG.xml", ForceArray => qr/(poller|list)$/) or die $!;
 
 my ($os, $dist, $ver);
 if($^O =~ /linux/i)
