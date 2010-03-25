@@ -11,7 +11,6 @@ use Sys::Hostname;
 use Getopt::Long;
 use POE;
 use FileHandle;
-use Date::Manip;
 use Date::Format;
 use Mail::Sendmail;
 use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
@@ -209,7 +208,7 @@ sub CHECK_HOST_NAME
     }
   }
   
-  $host =~ s/\.$confin->{domain}//gi;
+  $host =~ s/\.$conf->{domain}//gi;
   $host = lc($host);
 
   $host_name = $host;
@@ -224,36 +223,36 @@ sub HOST_NAME { $host_name };
 my $name = basename $0;
 sub SCRIPT_NAME { $name };
 
-sub REC_SEP { $confin->{rec_sep} };
-sub RRD_SEP { $confin->{rrd_sep} };
-sub LINE_SEP { $confin->{line_sep} };
-sub PARCEL_SEP { $confin->{parcel_sep} };
-sub INFO_SEP { $confin-{info_sep} };
-sub SMTP { $confin->{smtp} };
-sub SENDTO { $confin->{email} };
+sub REC_SEP { $conf->{rec_sep} };
+sub RRD_SEP { $conf->{rrd_sep} };
+sub LINE_SEP { $conf->{line_sep} };
+sub PARCEL_SEP { $conf->{parcel_sep} };
+sub INFO_SEP { $conf-{info_sep} };
+sub SMTP { $conf->{smtp} };
+sub SENDTO { $conf->{email} };
 sub BASE_DIR 
 { 
-  return $confin->{base_dir};
+  return $conf->{base_dir};
 };
 
 sub LOG_DIR  
 { 
-  return $confin->{log_dir};
+  return $conf->{log_dir};
 };
 
 sub TMP_DIR  
 { 
-  return $confin->{tmp_dir};
+  return $conf->{tmp_dir};
 };
 
 sub STATE_DIR  
 { 
-  return $confin->{state_dir};
+  return $conf->{state_dir};
 };
 
 sub CFG_DIR  
 { 
-  return $confin->{conf_dir};
+  return $conf->{conf_dir};
 };
 
 sub MOD_DIR  
