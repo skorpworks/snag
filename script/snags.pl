@@ -41,7 +41,8 @@ umask(0022);
 logger();
 daemonize() unless $SNAG::flags{debug};
 
-my $confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open file snag.conf";
+my $confin;
+%$confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open file snag.conf";
 
 my $server = $confin->{server}->{$type} or die "Server type $type does not exist in snag.conf!";
 

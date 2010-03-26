@@ -42,7 +42,8 @@ if ( defined $uid )
 logger();
 daemonize() unless $SNAG::flags{debug};
 
-my $confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open configuration file snag.conf";
+my $confin;
+%$confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open configuration file snag.conf";
 
 my $poller = $confin->{poller}->{$type} or die "Poller type $type does not exist in snag.conf!";
 

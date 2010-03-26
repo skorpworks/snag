@@ -21,7 +21,8 @@ our %flags;
 our $VERSION = '4.2';
 sub VERSION { $VERSION };
 
-my $conf = (ParseConfig(-ConfigFile => "snag.conf")); 
+my $conf;
+%$conf = (ParseConfig(-ConfigFile => "snag.conf")); 
 
 my ($os, $dist, $ver);
 if($^O =~ /linux/i)

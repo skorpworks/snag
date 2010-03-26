@@ -25,7 +25,8 @@ print "Done!\n" if $debug;
 
 ### Start any additional snags.pl or snagp.pl, if configured to run on this host
 my $file = BASE_DIR . "/snag.conf";
-my $conf = (ParseConfig(-ConfigFile => $file)) or die "Could not open $file";
+my $conf;
+%$conf = (ParseConfig(-ConfigFile => $file)) or die "Could not open $file";
 
 if($conf->{server})
 {

@@ -117,10 +117,22 @@ else
   print STDERR "Could not find a valid snag.conf configuration file!\n";
   exit;
 }
-  
-my $confin = (ParseConfig($conf_file)) || die "Couldn't open snag.conf!";
- 
-SNAG::Client->new( $confin->{client} );
+
+my $confin;
+%$confin = (ParseConfig(-ConfigFile => "snag.conf"));
+
+my $client;
+if(ref ($confin->{client}) eq 'HASH')
+{
+  $client = [$confin->{client}]; 
+}
+else
+{
+  $client = $confin->{client};
+}
+
+print "I SEE CONF: $confin->{directory}->{log_dir}\n";
+SNAG::Client->new( $client );
 
 SNAG::Dispatch->new();
 
