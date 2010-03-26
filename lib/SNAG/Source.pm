@@ -57,7 +57,7 @@ sub new
         my ($epoch, $uptime);
         $epoch = time();
         $uptime = $epoch - $heap->{start};
-        $kernel->post('client' => 'SNAGrrd' => 'load' => join RRD_SEP, (HOST_NAME, "SNAGstat_uptime~" . $heap->{stat_source}, '1g', $epoch, $uptime));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, "snagstat_uptime~" . $heap->{stat_source}, '1g', $epoch, $uptime));
         $kernel->alarm_set($_[STATE] => $epoch + 60);
       },
 

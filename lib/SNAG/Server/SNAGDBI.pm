@@ -86,9 +86,9 @@ sub new
         my $stat_ref = ();
         my $stat_prefix = HOST_NAME . "[$alias]";
         my $time = time();
-        $kernel->post('client' => 'SNAGrrd' => 'load' => $stat_prefix . ":db_trans:1g:$time:" . $stats->{ins});
+        $kernel->post('client' => 'sysrrd' => 'load' => $stat_prefix . ":db_trans:1g:$time:" . $stats->{ins});
         $stats->{ins} = 0;
-        $kernel->post('client' => 'SNAGrrd' => 'load' => $stat_prefix . ":SNAGs_mem_heap:1g:$time:" . (total_size($heap) + 0));
+        $kernel->post('client' => 'sysrrd' => 'load' => $stat_prefix . ":snags_mem_heap:1g:$time:" . (total_size($heap) + 0));
       },
     }
   );
