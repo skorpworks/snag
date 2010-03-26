@@ -14,14 +14,14 @@ use FileHandle;
 use Date::Format;
 use Mail::Sendmail;
 use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
-use XML::Simple;
+use Config::General qw/ParseConfig/;
 
 our %flags;
 
 our $VERSION = '4.2';
 sub VERSION { $VERSION };
 
-my $conf = XMLin("SNAG.xml", ForceArray => qr/(poller|list)$/) or die $!;
+my $conf = (ParseConfig(-ConfigFile => "snag.conf")); 
 
 my ($os, $dist, $ver);
 if($^O =~ /linux/i)
@@ -208,7 +208,7 @@ sub CHECK_HOST_NAME
     }
   }
   
-  $host =~ s/\.$conf->{domain}//gi;
+  $host =~ s/\.$conf->{network}->{domain}//gi;
   $host = lc($host);
 
   $host_name = $host;
@@ -223,59 +223,40 @@ sub HOST_NAME { $host_name };
 my $name = basename $0;
 sub SCRIPT_NAME { $name };
 
-sub REC_SEP { $conf->{rec_sep} };
-sub RRD_SEP { $conf->{rrd_sep} };
-sub LINE_SEP { $conf->{line_sep} };
-sub PARCEL_SEP { $conf->{parcel_sep} };
-sub INFO_SEP { $conf-{info_sep} };
-sub SMTP { $conf->{smtp} };
-sub SENDTO { $conf->{email} };
+
+sub REC_SEP { '~_~' };
+sub RRD_SEP { ':' };
+sub LINE_SEP { '_@%_' };
+sub PARCEL_SEP { '@%~%@' };
+sub INFO_SEP { ':%:' };
+
+sub SMTP { $conf->{message}->{smtp} };
+sub SENDTO { $conf->{message}->{email} };
+
 sub BASE_DIR 
 { 
-  return $conf->{base_dir};
+  return $conf->{directory}->{base_dir};
 };
 
 sub LOG_DIR  
 { 
-  return $conf->{log_dir};
+  return $conf->{directory}->{log_dir};
 };
 
 sub TMP_DIR  
 { 
-  return $conf->{tmp_dir};
+  return $conf->{directory}->{tmp_dir};
 };
 
 sub STATE_DIR  
 { 
-  return $conf->{state_dir};
+  return $conf->{directory}->{state_dir};
 };
 
 sub CFG_DIR  
 { 
-  return $conf->{conf_dir};
+  return $conf->{directory}->{conf_dir};
 };
-
-sub MOD_DIR  
-{ 
-  catdir(rootdir, BASE_DIR, 'modules' );
-};
-
-push @INC, MOD_DIR;
-
-## Place SNAG.pm in a place where perl can find it easily
-sub SITE_PERL
-{
-  if(OS eq 'Linux' || OS eq 'SunOS')
-  {
-    '/opt/local/SNAG/lib/perl5/site_perl';
-  }
-  else
-  {
-    #'C:\Perl\site\lib';
-    #'C:\strawberry-perl\perl\site\lib'
-    'C:\strawberry\perl\site\lib'
-  }
-}
 
 sub daemonize
 {

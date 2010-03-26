@@ -10,7 +10,7 @@ use SNAG::Server;
 use SNAG::Client;
 
 use Getopt::Long;
-use XML::Simple;
+use Config::General qw/ParseConfig/;
 use Data::Dumper;
 
 foreach my $arg (@ARGV)
@@ -41,10 +41,9 @@ umask(0022);
 logger();
 daemonize() unless $SNAG::flags{debug};
 
-#my $confin = XMLin(BASE_DIR . '/SNAG.xml', KeyAttr => [qw/name/], ForceArray => qr/^(server|client)$/ ) or die "Could not open configuration file SNAG.xml!";
-my $confin = XMLin(BASE_DIR . '/SNAG.xml', KeyAttr => {server => 'name'}, ForceArray => qr/^(server|client)$/ ) or die "Could not open configuration file SNAG.xml!";
+my $confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open file snag.conf";
 
-my $server = $confin->{server}->{$type} or die "Server type $type does not exist in SNAG.xml!";
+my $server = $confin->{server}->{$type} or die "Server type $type does not exist in snag.conf!";
 
 my $mod_file = $server->{module};
 $mod_file =~ s/::/\//g;

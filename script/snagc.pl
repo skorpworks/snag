@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-### This script is used to gather system statistics and information for use with spork and its subapps
+### This script is used to gather system statistics and information for use with snagweb and its subapps
 
 use strict;
 use SNAG;
@@ -10,7 +10,7 @@ use FindBin qw($Bin $Script);
 use POE;
 
 use Getopt::Long;
-use XML::Simple;
+use Config::General; 
 
 foreach my $arg (@ARGV)
 {
@@ -101,9 +101,9 @@ daemonize unless $debug;
 my $conf_file;
 foreach my $dir (BASE_DIR, @INC)
 {
-  if(-e "$dir/SNAG.xml")
+  if(-e "$dir/snag.conf")
   {
-    $conf_file = "$dir/SNAG.xml";
+    $conf_file = "$dir/snag.conf";
     last;
   }
 }
@@ -114,11 +114,11 @@ if($conf_file)
 }
 else
 {
-  print STDERR "Could not find a valid SNAG.xml configuration file!\n";
+  print STDERR "Could not find a valid snag.conf configuration file!\n";
   exit;
 }
   
-my $confin = XMLin($conf_file, KeyAttr => '', ForceArray => qr/^(source|client)$/ ) or die "Could not open configuration file SNAG.xml!";
+my $confin = (ParseConfig($conf_file)) || die "Couldn't open snag.conf!";
  
 SNAG::Client->new( $confin->{client} );
 

@@ -55,7 +55,7 @@ sub new
 
   ## handle and log attempts to communicate with servers based old aliasing method
   ## we can get rid of this some day
-  foreach my $name ('sysinfo', 'sysrrd', 'dashboard', 'SNAGrrd', 'flowrrd', 'gunitloader', 'SNAG', 'noc', 'barracuda', 'sysinfo3', 'sysinfo2', 'netrrd', 'ciscorrd2', 'spazd', 'ciscorrd4', 'ciscorrd1', 'oldsysinfo', 'SNAGx', 'olddashboard', 'master', 'oldsysrrd', 'benchrrd', 'oldSNAGrrd', 'oldsysrrdpublic', 'sysrrdpublic', 'oldpollrrd', 'pollrrd') 
+  foreach my $name ('sysinfo', 'sysrrd', 'dashboard', 'snagrrd', 'flowrrd', 'gunitloader', 'snag', 'noc', 'barracuda', 'sysinfo3', 'sysinfo2', 'netrrd', 'ciscorrd2', 'spazd', 'ciscorrd4', 'ciscorrd1', 'oldsysinfo', 'olddashboard', 'master', 'oldsysrrd', 'benchrrd', 'oldsysrrdpublic', 'sysrrdpublic', 'oldpollrrd', 'pollrrd') 
   {
     POE::Session->create
     (  
