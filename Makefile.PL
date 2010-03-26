@@ -5,6 +5,7 @@ name 'SNAG';
 all_from 'lib/SNAG.pm';
  
 requires(
+  'Config::General' => 0,
   'Crypt::CBC' => 0,
   'Crypt::Blowfish' => 0,
   'Crypt::Rijndael' => 0,
@@ -32,7 +33,6 @@ requires(
   'Storable' => 0,
   'Text::Diff' => 0,
   'URI::Escape' => 0,
-  'XML::Simple' => 0,
   'version' => 0,
 );
 
