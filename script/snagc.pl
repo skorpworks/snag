@@ -10,7 +10,7 @@ use FindBin qw($Bin $Script);
 use POE;
 
 use Getopt::Long;
-use Config::General; 
+use Config::General qw/ParseConfig/; 
 
 foreach my $arg (@ARGV)
 {

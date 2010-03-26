@@ -4,7 +4,7 @@
 use strict;
 
 use SNAG;
-use XML::Simple;
+use Config::General qw/ParseConfig/; 
 use Mail::Sendmail;
 use Sys::Hostname;
 use Sys::Syslog;
@@ -24,8 +24,8 @@ system $script;
 print "Done!\n" if $debug;
 
 ### Start any additional snags.pl or snagp.pl, if configured to run on this host
-my $file = BASE_DIR . "/SNAG.xml";
-my $conf = XMLin($file, ForceArray => ['server', 'poller']) or die "Could not open $file";
+my $file = BASE_DIR . "/snag.conf";
+my $conf = (ParseConfig(-ConfigFile => $file)) or die "Could not open $file";
 
 if($conf->{server})
 {
