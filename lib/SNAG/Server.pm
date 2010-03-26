@@ -299,7 +299,8 @@ sub new
 }
 
 #################
-########################
+sub handshake
+#######################
 {
   my ($kernel, $heap, $encrypted) = @_[ KERNEL, HEAP, ARG0 ];
   my $id = $_[SESSION]->ID;
@@ -309,7 +310,8 @@ sub new
   eval
   {
     my $serialized = $heap->{cipher}->decrypt($encrypted) or die $!;
-    
+    my ($parcel) = thaw($serialized) or die $!; 
+
     if(my $handshake = $parcel->{handshake})
     {
       unless($handshake eq 'Conan, what is best in life?')

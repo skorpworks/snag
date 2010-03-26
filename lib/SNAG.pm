@@ -207,8 +207,11 @@ sub CHECK_HOST_NAME
       $host = hostname or die "Fatal: Could not get host name!";
     }
   }
-  
-  $host =~ s/\.$conf->{network}->{domain}//gi;
+ 
+  if(defined $conf->{network}->{domain})
+  {
+    $host =~ s/\.$conf->{network}->{domain}//gi;
+  }
   $host = lc($host);
 
   $host_name = $host;
