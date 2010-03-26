@@ -26,6 +26,7 @@ requires(
   'POE::Filter::Reference' => 0,
   'POE::Session' => 0,
   'POE::Wheel::Run' => 0,
+  'POE::XS::Loop::Poll' => 0,
   'POE' => 0,
   'Proc::ProcessTable' => 0,
   'Socket' => 0,

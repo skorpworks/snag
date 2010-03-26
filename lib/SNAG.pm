@@ -2,7 +2,7 @@ package SNAG;
 
 our @ISA = qw(Exporter);
 
-our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR SMTP SENDTO);
+our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR SMTP SENDTO CONF);
 
 use Exporter;
 
@@ -20,9 +20,6 @@ our %flags;
 
 our $VERSION = '4.2';
 sub VERSION { $VERSION };
-
-my $conf;
-%$conf = (ParseConfig(-ConfigFile => "snag.conf")); 
 
 my ($os, $dist, $ver);
 if($^O =~ /linux/i)
@@ -178,6 +175,12 @@ sub OS { $os };
 sub OSDIST { $dist };
 sub OSVER { $ver };
 sub OSLONG { $long };
+
+# Try and guess where our conf file is
+my @path = qw(/opt/snag /etc/ ./..);
+my $conf;
+%$conf = ParseConfig(-ConfigFile => "snag.conf", -ConfigPath => \@path);
+sub CONF { $conf };
 
 sub CHECK_HOST_NAME
 {

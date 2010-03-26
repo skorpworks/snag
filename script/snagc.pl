@@ -1,16 +1,17 @@
 #!/usr/bin/env perl
 ### This script is used to gather system statistics and information for use with snagweb and its subapps
 
-use strict;
+use strict; 
+use FindBin qw($Bin $Script);
+use lib "$FindBin::Bin/../lib";
+
 use SNAG;
 use SNAG::Client;
 use SNAG::Dispatch;
 use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
-use FindBin qw($Bin $Script);
 use POE;
 
 use Getopt::Long;
-use Config::General qw/ParseConfig/; 
 
 foreach my $arg (@ARGV)
 {
@@ -98,28 +99,7 @@ logger();
 
 daemonize unless $debug;
 
-my $conf_file;
-foreach my $dir (BASE_DIR, @INC)
-{
-  if(-e "$dir/snag.conf")
-  {
-    $conf_file = "$dir/snag.conf";
-    last;
-  }
-}
- 
-if($conf_file)
-{
-  print "Using $conf_file\n" if $debug;
-}
-else
-{
-  print STDERR "Could not find a valid snag.conf configuration file!\n";
-  exit;
-}
-
-my $confin;
-%$confin = (ParseConfig(-ConfigFile => "snag.conf"));
+my $confin = CONF;
 
 my $client;
 if(ref ($confin->{client}) eq 'HASH')
@@ -131,7 +111,6 @@ else
   $client = $confin->{client};
 }
 
-print "I SEE CONF: $confin->{directory}->{log_dir}\n";
 SNAG::Client->new( $client );
 
 SNAG::Dispatch->new();

@@ -3,6 +3,9 @@
 
 use strict;
 
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
 use SNAG;
 use Config::General qw/ParseConfig/; 
 use Mail::Sendmail;
@@ -24,9 +27,7 @@ system $script;
 print "Done!\n" if $debug;
 
 ### Start any additional snags.pl or snagp.pl, if configured to run on this host
-my $file = BASE_DIR . "/snag.conf";
-my $conf;
-%$conf = (ParseConfig(-ConfigFile => $file)) or die "Could not open $file";
+my $conf = CONF;
 
 if($conf->{server})
 {

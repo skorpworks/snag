@@ -3,6 +3,9 @@
 use strict;
 
 BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
 use POE;
 
 use SNAG;
@@ -11,7 +14,6 @@ use SNAG::Client;
 
 use Getopt::Long;
 use Data::Dumper;
-use Config::General qw/ParseConfig/;
 
 foreach my $arg (@ARGV)
 {
@@ -42,8 +44,7 @@ if ( defined $uid )
 logger();
 daemonize() unless $SNAG::flags{debug};
 
-my $confin;
-%$confin = (ParseConfig(-ConfigFile => "snag.conf")) || die "Could not open configuration file snag.conf";
+my $confin = CONF;
 
 my $poller = $confin->{poller}->{$type} or die "Poller type $type does not exist in snag.conf!";
 
