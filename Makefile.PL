@@ -37,9 +37,11 @@ requires(
   'version' => 0,
 );
 
+feature 'SNAG server', 'DBD::Pg' => 0;
 feature 'RRD Server', 'RRDs' => 0;
 feature 'RRD Server', 'RRDTool::OO' => 0;
 
 install_script glob('script/*.pl');
+install_script glob('script/*.PL');
 auto_install; 
 WriteAll;
