@@ -1,0 +1,20 @@
+#!/sbin/runscript
+# Copyright 1999-2004 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+depend() {
+	need net 
+	provide snag 
+}
+
+start() {
+	ebegin "Starting snag"
+	start-stop-daemon --start --quiet --exec /opt/snag/bin/snagw.pl -- --nosyslog 
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping snag"
+	start-stop-daemon --stop --quiet --pidfile /var/run/snag.pid
+	eend $?
+}

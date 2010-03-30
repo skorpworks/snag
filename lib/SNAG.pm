@@ -179,7 +179,15 @@ sub OSLONG { $long };
 # Try and guess where our conf file is
 my @path = qw(/opt/snag /etc/ ./..);
 my $conf;
-%$conf = ParseConfig(-ConfigFile => "snag.conf", -ConfigPath => \@path);
+eval
+{
+  %$conf = ParseConfig(-ConfigFile => "snag.conf", -ConfigPath => \@path);
+};
+if($@ && $opt{debug})
+{
+  print "snag.conf not found!  This will result in many constants not working.\n";
+}
+
 sub CONF { $conf };
 
 sub CHECK_HOST_NAME

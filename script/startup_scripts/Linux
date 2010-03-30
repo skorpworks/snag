@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# description: snag is a fully extensible client-server suite that performs \
+#   the real-time collection of system information, statistics, and log data. \
+            
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+case "$1" in
+  start)
+	# Start daemon.
+	echo -n $"Starting asl: "
+	daemon /opt/local/ASL/aslw.pl --nosyslog
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ]
+	;;
+  stop)
+	# Stop daemon.
+	echo "Shutting down asl"
+
+        awkfield2='$4'
+        procs=(`ps -e | awk "/(_asls.pl|aslc.pl)/ && ! /awk/ { print $awkfield2; }"`)
+        
+        for proc in ${procs[@]}
+        do
+	  echo -n $"  Killing ${proc}: "
+          killproc ${proc}
+        done
+
+	RETVAL=$?
+
+	echo
+	[ $RETVAL -eq 0 ]
+	;;
+  restart|reload)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|restart}"
+	RETVAL=1
+	;;
+esac
+
+exit $RETVAL
