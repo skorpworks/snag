@@ -25,7 +25,6 @@ use Fcntl ':mode';
 use SNAG;
 
 my $host = HOST_NAME;
-
 ## Find our snag.conf outside of our directory
 my $confin;
 %$confin = ParseConfig(-ConfigFile => "snagify.conf");
@@ -212,19 +211,22 @@ if($confin->{host}->{$host}->{source_list})
 #############################################
 ########## POLLER STUFF #####################
 #############################################
-if($confin->{host}->{$host}->{poller_list})
+if($confin->{host}->{$host}->{poller})
 {
-  foreach my $type (@{$confin->{host}->{$host}->{poller_list}})
+  $confin->{host}->{$host}->{poller} = [ $confin->{host}->{$host}->{poller} ]
+    if ref($confin->{host}->{$host}->{poller}) ne 'ARRAY';
+
+  foreach my $type (@{$confin->{host}->{$host}->{poller}})
   { 
     print "+$type+\n";
     my %type_data = %{$confin->{poller}->{$type}};                                                                                                                                                              
     $confout->{poller}->{$type} = \%type_data;
 
-    my $poller_exe = $confin->{directory}->{base_dir} . '/' . $type . "_snagp.pl";                                                                                                                                                       
+    my $poller_exe = $confin->{directory}->{base_dir} . '/bin/' . $type . "_snagp.pl";                                                                                                                                                       
     unless(-e $poller_exe)
     {
-      print "Linking $poller_exe to " . $confin->{directory}->{base_dir} . '/snagp.pl ... ';                                                                                                                                             
-      unless(system 'ln -s ' . $confin->{directory}->{base_dir} . "/snagp.pl $poller_exe") ##LINUX ONLY, WHOOPS
+      print "Linking $poller_exe to " . $confin->{directory}->{base_dir} . '/bin/snagp.pl ... ';                                                                                                                                             
+      unless(system 'ln -s ' . $confin->{directory}->{base_dir} . "/bin/snagp.pl $poller_exe") ##LINUX ONLY, WHOOPS
       {
         print "Done!\n";
       }
@@ -239,18 +241,21 @@ if($confin->{host}->{$host}->{poller_list})
 #############################################
 ########## SERVER STUFF #####################
 #############################################
-if($confin->{host}->{$host}->{server_list})
+if($confin->{host}->{$host}->{server})
 {
-  foreach my $type (@{$confin->{host}->{$host}->{server_list}})
+  $confin->{host}->{$host}->{server} = [ $confin->{host}->{$host}->{server} ] 
+    if ref($confin->{host}->{$host}->{server}) ne 'ARRAY';
+
+  foreach my $type (@{$confin->{host}->{$host}->{server}})
   {
     my %type_data = %{$confin->{server}->{$type}};
     $confout->{server}->{$type} = \%type_data;
 
-    my $server_exe = $confin->{directory}->{base_dir} . '/' . $type . "_snags.pl";
+    my $server_exe = $confin->{directory}->{base_dir} . '/bin/' . $type . "_snags.pl";
     unless(-e $server_exe)
     {
-      print "Linking $server_exe to " . $confin->{directory}->{base_dir} . '/snags.pl ... ';
-      unless(system 'ln -s ' . $confin->{directory}->{base_dir} . "/snags.pl $server_exe") ##LINUX ONLY, WHOOPS!
+      print "Linking $server_exe to " . $confin->{directory}->{base_dir} . 'bin/snags.pl ... ';
+      unless(system 'ln -s ' . $confin->{directory}->{base_dir} . "/bin/snags.pl $server_exe") ##LINUX ONLY, WHOOPS!
       {
         print "Done!\n";
       }

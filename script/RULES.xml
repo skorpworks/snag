@@ -1,0 +1,35 @@
+<threshholds>
+  <cpu5min type="ceiling" limit="75" alert="High 5 minute cpu" />
+  <naPcntUsed type="range" low="95" high="98" alert="Aggregate is close to full" />
+  <naPcntUsed type="ceiling" limit="99" alert="Aggregate is FULL" />
+  <dsk_pct type="range" low="95" high="98" alert="Disk partition is close to full" />
+  <dsk_pct type="ceiling" limit="99" alert="Disk partition is FULL" />
+  <inerr type="ceiling" limit="5" alert="Interface is experiencing Input Errors" />
+  <outerr type="ceiling" limit="5" alert="Interface is experiencing Output Errors" />
+  <ifload type="ceiling" limit="242" alert="Interface is experiencing high load" />
+  <reliab type="floor" limit="242" alert="Interface is experiencing poor reliability" />
+  <lavg5 type="range" low="10" high="25" alert="system is experiencing high load" />
+  <lavg5 type="ceiling" limit="25" alert="system is experiencing extremly high load" />
+  <lavg5 onlyhost='oraprod1' type="range" low="50" high="60" alert="system is experiencing high load" />
+  <lavg5 onlyhost='oraprod1' type="ceiling" limit="60" alert="system is experiencing extremly high load" />
+  <lavg5 onlyhost='enterprise1' type="range" low="100" high="200" alert="system is experiencing high load" />
+  <lavg5 onlyhost='enterprise1' type="ceiling" limit="200" alert="system is experiencing extremly high load" />
+  <net_list type="floor" limit="0"  alert="no listening ports" />
+  <uptime type="drop" alert="system seems to have re(booted)" />
+  <afs_rx_wth limit="50" type="ceiling" alert="AFS waiting threads extremly high" />
+  <afs_rx_wth low="10" high="50" type="range" alert="AFS waiting threads high" />
+  <ipLeased300 type="ceiling" limit="99" alert="DHCP multinet usage over 99%" />
+  <dhcp_clientnf onlyhost="dhcp" type="ceiling" limit="100" alert="DHCP 'Client Not Found' unusually high" />
+  <dhcp_nofree onlyhost="dhcp" type="ceiling" limit="75" alert="DHCP 'No Free Leases' unusually high" />
+  <dhcp_declined onlyhost="dhcp" type="ceiling" limit="2" alert="DHCP Declined unusually high" />
+  <lp_13351 onlyhost="sporkdb" type="floor" limit="5" alert="ASL server low connections" />
+  <lp_13349 onlyhost="sporkdb" type="floor" limit="5" alert="ASL server low connections" />
+  <lp_1521 onlyhost="bb8-db1" type="ceiling" limit="550" alert="High number of EST connections to Oracle" />
+  <lp_1521 onlyhost="oraprod1" type="range" low="750" high="700" alert="High number of EST connections to Oracle" />
+  <lp_1521 onlyhost="oraprod1" type="ceiling" limit="800" alert="Very high number of EST connections to Oracle" />
+  <bcfw_outqueue type="ceiling" limit="5000" alert="Barracuda output queue over limit" />
+  <bcfw_scan type="floor" limit="5" alert="Barracuda scanned emails below limit" />
+  <swapfree type="ratio" denom="swaptot" ratio=".5" alert="System using over half of swap" />
+  <swapfree type="ratio" denom="swaptot" ratio=".10" alert="System using over 10% of swap" />
+</threshholds>
+
