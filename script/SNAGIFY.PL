@@ -221,6 +221,15 @@ if($confin->{host}->{$host}->{poller})
     print "+$type+\n";
     my %type_data = %{$confin->{poller}->{$type}};                                                                                                                                                              
     $confout->{poller}->{$type} = \%type_data;
+    
+    ## Add DBI info
+    if(defined $confin->{poller}->{$type}->{args}->{db})
+    { 
+      my $db = $confin->{poller}->{$type}->{args}->{db};
+      $confout->{poller}->{$type}->{args}->{dsn} = $confin->{database}->{$db}->{dsn};
+      $confout->{poller}=>{$type}->{args}->{user} = $confin->{database}->{$db}->{user};
+      $confout->{poller}->{$type}->{args}->{pw} = $confin->{database}->{$db}->{pw};
+    }
 
     my $poller_exe = $confin->{directory}->{base_dir} . '/bin/' . $type . "_snagp.pl";                                                                                                                                                       
     unless(-e $poller_exe)
@@ -245,11 +254,18 @@ if($confin->{host}->{$host}->{server})
 {
   $confin->{host}->{$host}->{server} = [ $confin->{host}->{$host}->{server} ] 
     if ref($confin->{host}->{$host}->{server}) ne 'ARRAY';
-
   foreach my $type (@{$confin->{host}->{$host}->{server}})
   {
     my %type_data = %{$confin->{server}->{$type}};
     $confout->{server}->{$type} = \%type_data;
+    ## Add DBI info
+    if(defined $confin->{server}->{$type}->{args}->{db})
+    {
+      my $db = $confin->{server}->{$type}->{args}->{db};
+      $confout->{server}->{$type}->{args}->{dsn} = $confin->{database}->{$db}->{dsn};
+      $confout->{server}->{$type}->{args}->{user} = $confin->{database}->{$db}->{user};
+      $confout->{server}->{$type}->{args}->{pw} = $confin->{database}->{$db}->{pw};
+    }
 
     my $server_exe = $confin->{directory}->{base_dir} . '/bin/' . $type . "_snags.pl";
     unless(-e $server_exe)
@@ -272,9 +288,9 @@ if($confin->{host}->{$host}->{server})
   }
 }
 
-$confout->{database} = \%{ $confin->{database} };
 $confout->{network} = \%{ $confin->{network} };
 $confout->{message} = \%{ $confin->{message} };
+$confout->{directory} = \%{ $confin->{directory} };
 my $conf_file = catfile($confin->{directory}->{base_dir}, 'snag.conf');
 print "Writing $conf_file ... ";
 SaveConfig($conf_file, $confout);

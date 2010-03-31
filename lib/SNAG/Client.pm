@@ -42,12 +42,9 @@ sub new
   {
     croak 'missing argument';
   }
-
-  unless(ref $default_connections eq 'ARRAY')
-  {
-    croak 'default_connections should be an ARRAY ref';
-  }
-
+  
+  $default_connections = [ $default_connections ] unless (ref $default_connections eq 'ARRAY');
+  
   unless( grep { $_->{name} eq 'master' } @$default_connections)
   {
     croak 'SNAG::Client requires connection info for master server!';
