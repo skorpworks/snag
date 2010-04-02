@@ -21,7 +21,7 @@ my $debug = delete $options{debug};
 my $nosyslog = delete $options{nosyslog};
 
 ### Start snagc.pl
-my $script = BASE_DIR . "/" . "snagc.pl";
+my $script = BASE_DIR . "/bin/" . "snagc.pl";
 print "Starting $script ... " if $debug;
 system $script;
 print "Done!\n" if $debug;
@@ -34,7 +34,7 @@ if($conf->{server})
   foreach my $server (keys %{$conf->{server}})
   {
     my $script_bin = $server . '_snags.pl';
-    my $script_path = BASE_DIR . "/" . $script_bin;
+    my $script_path = BASE_DIR . "/bin/" . $script_bin;
 
     print "Starting $script_path ... " if $debug;
     system $script_path;
@@ -47,7 +47,7 @@ if($conf->{poller})
   foreach my $poller (keys %{$conf->{poller}})
   {
     my $script_bin = $poller . '_snagp.pl';
-    my $script_path = BASE_DIR . "/" . $script_bin;
+    my $script_path = BASE_DIR . "/bin/" . $script_bin;
 
     print "Starting $script_path ... " if $debug;
     system $script_path;

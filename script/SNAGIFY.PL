@@ -303,7 +303,7 @@ if(OS eq 'Linux' || OS eq 'SunOS')
   print "Editing crontab ... ";
   my ($old_stuff, $found, $susp);
   my $tmpfile = "/tmp/snaginstallcronout";
-  my $line = "30 * * * * " . $confin->{directory}->{base_dir} . "/snagw.pl > /dev/null";
+  my $line = "30 * * * * " . $confin->{directory}->{base_dir} . "bin/snagw.pl > /dev/null";
   (my $line_match = $line) =~ s#([\#\*])#\\$1#g;
 
   open CRON, "> $tmpfile";
