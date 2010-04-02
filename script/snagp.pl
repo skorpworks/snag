@@ -4,7 +4,8 @@ use strict;
 
 BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };
 use FindBin;
-use lib "$FindBin::Bin/../lib";
+use lib "$FindBin::Bin/../lib/perl5";
+use local::lib "$FindBin::Bin/../";
 
 use POE;
 

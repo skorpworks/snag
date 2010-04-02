@@ -3,8 +3,9 @@
 
 use strict;
 
-use FindBin;
-use lib "$FindBin::Bin/../lib";
+use FindBin qw($Bin $Script);
+use lib "$FindBin::Bin/../lib/perl5";
+use local::lib "$FindBin::Bin/../";
 
 use SNAG;
 use Config::General qw/ParseConfig/; 
