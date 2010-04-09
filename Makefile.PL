@@ -17,6 +17,7 @@ requires(
   'Digest::SHA' => 0,
   'FreezeThaw' => 0,
   'HTML::Entities' => 0,
+	'LWP' => 0,
   'Mail::Sendmail' => 0,
   'Net::Nslookup' => 0,
   'POE::Component::EasyDBI' => 0,
