@@ -127,6 +127,10 @@ sub build_config_file_list
     delete $config_files{'/etc/group'};
     delete $config_files{'/etc/shadow'};
   }
+
+  # add all config files for vservers
+  my @vservers = glob('/etc/vservers/*');
+  $default_config_dirs{$_ . '/'} = '.' for @list;
   
   foreach my $dir (keys %default_config_dirs)
   {
