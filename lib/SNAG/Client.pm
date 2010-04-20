@@ -364,7 +364,7 @@ sub create_connection
 
                           if($heap->{pending_data})
                           {
-                            die "This client already has pending data, this should never happen :(";
+			    $kernel->post('logger' => 'log' => 'CLIENT ERROR.  This client already has pending data, this should never happen');
                           }
 
                           return unless $heap->{initiated_connection};
@@ -587,7 +587,7 @@ sub receive
   }
   else
   {
-    die "No pending data on $heap->{name}, received this from server: " . Dumper $parcel;
+    $kernel->post("logger" => "log" => "SERVER ERROR: $heap->{name} received response yet has no pending data");
   }
 
   if($parcel->{status} eq 'error')
