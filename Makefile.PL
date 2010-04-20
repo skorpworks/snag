@@ -17,7 +17,7 @@ requires(
   'Digest::SHA' => 0,
   'FreezeThaw' => 0,
   'HTML::Entities' => 0,
-	'LWP' => 0,
+  'LWP' => 0,
   'Mail::Sendmail' => 0,
   'Net::Nslookup' => 0,
   'POE::Component::EasyDBI' => 0,
@@ -31,9 +31,10 @@ requires(
   'version' => 0,
 );
 
-feature 'SNAG server', 'DBD::Pg' => 0;
-feature 'RRD Server', 'RRDs' => 0;
-feature 'RRD Server', 'RRDTool::OO' => 0;
+# Leaving these out for now
+#feature 'SNAG server', 'DBD::Pg' => 0;
+#feature 'RRD Server', 'RRDs' => 0;
+#feature 'RRD Server', 'RRDTool::OO' => 0;
 
 install_script glob('script/*.pl');
 install_script glob('script/*.PL');
