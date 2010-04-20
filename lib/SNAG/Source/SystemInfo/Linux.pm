@@ -543,8 +543,7 @@ sub system
   foreach(`$dmi_bin`)
   {
     undef $dmi_section if /^Handle/;
-
-    if(/^\s+(\w+) Information\s*$/)
+    if(/^\s*(\w+)\s+Information\s*$/)
     {
       $dmi_section = $1;
     }
