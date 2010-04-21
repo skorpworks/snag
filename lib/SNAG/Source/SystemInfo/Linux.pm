@@ -541,7 +541,16 @@ sub system
     $info->{device}->{vendor} = 'Xen';
   }
 
-  my $dmi_bin = BASE_DIR . '/dmidecode';
+  # prefer system dmidecode over any one we've tried to include
+  my $dmi_bin;
+  if(-e '/usr/sbin/dmidecode')
+  {
+    $dmi_bin = '/usr/sbin/dmidecode';
+  }
+  else
+  {
+    $dmi_bin = BASE_DIR . '/dmidecode';
+  }
   my $dmi_section;
   my @mem_tot;
   foreach(`$dmi_bin`)
