@@ -192,6 +192,12 @@ sub new
           }
         }
 
+	if(-e '/usr/sbin/vserver-stat')
+	{
+          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
+	  $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
+	}
+
         if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
         {
           $shared_data->{tags}->{'virtual'}->{vmware}->{host} = 1;
