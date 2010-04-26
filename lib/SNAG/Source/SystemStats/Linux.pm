@@ -435,19 +435,6 @@ tcp        0      0 ::ffff:129.219.15.207:22    ::ffff:129.219.80.60:50444  ESTA
   {
     my ($remote_ip, $remote_port) = split /:/, $remote;
 
-=cut
-                     '129.219.10.133' => 'vmware5.inre',
-                     '10.106.150.72' => 'xen-istb1-c8-05',
-                     '10.106.152.181' => 'xen-eca-vrsw5-01',
-                     '10.106.140.109' => 'xenia11',
-                     '10.106.140.35' => 'bbappdev1',
-                     '129.219.7.82' => 'masondev1',
-                     '129.219.134.209' => 'webqa',
-                     '129.219.10.179' => 'xenia3',
-                     '10.219.26.112' => 'cps7.wineds',
-                     '10.106.164.29' => 'filesrvspare',
-=cut
-
     if(my $host = $SNAG::Dispatch::shared_data->{remote_hosts}->{ips}->{$remote_ip})
     {
 
