@@ -1,4 +1,4 @@
-package SNAG::Source::;
+package SNAG::Source::vserver;
 use base qw/SNAG::Source/;
 
 use strict;
@@ -41,9 +41,9 @@ sub new
 				{
           foreach (`/usr/sbin/vserver-stat`)
           {
-    				my @stats = split /[' ']+/, $output;
+    				my @stats = split (/[' ']+/, $_);
 						next if $stats[7] =~ /^root/;
-						$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'processes_' . $stats[7], "1g", $time, $stats[1]));
+						$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'processes_' . $stats[7], "1g", time(), $stats[1]));
 						$kernel->post('client' => 'master' => 'heartbeat' => { source  => SCRIPT_NAME, host => $stats[7] , seen => time2str("%Y-%m-%d %T", time) } );
           }
   			} 
