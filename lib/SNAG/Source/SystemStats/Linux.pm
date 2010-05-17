@@ -339,6 +339,141 @@ sub supp_vmstat_child_close
 }
 
 
+
+
+
+
+
+
+
+
+
+#####################################################################################
+############  nfsstat ############################################################
+#####################################################################################
+
+sub run_nfsstat
+{
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+  $heap->{nfsstat_count} = 0;
+  $heap->{nfsstat_wheel} = POE::Wheel::Run->new
+  (
+    Program      => [ "nfsstat", "-n", "-3" ],
+    StdioFilter  => POE::Filter::Line->new(),
+    StderrFilter => POE::Filter::Line->new(),
+    Conduit      => 'pipe',
+    StdoutEvent  => 'supp_nfsstat_child_stdio',
+    StderrEvent  => 'supp_nfsstat_child_stderr',
+    CloseEvent   => "supp_nfsstat_child_close",
+  );
+}
+
+sub supp_nfsstat_child_stdio
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+
+  if($output =~ /^$/)
+  {
+    $heap->{nfsstat}->{valid} = 0;
+    $heap->{nfsstat}->{type} = '';
+    $heap->{nfsstat}->{nfsk} = ();
+		$heap->{nfsstat}->{nfsv} = ();
+  }
+  $output =~ m/(Server|Client) nfs v3:/;
+  next if(!$1 && $heap->{nfsstat}->{valid} == 0);
+
+  if($1)
+  {
+    $heap->{nfsstat}->{valid} = 1;
+    $heap->{nfsstat}->{type} = lc(substr($1,0,1));
+    next;
+  }
+  if($output =~ /^[a-z]/)
+  {
+    $heap->{nfsstat}->{nfsk} = [ split(/\s+/, $output) ];
+  }
+  elsif($output =~ /^\d/)
+  {
+    $heap->{nfsstat}->{nfsv} = [ grep { /^\d+$/ } split /\s+/, $output ];
+  }
+  else {}
+
+  if(scalar @$heap->{nfsstat}->{nfsk} == scalar @heap->{nfsstat}->{nfsv})
+  {
+    for(my $i = 0; $i < $#nfs_k; $i++)
+    {
+      $data->{$type}->{$nfs_k[$i]} = $nfs_v[$i];
+    }
+  } 
+  return if $output =~ /^Server nfs/;
+  return if $output =~ /^Version/;
+
+  if($output =~ /^[a-z]/)
+  {
+    $heap->{nfsstat_keys} = [ split /\s+/, $output ];
+  }
+  elsif($output =~ /^\d/)
+  {
+    my @values = grep { /^\d+$/ } split /\s+/, $output;
+
+    if(scalar @{$heap->{nfsstat_keys}} == scalar @values)
+    {
+      for ( my $i = 0; $i < $#values; $i++)
+      {
+        $heap->{nfsstat_data}->{ $heap->{nfsstat_keys}->[$i] } = $values[$i];
+      }
+    }
+    else
+    {
+      print STDERR "key and value count mismatch :(";
+    }
+  }
+  if ($output =~ /^\s+\d/ && $heap->{vmstat_count}++ >= 1)
+  {
+    my $time = time();
+    my @stats = split /\s+/, $output;
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', "1g", $time, $stats[5]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcache', "1g", $time, $stats[6]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapin', "1g", $time, $stats[7]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapout', "1g", $time, $stats[8]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'blockin', "1g", $time, $stats[9]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'blockout', "1g", $time, $stats[10]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'intrpts', "1g", $time, $stats[11]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'contxts', "1g", $time, $stats[12]));
+  }
+}
+
+sub supp_nfsstat_child_stderr
+{
+}
+
+sub supp_nfsstat_child_close
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+  delete $heap->{running_states}->{run_nfsstat};
+  delete $heap->{vmstat_wheel};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #####################################################################################
 ############  NETSTAT  ############################################################
 #####################################################################################
