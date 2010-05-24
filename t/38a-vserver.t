@@ -3,7 +3,7 @@
 use warnings; 
 use strict;
 
-use Test::More tests => 1;
+use Test::More qw/no_plan/; 
 
 use_ok("SNAG::Source::vserver");
 
