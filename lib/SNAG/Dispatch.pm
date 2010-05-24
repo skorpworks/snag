@@ -192,11 +192,18 @@ sub new
           }
         }
 
-	if(-e '/usr/sbin/vserver-stat')
-	{
-          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
-	  $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
-	}
+				if(-e '/usr/sbin/vserver-stat')
+				{
+					$shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
+					$kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
+					
+					my $multi_flag = scalar @{$shared_data->{apache}} > 1 ? 1 : 0;
+
+					foreach my $alias (@{$shared_data->{apache}})
+					{ 
+						$kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
+				  }
+				}
 
         if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
         {
@@ -262,11 +269,12 @@ sub new
 
         foreach my $alias (@server_uris)
         {
-	  unless(OS eq 'Windows')
-	  {
+					unless(OS eq 'Windows')
+					{
             $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-	  }
+					}
         }
+
       },
 
       check_process_table => sub
@@ -364,8 +372,6 @@ sub new
             $shared_data->{tags}->{service}->{syslog} = 1;
           }
 
-          #if(($proc->fname eq 'httpd' && $proc->cmndline =~ /apache/) || $proc->fname eq 'masond')
-          ### Had to make this more generic for the webauths that only report 'httpd' in the process list
           ###libhttpd.ep if from bb8 env
           if($proc->fname eq 'httpd' || $proc->fname eq 'masond' || $proc->fname eq 'apache' || $proc->fname eq 'apache2' || $proc->fname eq 'libhttpd.ep')
           {
