@@ -345,7 +345,7 @@ sub already_running
   {
     require Proc::ProcessTable;
 
-    my $full_script = "($^X|perl) $0";
+    my $full_script = "^($^X |perl |.{0,0})$0";
 
     #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
     return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
