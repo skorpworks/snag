@@ -93,6 +93,7 @@ sub new
 					(
 						Program => sub
 						{
+							$0 = "snagc_apache";
 							my $status_url = "http://$alias/server-status?auto";
 							my $get_status = $heap->{ua}->request( HTTP::Request->new(GET => $status_url) );
 
@@ -108,10 +109,10 @@ sub new
 						},
 						StdioFilter  => POE::Filter::Line->new(),
 						StderrFilter => POE::Filter::Line->new(),
-						Conduit      => 'pipe',
 						StdoutEvent  => 'server_stats_stdio',
 						StderrEvent  => 'stderr',
 						CloseEvent   => "server_stats_close",
+						CloseOnClose => 1,
           );
         }
       },
@@ -191,6 +192,7 @@ sub new
 					(
 						Program => sub
 						{
+							$0 = "snagc_apache";
               my $info_url = "http://$alias/server-info";
               my $get_info = $heap->{ua}->request( HTTP::Request->new(GET => $info_url) );
 
@@ -211,6 +213,7 @@ sub new
 						StdoutEvent  => 'server_info_stdio',
 						StderrEvent  => 'stderr',
 						CloseEvent   => "server_info_close",
+						CloseOnCall  => 1,
 					);
 				}
       },

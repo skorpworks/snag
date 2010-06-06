@@ -77,7 +77,7 @@ sub new
           ### This is the only way to reliably determine if a linux host is a vmware guest
           if(OS eq 'Linux')
           {
-            my $dmi_bin = BASE_DIR . '/dmidecode';
+            my $dmi_bin = BASE_DIR . '/sbin/dmidecode';
             foreach(`$dmi_bin`)
             {
               if(/Product Name:\s+(.+)\s*/)
@@ -192,18 +192,17 @@ sub new
           }
         }
 
-				if(-e '/usr/sbin/vserver-stat')
-				{
-					$shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
-					$kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
-					
-					my $multi_flag = scalar @{$shared_data->{apache}} > 1 ? 1 : 0;
-
-					foreach my $alias (@{$shared_data->{apache}})
-					{ 
-						$kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-				  }
-				}
+        if(-e '/usr/sbin/vserver-stat')
+        {
+          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
+          $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
+          
+          my $multi_flag = scalar @{$shared_data->{apache}} > 1 ? 1 : 0;
+          foreach my $alias (@{$shared_data->{apache}})
+          { 
+            $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
+          }
+        }
 
         if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
         {

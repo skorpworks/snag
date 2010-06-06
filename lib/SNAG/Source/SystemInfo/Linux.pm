@@ -13,7 +13,7 @@ use Digest::SHA qw(sha256_hex);
 use Digest::MD5 qw(md5_hex);
 use Net::Nslookup;
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host  arp startup system static_routes bonding config_files_whole cca installed_software_whole was_apps service_monitor iscsi mounts/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole was_apps service_monitor iscsi mounts/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -36,6 +36,9 @@ our $config =
   'arp' 		=> { 'period' => 7200 },
 
   'startup'             => { 'period' => 21600 },
+
+  'portage'             => { 'period' => 21600 },
+
   'system' 		=> { 'period' => 21600, data => $SNAG::Dispatch::shared_data },
   #'kernel_settings'     => { 'period' => 21600 }, ### Too noisy, refine and maybe use later
   'static_routes'       => { 'period' => 21600 },
@@ -87,9 +90,10 @@ my %default_config_files =
   '/etc/system' => 1,
   '/etc/xinetd.d/eklogin' => 1, 
   '/proc/vmware/version' => 1,
+  '/proc/mdstat' => 1,
+  '/usr/lib/portage/bin/pkglist' => 1,
   '/usr/local/apache2/conf/httpd.conf' => 1,
   '/usr/local/apache2/conf/ssl.conf' => 1,
-  '/usr/vice/etc/cacheinfo' => 1,
   '/usr/local/apache2/conf/extra/Alias.conf' => 1,
   '/usr/local/apache2/conf/extra/Redirect.conf' => 1,
   '/usr/local/apache2/conf/extra/Proxy.conf' => 1,
@@ -97,11 +101,16 @@ my %default_config_files =
   '/usr/local/apache2/conf/extra/httpd-ssl.conf' => 1,
   '/usr/local/apache2/conf/workers.properties' => 1,
   '/usr/local/apache2/conf/uriworkermap.properties' => 1,
+  '/usr/portage/metadata/timestamp' => 1,
+  '/usr/vice/etc/cacheinfo' => 1,
+  '/var/lib/portage/config' => 1,
+  '/var/lib/portage/world' => 1,
   '/var/lib/pgsql/data/postgresql.conf' => 1,
   '/var/lib/pgsql/data/pg_hba.conf' => 1,
   '/etc/sysconfig/rhn/up2date' => 1,
   '/etc/sysconfig/rhn/systemid' => 1,
   '/etc/yum.conf'
+  '/etc/make.conf'
 );
 
 my %default_config_dirs =
@@ -111,6 +120,7 @@ my %default_config_dirs =
   "/etc/yum.repos.d/" => '.', # use . for wildcard for entire directory
   "/etc/" => '.*.conf$', # use . for wildcard for entire directory
   "/etc/sysconfig/" => '.', # use . for wildcard for entire directory
+  "/etc/conf.d/" => '.', # use . for wildcard for entire directory
 );
 
 #### Add some more files at runtime
@@ -393,10 +403,21 @@ sub installed_software_check
   my $period = $args->{period};
   my $now = time;
 
-  my $mtime = (stat '/var/lib/rpm/Packages')[9];
-  if(($now - $mtime) < $period)
+  if (-d '/var/db/pkg')
   {
-    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+    my $mtime = (stat '/var/db/pkg')[9];
+    if(($now - $mtime) < $period)
+    {
+      $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `find /var/db/pkg/ -mindepth 2 -maxdepth 2 -printf "%P\n"` };
+    }
+  }
+  elsif ( -r '/var/lib/rpm/Packages')
+  {
+    my $mtime = (stat '/var/lib/rpm/Packages')[9];
+    if(($now - $mtime) < $period)
+    {
+      $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+    }
   }
 
   return $info;
@@ -406,7 +427,14 @@ sub installed_software_whole
 {
   my $info;
 
-  $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+  if (-d '/var/db/pkg')
+  {
+    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `find /var/db/pkg/ -mindepth 2 -maxdepth 2 -printf "%P\n"` };
+  }
+  elsif (-e '/bin/rpm')
+  {
+    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+  }
 
   return $info;
 }
@@ -415,7 +443,16 @@ sub startup
 {
   my $info;
 
-  $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` };
+  $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` } if -e '/sbin/chkconfig';
+
+  return $info;
+}
+
+sub portage
+{
+  my $info;
+
+  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info` } if -e '/usr/bin/emerge';
 
   return $info;
 }

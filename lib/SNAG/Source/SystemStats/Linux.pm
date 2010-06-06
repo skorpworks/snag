@@ -27,6 +27,7 @@ sub run_df
   (
     Program      => sub
                     {
+                      $0 = 'snagc_stats_df';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next if $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -43,10 +44,10 @@ sub run_df
                     },
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_child_close",
+    CloseOnCall  => 1,
   );
 }
 
@@ -58,6 +59,7 @@ sub run_df_nfs
   (
     Program      => sub
                     {
+                      $0 = 'snagc_stats_dfnfs';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next unless $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -74,10 +76,10 @@ sub run_df_nfs
                     },
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_nfs_child_close",
+    CloseOnCall  => 1,
   );
 }
 
@@ -136,7 +138,6 @@ sub run_iostat_io
     Program      => [ "iostat", "-x", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_iostat_io_child_stdio',       
     StderrEvent  => 'supp_iostat_io_child_stderr',       
     CloseEvent   => "supp_iostat_io_child_close",
@@ -221,7 +222,6 @@ sub run_iostat_cpu
     Program      => [ "iostat", "-c", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_iostat_cpu_child_stdio',       
     StderrEvent  => 'supp_iostat_cpu_child_stderr',       
     CloseEvent   => "supp_iostat_cpu_child_close",
@@ -295,7 +295,6 @@ sub run_vmstat
     Program      => [ "vmstat", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_vmstat_child_stdio',
     StderrEvent  => 'supp_vmstat_child_stderr',
     CloseEvent   => "supp_vmstat_child_close",
@@ -362,7 +361,6 @@ sub run_nfsstat
     Program      => [ "nfsstat", "-n", "-3" ],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_nfsstat_child_stdio',
     StderrEvent  => 'supp_nfsstat_child_stderr',
     CloseEvent   => "supp_nfsstat_child_close",
@@ -506,7 +504,6 @@ sub run_netstat
     Program      => [ "/bin/netstat -an --tcp" ],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_netstat_child_stdio',
     StderrEvent  => 'supp_netstat_child_stderr',
     CloseEvent   => "supp_netstat_child_close",

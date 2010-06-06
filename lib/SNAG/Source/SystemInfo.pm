@@ -219,6 +219,7 @@ sub new
 	        StderrEvent  => 'info_stderr',
 	        CloseEvent   => "info_close",
 	        Priority     => +5,
+	        CloseOnCall  => 1,
 	      );
     
 	      $heap->{wheels}->{$wheel->ID} = $wheel;

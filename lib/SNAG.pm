@@ -464,18 +464,15 @@ sub logger
           {
             $heap->{mail_args} = \%mail;
 
-	          $heap->{alert_wheel} = POE::Wheel::Run->new
+            $heap->{alert_wheel} = POE::Wheel::Run->new
             (
-              Program => sub
-              {
-                sendmail(%mail) or die $Mail::Sendmail::error; 
-              },
+              Program => sub { sendmail(%mail) or die $Mail::Sendmail::error; },
               StdioFilter  => POE::Filter::Line->new(),
               StderrFilter => POE::Filter::Line->new(),
-              Conduit      => 'pipe',
               StdoutEvent  => 'alert_stdio',
               StderrEvent  => 'alert_stderr',
               CloseEvent   => "alert_close",
+              CloseOnCall  => 1,
             );
           }
           else
@@ -491,13 +488,13 @@ sub logger
     
       alert_stderr => sub
       {
-	      my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
+        my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
         $kernel->yield('log' => "Could not send alert because of an error.  Error: $error, Subject: $heap->{mail_args}->{Subject}, Message: $heap->{mail_args}->{Message}");
       },
 
       alert_close => sub
       {
-	      my ($kernel, $heap) = @_[ KERNEL, HEAP ];
+        my ($kernel, $heap) = @_[ KERNEL, HEAP ];
         delete $heap->{alert_wheel};
       },
     }
