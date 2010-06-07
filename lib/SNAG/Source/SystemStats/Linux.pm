@@ -10,7 +10,7 @@ use Data::Dumper;
 use strict;
 
 my $host = HOST_NAME;
-my $rrd_step   = $SNAG::Source::SystemStats::rrd_step;
+my $rrd_step   = $SNAG::Source::SystemStats::rrd_step || 60;
 my $rrd_min    = $rrd_step/60;
 our $stat_quanta = $rrd_step - 2;
 our $stat_loops  = $rrd_min + 1;
@@ -351,7 +351,7 @@ sub supp_vmstat_child_close
 ############  nfsstat ############################################################
 #####################################################################################
 
-sub run_nfsstat
+sub dont_run_nfsstat
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
 
@@ -370,7 +370,7 @@ sub run_nfsstat
 sub supp_nfsstat_child_stdio
 {
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
-
+=cut
   if($output =~ /^$/)
   {
     $heap->{nfsstat}->{valid} = 0;
@@ -397,11 +397,11 @@ sub supp_nfsstat_child_stdio
   }
   else {}
 
-  if(scalar @$heap->{nfsstat}->{nfsk} == scalar @heap->{nfsstat}->{nfsv})
+  if(scalar @$heap->{nfsstat}->{nfsk} == scalar @$heap->{nfsstat}->{nfsv})
   {
-    for(my $i = 0; $i < $#nfs_k; $i++)
+    for(my $i = 0; $i < $#{$heap->{nfsstat}->{nfsk}}; $i++)
     {
-      $data->{$type}->{$nfs_k[$i]} = $nfs_v[$i];
+      $data->{$type}->{$heap->{nfsstat}->{nfsk}[$i] = $heap->{nfsstat}->{nfsv}[$i];
     }
   } 
   return if $output =~ /^Server nfs/;
@@ -441,6 +441,7 @@ sub supp_nfsstat_child_stdio
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'intrpts', "1g", $time, $stats[11]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'contxts', "1g", $time, $stats[12]));
   }
+=cut
 }
 
 sub supp_nfsstat_child_stderr

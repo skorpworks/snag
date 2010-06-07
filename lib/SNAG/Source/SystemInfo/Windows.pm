@@ -132,13 +132,13 @@ sub system
   {
     next if $ref->{ServiceName} eq 'msloop';
 
-    my ($iface_name, $iface_name_type);
-    if(my $key = $ref->{InterfaceIndex})
+    my ($iface_name, $iface_name_type, $key);
+    if($key = $ref->{InterfaceIndex})
     {
       $iface_name = $key;
       $iface_name_type = 'InterfaceIndex';
     }
-    elsif(my $key = $ref->{ServiceName})
+    elsif($key = $ref->{ServiceName})
     {
       $iface_name = $key;
       $iface_name_type = 'ServiceName';
@@ -146,7 +146,7 @@ sub system
 
     for(my $i=0; $i <= $#{$ref->{IPAddress}}; $i++)
     {
-      my $key = $iface_name;
+      $key = $iface_name;
 
       if($i > 0)
       {

@@ -109,8 +109,8 @@ my %default_config_files =
   '/var/lib/pgsql/data/pg_hba.conf' => 1,
   '/etc/sysconfig/rhn/up2date' => 1,
   '/etc/sysconfig/rhn/systemid' => 1,
-  '/etc/yum.conf'
-  '/etc/make.conf'
+  '/etc/yum.conf' => 1,
+  '/etc/make.conf' => 1,
 );
 
 my %default_config_dirs =

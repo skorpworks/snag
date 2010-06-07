@@ -19,7 +19,7 @@ use File::Path;
 use File::Spec;
 use URI::Escape;
 #use Cache::FastMmap::Tie;
-
+=cut
 my $rec_sep = REC_SEP;
 
 my $debug = $SNAG::flags{debug};
@@ -885,5 +885,5 @@ sub get_template
   }
 }
 
-
+=cut
 1;
