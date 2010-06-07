@@ -18,7 +18,7 @@ use XML::Simple;
 use File::Path;
 use File::Spec;
 use URI::Escape;
-use Cache::FastMmap::Tie;
+#use Cache::FastMmap::Tie;
 
 my $rec_sep = REC_SEP;
 
@@ -59,12 +59,12 @@ sub new
                       '1ga' => 1, '5ga' => 1, '15ga' => 1,
                     );
 
-  $fc = tie %cache, 'Cache::FastMmap::Tie', 
-                    (
-                       share_file => "/var/lib/SNAG/$alias.mmap",
-                       cache_size => "250M",
-                       expire_time=> "10m",
-                    );
+#  $fc = tie %cache, 'Cache::FastMmap::Tie', 
+#                    (
+#                       share_file => "/var/lib/SNAG/$alias.mmap",
+#                       cache_size => "250M",
+#                       expire_time=> "10m",
+#                    );
 
   POE::Component::EasyDBI->spawn
   (
