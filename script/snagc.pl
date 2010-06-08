@@ -64,9 +64,11 @@ elsif($SNAG::flags{compile})
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
                -M SNAG::Source::SystemStats::Linux::RHEL5 
-               -a "/opt/snag/snag.conf;snag.conf" 
+               -a "/opt/snag/snag.conf" 
                -a "/root/perl5/lib/perl5/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
                --lib="/root/perl5/lib"  
+               --link="/usr/lib/libpci.so.3"
+               --link="/usr/lib/libpci.so"
                --reusable 
                -o snagc
               ';
@@ -94,6 +96,8 @@ elsif($SNAG::flags{compile})
   {
     print "This is already a compile binary!\n";
   }
+
+  exit;
 }
 
 ### Get rid of this once all sources are converted to dispatching
