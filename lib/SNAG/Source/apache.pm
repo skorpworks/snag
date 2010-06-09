@@ -112,7 +112,7 @@ sub new
 						StdoutEvent  => 'server_stats_stdio',
 						StderrEvent  => 'stderr',
 						CloseEvent   => "server_stats_close",
-						CloseOnClose => 1,
+						CloseOnCall => 1,
           );
         }
       },

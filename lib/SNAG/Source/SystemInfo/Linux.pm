@@ -13,7 +13,7 @@ use Digest::SHA qw(sha256_hex);
 use Digest::MD5 qw(md5_hex);
 use Net::Nslookup;
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole was_apps service_monitor iscsi mounts/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole service_monitor iscsi mounts/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -48,8 +48,6 @@ our $config =
   'apache_version'      => { 'period' => 21600, if_tag => 'service.web.apache' },
 
   'installed_software_whole'	=> { 'period' => 43200 },
-
-  'was_apps'		=> { 'period' => 43200, if_tag => 'service.web.websphere' },
 };
 
 #our @EXPORT = keys %$config;
@@ -224,7 +222,7 @@ sub service_monitor
   while( my ($pid, $ref) = each %$process_list)
   {
     ### Ignore any process owned by SNAGc.pl
-    if($process_list->{ $ref->{ppid} }->{fname} =~ m/SNAGc\.pl/)
+    if($process_list->{ $ref->{ppid} }->{fname} =~ m/\bsnagc(\.pl|.{0})\b/i)
     {
       #print "Skipping $ref->{fname} because owned by SNAGc.pl\n";
       next;
@@ -452,7 +450,7 @@ sub portage
 {
   my $info;
 
-  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info` } if -e '/usr/bin/emerge';
+  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info 2>&1` } if -e '/usr/bin/emerge';
 
   return $info;
 }
@@ -586,7 +584,7 @@ sub system
   }
   else
   {
-    $dmi_bin = BASE_DIR . '/dmidecode';
+    $dmi_bin = BASE_DIR . '/sbin/dmidecode';
   }
   my $dmi_section;
   my @mem_tot;
@@ -888,7 +886,16 @@ sub system
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
   }
 
-  foreach my $line (sort `/sbin/lspci`)
+  my $lspci_bin;
+  if (-e '/use/sbin/lspci')
+  {
+    $lspci_bin = '/use/sbin/lspci';
+  }
+  else
+  {
+    $lspci_bin = BASE_DIR . '/sbin/lspci';
+  }
+  foreach my $line (sort `$lspci_bin`)
   {
     chomp $line;
     push @{$info->{pci}}, { description => $line };
@@ -996,31 +1003,6 @@ sub vmware_host
   }
 
   $info->{vmware_uuids} = $vmware_uuids;
-
-  return $info;
-}
-
-sub was_apps
-{
-  local $/ = "\n";
-
-  my $info; 
-
-  my $USERID     = 'was';
-  my $PASSWD     = 'no1nozit';
-
-  chop( my $hostname = `hostname` );
-  $hostname =~ /(.*)/;    # untaint
-
-  my @output = `/usr/local/was51/bin/wsadmin.sh -user $USERID -password $PASSWD -f /users/khopr/listapps.jacl $hostname`;
-
-  foreach my $line (@output)
-  {
-    if($line =~ /^\s+RUNNING\s+:\s+(.+)$/)
-    {
-      push @{$info->{was_apps}}, { app => $1 };
-    }
-  }
 
   return $info;
 }

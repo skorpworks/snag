@@ -71,7 +71,8 @@ sub new
       $min_period = $ref->{period};
     }
   }
-  print "  Processed config!\n" if $debug;
+
+  $poe_kernel->post('logger' => 'log' => "Sysinfo: processed config") if $debug;
 
   POE::Session->create
   (
@@ -178,7 +179,7 @@ sub new
 
           unless($symbol_table{$sub})
           {
-            $kernel->post('logger' => 'log' => "Subroutine $sub does not exist in SNAG::Source::SystemInfo's symbol table, skipping" );
+            $kernel->post('logger' => 'log' => "Sysinfo: Subroutine $sub does not exist in SNAG::Source::SystemInfo's symbol table, skipping" );
             next;
           }
 
@@ -195,21 +196,21 @@ sub new
           {  
             my $count = scalar(keys %{$heap->{wheels}} );
     
-	    print "Already $count wheels running\n" if $debug;
-            $kernel->post('logger' => 'alert' => { Subject => 'SystemInfo error on ' . HOST_NAME, Message => "$count forked processes were already running when I wanted to start a new one" } );
+	    $kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Too many forked processes', "$count processes already running", '', time2str("%Y-%m-%d %T", time())));
+            $kernel->post('logger' => 'log' => "Sysinfo: $count forked processes were already running when I wanted to start a new one" );
           }
           else
           {
             if(OS eq 'Windows')
             {
-	      print 'Running (' . (join ", ", keys %$subs_to_run) . ")\n" if $debug;
+	      $kernel->post('logger' => 'log' => 'Sysinfo: Running (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
   
               my $sysinfo = info($subs_to_run);
               $kernel->yield('info_stdio' => $sysinfo);
             }
             else
             {
-	      print 'Starting a new wheel to run (' . (join ", ", keys %$subs_to_run) . ")\n" if $debug;
+	      $kernel->post('logger' => 'log' => 'Sysinfo: Starting a new wheel to run (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
     
 	      my $wheel = POE::Wheel::Run->new
 	      (
@@ -233,7 +234,7 @@ sub new
       {
         my ($kernel, $heap, $id) = @_[KERNEL, HEAP, ARG0];
 
-        print "Info wheel id ($id) exceeded timeout period ($timeout), killing...\n"; 
+        $kernel->post('logger' => 'log' => "Sysinfo: PWR exceeded its timeout and killed after $timeout seconds:  $heap->{sysinfo_debug}"); 
 
         $kernel->alarm_remove($id);
         delete $heap->{timeouts}->{$id};
@@ -241,15 +242,13 @@ sub new
         $heap->{wheels}->{$id}->kill or $heap->{wheels}->{$id}->kill(9);
         delete $heap->{wheels}->{$id};
  
-        $kernel->post('logger' => 'alert' => { Subject => 'SystemInfo timeout on ' . HOST_NAME, Message => "An info Wheel::Run exceeded its timeout of $timeout seconds, child was killed" } );
+        #$kernel->post('client' => 'dashboard' => 'load' => );
+        $kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'A Sysinfo PWR exceeded its timeout', "$timeout seconds: $heap->{sysinfo_debug}", '', time2str("%Y-%m-%d %T", time())));
       },
 
       info_stdio => sub
       {
         my ($kernel, $heap, $info, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
-
-	#print Dumper $info;
-	#exit;
 
         if($heap->{state}->{host} ne CHECK_HOST_NAME)
         {
@@ -287,9 +286,10 @@ sub new
         {
           $kernel->post('client' => 'dashboard' => 'load' => $output);
         }
-        elsif($output =~ /^\s*sysinfo_debug/)
+        elsif($output =~ s/^\s*sysinfo_debug://)
         {
-          print "$output\n";
+          $kernel->post('logger' => 'log' => "Sysinfo: $output") if $debug; 
+	  $heap->{sysinfo_debug} = $output;
         }
         else
         {
@@ -299,7 +299,8 @@ sub new
              || $output =~ /bashrc: Permission denied/
              || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
-            $kernel->call('logger' => 'alert' => { Message =>  "Error getting sysinfo: $output" } );
+    	    $kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
+            $kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
           }
         }
       },
@@ -356,7 +357,7 @@ sub info
   {
     no strict 'refs';
 
-    print STDERR "  sysinfo_debug: now running $sub in sysinfo wheel\n" if $debug;
+    print STDERR "sysinfo_debug:info PWR: running $sub \n" if $debug;
 
     if(my $new_info = $sub->($args))
     {
@@ -375,7 +376,7 @@ sub info
     print @$return;
   }
 
-  print STDERR "  sysinfo_debug: wheel states done!\n" if $debug;
+  print STDERR "sysinfo_debug: info PWR subs done!\n" if $debug;
 }
 
 sub apache_version
