@@ -77,7 +77,14 @@ sub new
           ### This is the only way to reliably determine if a linux host is a vmware guest
           if(OS eq 'Linux')
           {
-            my $dmi_bin = BASE_DIR . '/sbin/dmidecode';
+            my $dmi_bin;
+            if(-e '/usr/sbin/dmidecode')  {
+              $dmi_bin = '/usr/sbin/dmidecode';
+            }
+            else
+            {
+              $dmi_bin = BASE_DIR . '/sbin/dmidecode';
+            }	  
             foreach(`$dmi_bin`)
             {
               if(/Product Name:\s+(.+)\s*/)
