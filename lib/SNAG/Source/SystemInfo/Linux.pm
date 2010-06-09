@@ -815,7 +815,6 @@ sub system
       $name = $1;
     }
 
-    next if $name eq 'lo';
 
     if(/HWaddr\s+([\w\:]{17})/)
     {
@@ -859,10 +858,12 @@ sub system
       
       foreach my $line (`$ethtool_bin $ifname 2>&1`)
       {
-  	    if($line =~ /^\s+Speed:\s+(\d+|Unknown)/)
-  	    {
+        next if $name =~ m/^lo/;
+
+        if($line =~ /^\s+Speed:\s+(\d+|Unknown)/)
+        {
           $iface->{$ifname}->{speed} = lc $1;
-  	    }
+        }
       	elsif($line =~ /^\s+Duplex:\s+(\w+)/)
       	{
           $iface->{$ifname}->{duplex} = lc $1;
