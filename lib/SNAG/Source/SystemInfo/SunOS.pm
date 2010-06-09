@@ -81,6 +81,7 @@ my %default_config_files =
   '/etc/mail/sendmail.cf' => 1,
 );
 
+$default_config_files{LOG_DIR . '/snag.uuid'} = 1;
 
 #### Add some more files at runtime
 sub build_config_file_list

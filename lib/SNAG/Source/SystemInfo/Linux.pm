@@ -111,6 +111,8 @@ my %default_config_files =
   '/etc/make.conf' => 1,
 );
 
+$default_config_files{LOG_DIR . '/snag.uuid'} = 1;
+
 my %default_config_dirs =
 (
   "/etc/sysconfig/network-scripts/" => 'ifcfg-',
