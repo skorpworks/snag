@@ -16,7 +16,7 @@ use Net::Nslookup;
 use Data::Dumper;
 use FreezeThaw qw/freeze thaw/;
 use Date::Format;
-
+use Capture::Tiny qw/capture tee capture_merged tee_merged/;
 
 my $parcel_sep = PARCEL_SEP;
 my $del = ':';
@@ -120,16 +120,18 @@ sub new
     {
       my ($kernel, $heap) = @_[ KERNEL, HEAP ];
 
-      my $now = time;
-
+			my ($now, $socket, $ip, $host, $stdout);
+			$now = time();
       # Horrible hack to get to the socket
-      my $socket = $heap->{client}[$heap->{client}->HANDLE_INPUT];
+      $socket = $heap->{client}[$heap->{client}->HANDLE_INPUT];
       setsockopt($socket, SOL_SOCKET, SO_KEEPALIVE, 1) || die "Could not set keepalive on socket: $!";
 
-      my $ip = $heap->{remote_ip};
-
-      my $host = nslookup(host => $ip, type => "PTR") || $ip;
-      $host =~ s/\.asu\.edu//;
+      $ip = $heap->{remote_ip};
+			
+			($stdout) = capture_merged
+			{
+				$host = nslookup(host => $ip, type => "PTR") || $ip;
+			}
 
       $server_data->{last_connect_attempt}->{$ip} = time2str('%Y-%m-%d %T', $now);
 
@@ -388,7 +390,7 @@ sub input
       #rv passes back valid data for functions now, if something goes wrong in $function the die needs to occur there
       if($rv && $rv == -1)
       {
-        $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'SNAG', "$server_data->{server_alias}", 'SNAG Server sending hold', "Server is sending $heap->{hostname} hold.  return value: $rv", '', time()) );
+        $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'SNAG', "$server_data->{server_alias}", 'SNAG Server sending hold', "Server is sending $heap->{hostname} hold.  return value: $rv", '', time2str("%Y-%m-%d %T\n", time()) );
         die "Unsuccessful loading.  Bad return value encountered.";
       }
     }
