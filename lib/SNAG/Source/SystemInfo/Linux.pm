@@ -470,8 +470,7 @@ sub bonding
 {
   my ($info, $int);
 
-  #my $dir = '/proc/net/bonding';
-  my $dir = '/var/tmp/bonding/';
+  my $dir = '/proc/net/bonding';
 
   return unless -d $dir;
 
@@ -518,7 +517,6 @@ sub arp
     open (ARP, "</proc/net/arp");
     while(<ARP>)
     { 
-      print $_;
       if ( m/^([\d\.]+) \s+ \S+ \s+ \S+ \s+ ([\w\:]+) \s+/x )
       { 
         push @{$info->{arp}}, { remote => $1, mac => $2 };
