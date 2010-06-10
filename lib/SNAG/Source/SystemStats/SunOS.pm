@@ -802,21 +802,13 @@ sub supp_network_dev_stdio
 {
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
 
-  ## netstat -i
-  #Name  Mtu  Net/Dest      Address        Ipkts  Ierrs Opkts  Oerrs Collis Queue 
-  #lo0   8232 loopback      localhost      6676733 0     6676733 0     0      0     
-  #hme0  1500															224785790 5     375481957 0     0      0     
-  #
-  # 0     1      2             3             4      5     6      7      8     9
-  #-10   -9     -8            -7            -6     -5    -4     -3     -2    -1
-
-  #-[root@localhost-09]-[0.25/0.27/0.28]-49d21h35m-2010-03-05T09:00:59-
+  #-[root@ezthumper-09]-[0.25/0.27/0.28]-49d21h35m-2010-03-05T09:00:59-
   #-[~:#]- netstat -i
   #Name  Mtu  Net/Dest      Address        Ipkts  Ierrs Opkts  Oerrs Collis Queue 
   #lo0   8232 loopback      localhost      257    0     257    0     0      0     
-  #e1000g0 16298localhost-09  localhost-09   3850326760 0     853274461 0     0      0     
-  #e1000g1 16298localhost-09-ja localhost-09-ja 215340647 0     14494  0     0      0     
-  #e1000g2 16298localhost-09-jb localhost-09-jb 215340656 0     14461  0     0      0  
+  #e1000g0 16298ezthumper-09  ezthumper-09   3850326760 0     853274461 0     0      0     
+  #e1000g1 16298ezthumper-09-ja ezthumper-09-ja 215340647 0     14494  0     0      0     
+  #e1000g2 16298ezthumper-09-jb ezthumper-09-jb 215340656 0     14461  0     0      0  
   # 0         1                    2               3      4       5    6     7      8
   #-9        -8                   -7              -6     -5      -4   -3    -2     -1
 

@@ -296,8 +296,8 @@ sub new
           unless($output =~ /got duplicate tcp line/
              || $output =~ /got bogus tcp line/
              || $output =~ /could not get current directory/
-             || $output =~ /bashrc: Permission denied/
-             || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
+             || $output =~ /bashrc: Permission denied/)
+             #|| $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
     	    	$kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
             $kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 

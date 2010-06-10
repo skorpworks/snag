@@ -14,6 +14,7 @@ WriteMakefile
 	  'Crypt::Blowfish' => 0,
 	  'Crypt::Rijndael' => 0,
 	  'DBI' => 0,
+	  'Data::UUID' => 0,
 	  'DBM::Deep' => 0,
 	  'Data::Dumper' => 0,
 	  'Date::Parse' => 0,
