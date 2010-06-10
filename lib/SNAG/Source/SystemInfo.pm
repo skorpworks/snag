@@ -376,7 +376,7 @@ sub info
     print @$return;
   }
 
-  print STDERR "sysinfo_debug: info PWR subs done!\n" if $debug;
+  print STDERR "sysinfo_debug:info PWR subs done!\n" if $debug;
 }
 
 sub apache_version

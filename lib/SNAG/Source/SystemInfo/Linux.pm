@@ -470,7 +470,8 @@ sub bonding
 {
   my ($info, $int);
 
-  my $dir = '/proc/net/bonding/';
+  #my $dir = '/proc/net/bonding';
+  my $dir = '/var/tmp/bonding/';
 
   return unless -d $dir;
 
@@ -501,23 +502,41 @@ sub bonding
     $info->{conf}->{$dir.'/'.$file} = { contents => $contents };
   }
   close SCRIPTS;
+
+  return $info;
 }
 
 sub arp
 {
-  local $/ = "\n";
-
   my $info;
 
   my $args = shift;
   delete $args->{state};
 
-  foreach my $line (`/sbin/arp -n`)
+  if ( -e '/proc/net/arp')
   {
-    next if $line =~ /^Address/;
-    next if $line =~ /incomplete/;
-    my ($ip, $mac) = (split /\s+/, $line)[0, 2];
-    push @{$info->{arp}}, { remote => $ip, mac => $mac };
+    open (ARP, "</proc/net/arp");
+    while(<ARP>)
+    { 
+      print $_;
+      if ( m/^([\d\.]+) \s+ \S+ \s+ \S+ \s+ ([\w\:]+) \s+/x )
+      { 
+        push @{$info->{arp}}, { remote => $1, mac => $2 };
+      }
+    }
+    close ARP;
+  }
+  else
+  { 
+    local $/ = "\n";
+
+    foreach my $line (`/sbin/arp -n`)
+    { 
+      next if $line =~ /^Address/;
+      next if $line =~ /incomplete/;
+      my ($ip, $mac) = (split /\s+/, $line)[0, 2];
+      push @{$info->{arp}}, { remote => $ip, mac => $mac };
+    }
   }
 
   return $info;
