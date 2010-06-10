@@ -134,6 +134,8 @@ sub new
         eval
         {
           $heap->{dbh} = DBI->connect($args->{dsn}, $args->{user}, $args->{pw}, { RaiseError => 1, AutoCommit => 1 }) or die $!;
+					$heap->{dbh}->{pg_enable_utf8} = 1;
+					$heap->{dbh}->do("SET client_encoding TO 'UTF8'");
         };
         if($@)
         {
@@ -459,7 +461,6 @@ sub load_pg
       #eid integer NOT NULL			7
   #);
 
-  my $row;
   eval
   {
     local $SIG{__WARN__} = sub
@@ -468,7 +469,7 @@ sub load_pg
     };
 
     die "DBI->ping failed: no connection to the server" unless $heap->{dbh}->ping();
-
+		my $row;
     foreach $row (@$parcel)
     {
       unless($row)
@@ -476,12 +477,17 @@ sub load_pg
         print "Empty Row\n" if $debug;
         next;
       }
-
+			$heap->{row} = $row;
       $kernel->post('logger' => 'log' => "DEBUG: Alerts: received row: $row") if $debug;
 
       if ($row =~ m/^heartbeat_syslog/)
       {
         my ($p_table, $p_host, $p_fqdn, $p_loghost, $p_seen) = split /$rec_sep/, $row, -1;
+				unless ($p_seen =~ m/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/) 
+				{ 
+					$kernel->post('logger' => 'log' => "heartbeat_syslog: $p_host.$p_fqdn.$p_loghost: ERRROR: improper format for timestamp $p_seen ") if $debug; 
+					next; 
+				} 
         unless (defined $heap->{hbs_s_sth})
         {
           $heap->{hbs_s_sth} = $heap->{dbh}->prepare('SELECT count(*) from heartbeat_syslog where host= ? and fqdn = ? and loghost= ?');
@@ -624,7 +630,8 @@ sub load_pg
      || $@ =~ /server closed the connection unexpectedly/
     )
   {
-    $kernel->post('logger' => 'alert' => { To => 'SNAGalerts@asu.edu', Subject => "Error on " . HOST_NAME . "::alerts", Message => $@ } );
+		$kernel->post('logger' => 'log' => "Caught db error: row ----> $heap->{row}");
+		$kernel->post('logger' => 'log' => "Caught db error: error --> $@");
     delete $heap->{connected};
     delete $heap->{hbs_s_sth};
     delete $heap->{evt_sth};
@@ -634,8 +641,23 @@ sub load_pg
     #return "Lost DB Connection";
     return -1;
   }
+	elsif($@ =~ /DBD::Pg::st execute failed: .*? invalid byte sequence for encoding/) 
+	{ 
+		$kernel->post('logger' => 'log' => "Caught db encoding error: row ----> $heap->{row}"); 
+		$kernel->post('logger' => 'log' => "Caught db encoding error: error --> $@"); 
+		$heap->{dbh}->rollback(); 
+	} 
+	elsif($@ =~ /DBD::Pg::db begin_work failed: Already in a transaction/ || $@ =~ /DBD::Pg::st execute failed: /) 
+	{ 
+		$kernel->post('logger' => 'log' => "Caught db trans error: row ----> $heap->{row}"); 
+		$kernel->post('logger' => 'log' => "Caught db trans error: error --> $@"); 
+		$heap->{dbh}->rollback(); 
+		return -1; 
+	} 
   elsif($@ =~ /key violates unique constraint/)
   {
+		$kernel->post('logger' => 'log' => "Caught primary key violation: row ----> $heap->{row}"); 
+	 	$kernel->post('logger' => 'log' => "Caught primary key violation: error --> $@");
     $heap->{dbh}->rollback;
     if($commit_after_insert)
     {
@@ -649,12 +671,11 @@ sub load_pg
   }
   elsif($@)
   {
-    $heap->{dbh}->rollback;
-    $kernel->post('logger' => 'alert' => { To => 'SNAGdev@asu.edu', Message => $@ } );
+    #$heap->{dbh}->rollback;
     $kernel->post('logger' => 'log' => "Uncaught Error: error --> $@");
-    $kernel->post('logger' => 'log' => "Uncaught Error: row ----> $row");
+    $kernel->post('logger' => 'log' => "Uncaught Error: row ----> $heap->{row}");
     #return "Uncaught Error";
-    return -1;
+    #return -1;
   }
   return 0; ## SUCCESS
 }

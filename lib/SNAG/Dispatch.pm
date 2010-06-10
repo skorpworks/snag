@@ -598,7 +598,7 @@ sub new
             }
           }
 
-          if($proc->fname eq 'klogd')
+          if($proc->fname eq 'kaserver')
           {
             $shared_data->{tags}->{service}->{klog} = 1;
 

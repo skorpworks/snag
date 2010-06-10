@@ -8,6 +8,7 @@ WriteMakefile
     'VERSION_FROM' => 'lib/SNAG.pm',
     'ABSTRACT_FROM' => 'lib/SNAG.pm',
     'PREREQ_PM' => {
+		'Capture::Tiny' => 0,
 	  'Config::General' => 0,
 	  'Crypt::CBC' => 0,
 	  'Crypt::Blowfish' => 0,

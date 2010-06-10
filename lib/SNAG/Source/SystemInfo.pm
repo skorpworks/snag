@@ -299,8 +299,9 @@ sub new
              || $output =~ /bashrc: Permission denied/)
              #|| $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
-    	    $kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
+    	    	$kernel->post('client' => 'dashboard' => 'load' => join $rec_sep, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
             $kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
+						print "Error getting sysinfo: $output\n" if $debug;
           }
         }
       },
