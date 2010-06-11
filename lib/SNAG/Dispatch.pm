@@ -221,12 +221,6 @@ sub new
         {
           $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
           $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
-          
-          my $multi_flag = scalar @{$shared_data->{apache}} > 1 ? 1 : 0;
-          foreach my $alias (@{$shared_data->{apache}})
-          { 
-            $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-          }
         }
 
         if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
