@@ -477,6 +477,7 @@ sub bonding
   opendir SCRIPTS, $dir;
   foreach my $file (readdir SCRIPTS)
   {
+    local $/ = "\n";
     my $contents;
     open BOND, "<$dir/$file";
     while (<BOND>)
@@ -512,8 +513,10 @@ sub arp
   my $args = shift;
   delete $args->{state};
 
+
   if ( -e '/proc/net/arp')
   {
+    local $/ = "\n";
     open (ARP, "</proc/net/arp");
     while(<ARP>)
     { 
