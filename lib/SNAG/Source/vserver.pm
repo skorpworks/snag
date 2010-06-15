@@ -78,8 +78,7 @@ sub new
 
 				$kernel->delay($_[STATE] => 3600);
 			},
-
-
+		}
   );
 }
 
