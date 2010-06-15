@@ -81,6 +81,7 @@ my %default_config_files =
   '/etc/mail/sendmail.cf' => 1,
 );
 
+$default_config_files{LOG_DIR . '/snag.uuid'} = 1;
 
 #### Add some more files at runtime
 sub build_config_file_list
@@ -737,13 +738,13 @@ sub system
   #Media Error: 0 Device Not Ready: 0 No Device: 21 Recoverable: 0
   #Illegal Request: 0 Predictive Failure Analysis: 0
 
-  my ($disk, $device, $type);
+  my ($disk, $ddevice, $type);
   foreach (`/usr/bin/iostat -En`)
   {
     if(/(\w+)\s+Soft\s+Errors/)
     {
-      $device = $1;
-      if($device =~ /^s/)
+      $ddevice = $1;
+      if($ddevice =~ /^s/)
       {
         $type = 'scsi';
       }
@@ -756,29 +757,29 @@ sub system
     if(/Vendor:\s+(.+?)\s+Product:\s+(.+?)\s+Revision:\s+(.+?)\s+Serial\s+No:\s+(.+)$/)
     {
 
-      $disk->{$type}->{$device}->{vendor} = $1;
-      $disk->{$type}->{$device}->{model} = $2;
-      $disk->{$type}->{$device}->{rev} = $3;
+      $disk->{$type}->{$ddevice}->{vendor} = $1;
+      $disk->{$type}->{$ddevice}->{model} = $2;
+      $disk->{$type}->{$ddevice}->{rev} = $3;
 
       my $serial = $4;
       $serial = $serial =~ /^[\w\-\s\/\\]+$/ ? $serial : '';
-      $disk->{$type}->{$device}->{serial} = $serial;
+      $disk->{$type}->{$ddevice}->{serial} = $serial;
     }
 
 
     if(/Model:\s+(.+?)\s+Revision:\s+(.+?)\s+Serial No: (.+)$/)
     {
-      $disk->{$type}->{$device}->{model} = $1;
-      $disk->{$type}->{$device}->{rev} = $2;
+      $disk->{$type}->{$ddevice}->{model} = $1;
+      $disk->{$type}->{$ddevice}->{rev} = $2;
 
       my $serial = $3;
       $serial = $serial =~ /^[\w\-\s\/\\]+$/ ? $serial : '';
-      $disk->{$type}->{$device}->{serial} = $serial;
+      $disk->{$type}->{$ddevice}->{serial} = $serial;
     }
 
     if(/Size:\s+([\w\.]+)/)
     {
-      $disk->{$type}->{$device}->{size} = $1;
+      $disk->{$type}->{$ddevice}->{size} = $1;
     }
   }
 

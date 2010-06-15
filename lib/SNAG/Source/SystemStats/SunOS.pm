@@ -11,7 +11,7 @@ use strict;
 
 my $del =  ':';
 my $host = HOST_NAME;
-my $rrd_step   = $SNAG::Source::SystemStats::rrd_step;
+my $rrd_step   = $SNAG::Source::SystemStats::rrd_step || 60;
 my $rrd_min    = $rrd_step/60;
 my $stat_quanta = 58;
 my $stat_loops  = $rrd_min + 1;

@@ -133,7 +133,6 @@ sub new
 
       error => sub
       {
-        my ($kernel, $heap) = @_[ KERNEL, HEAP ];
         my ($kernel, $operation, $errnum, $errstr) = @_[KERNEL, ARG0 .. ARG2];
         $kernel->post("logger" => "log" => "FollowTail Error: $operation, $errnum, $errstr");
       },

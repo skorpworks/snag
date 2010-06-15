@@ -89,29 +89,30 @@ sub new
         }
         else
         {
-	  $heap->{server_stats_wheel} = POE::Wheel::Run->new
-	  (
-	    Program => sub
-		       {
-                         my $status_url = "http://localhost/server-status?auto";
-			 my $get_status = $heap->{ua}->request( HTTP::Request->new(GET => $status_url) );
+					$heap->{server_stats_wheel} = POE::Wheel::Run->new
+					(
+						Program => sub
+						{
+							$0 = "snagc_apache";
+							my $status_url = "http://$alias/server-status?auto";
+							my $get_status = $heap->{ua}->request( HTTP::Request->new(GET => $status_url) );
 
-			 if($get_status->is_success)
-			 {
-			   my $content = $get_status->content;
-			   print "$content\n";
-			 }
-                         else
-                         {
-                           print STDERR "could not get $status_url\n";
-                         }
-		       },
-	    StdioFilter  => POE::Filter::Line->new(),
-	    StderrFilter => POE::Filter::Line->new(),
-	    Conduit      => 'pipe',
-	    StdoutEvent  => 'server_stats_stdio',
-	    StderrEvent  => 'stderr',
-	    CloseEvent   => "server_stats_close",
+							if($get_status->is_success)
+							{
+							  my $content = $get_status->content;
+								print "$content\n";
+							}
+							else
+							{
+								print STDERR "could not get $status_url\n";
+							}
+						},
+						StdioFilter  => POE::Filter::Line->new(),
+						StderrFilter => POE::Filter::Line->new(),
+						StdoutEvent  => 'server_stats_stdio',
+						StderrEvent  => 'stderr',
+						CloseEvent   => "server_stats_close",
+						CloseOnCall => 1,
           );
         }
       },
@@ -120,47 +121,47 @@ sub new
       {
         my ($kernel, $heap, $input) = @_[KERNEL, HEAP, ARG0];
 
-	my ($key, $val) = ($input =~ /^([\w\s]+): (.+)$/);
+				my ($key, $val) = ($input =~ /^([\w\s]+): (.+)$/);
 
         my $time = time;
 
-	if($key && $val)
-	{
-	  if($key eq 'Total Accesses')
-	  {
-	    $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_accesses', '1d', $time, $val));
-	  }
-	  elsif($key eq 'Total kBytes')
-	  {
-            $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_kbytes', '1d', $time, $val));
-	  }
-	  elsif($key eq 'Uptime')
-	  {
-            $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_uptime', '1g', $time, $val));
-	  }
-	  elsif($key eq 'BusyWorkers' || $key eq 'BusyServers')
-	  {
-            $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_busy', '1g', $time, $val));
-	  }
-	  elsif($key eq 'IdleWorkers' || $key eq 'IdleServers')
-	  {
-            $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_idle', '1g', $time, $val));
-	  }
-	  elsif($key eq 'Scoreboard')
-	  {
-            while( my ($key, $rrd) = each %scoreboard_keys)
-	    {
-              my $count;
-              $count++ while $val =~ /$key/g;
+				if($key && $val)
+				{
+					if($key eq 'Total Accesses')
+					{
+						$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_accesses', '1d', $time, $val));
+					}
+					elsif($key eq 'Total kBytes')
+					{
+						$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_kbytes', '1d', $time, $val));
+					}
+					elsif($key eq 'Uptime')
+					{
+						$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_uptime', '1g', $time, $val));
+					}
+					elsif($key eq 'BusyWorkers' || $key eq 'BusyServers')
+					{
+						$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_busy', '1g', $time, $val));
+					}
+					elsif($key eq 'IdleWorkers' || $key eq 'IdleServers')
+					{
+						$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, 'web_idle', '1g', $time, $val));
+					}
+					elsif($key eq 'Scoreboard')
+					{
+						while( my ($key, $rrd) = each %scoreboard_keys)
+						{
+							my $count;
+							$count++ while $val =~ /$key/g;
 
-              if($count)
-              {
-                $kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, $rrd, '1g', $time, $count));
-              }
-            }
-          }
-        }
-      },
+							if($count)
+							{
+								$kernel->post("client" => "sysrrd" => "load" => join ':', ($rrd_dest, $rrd, '1g', $time, $count));
+							}
+						}
+					}
+				}
+			},
 
       stderr => sub
       {
@@ -187,32 +188,34 @@ sub new
         }
         else
         {
-	  $heap->{server_info_wheel} = POE::Wheel::Run->new
-	  (
-	    Program => sub
-		       {
-                         my $info_url = "http://127.0.0.1:80/server-info";
-                         my $get_info = $heap->{ua}->request( HTTP::Request->new(GET => $info_url) );
+					$heap->{server_info_wheel} = POE::Wheel::Run->new
+					(
+						Program => sub
+						{
+							$0 = "snagc_apache";
+              my $info_url = "http://$alias/server-info";
+              my $get_info = $heap->{ua}->request( HTTP::Request->new(GET => $info_url) );
 
-			 if($get_info->is_success)
-			 {
-			   my $content = $get_info->content;
-                           $content =~ s/\<[^\>]+\>//gm;
-			   print "$content\n";
-			 }
-                         else
-                         {
-                           print STDERR "could not get $info_url\n";
-                         }
-		       },
-	    StdioFilter  => POE::Filter::Line->new(),
-	    StderrFilter => POE::Filter::Line->new(),
-	    Conduit      => 'pipe',
-	    StdoutEvent  => 'server_info_stdio',
-	    StderrEvent  => 'stderr',
-	    CloseEvent   => "server_info_close",
-          );
-        }
+							if($get_info->is_success)
+							{
+								my $content = $get_info->content;
+								$content =~ s/\<[^\>]+\>//gm;
+								print "$content\n";
+							}
+							else
+							{
+								print STDERR "could not get $info_url\n";
+							}
+						},
+						StdioFilter  => POE::Filter::Line->new(),
+						StderrFilter => POE::Filter::Line->new(),
+						Conduit      => 'pipe',
+						StdoutEvent  => 'server_info_stdio',
+						StderrEvent  => 'stderr',
+						CloseEvent   => "server_info_close",
+						CloseOnCall  => 1,
+					);
+				}
       },
 
       server_info_stdio => sub

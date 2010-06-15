@@ -76,17 +76,17 @@ sub new
       {
         if($@ =~ /Can\'t locate/)  
         {
-          print "Could not find $module\n" if $debug;
+          $poe_kernel->post('logger' => 'log' => "SysStats: Could not find $module") if $debug;
         }
         else
         {
-          print "Uncaught error loading $module: $@\n" if $debug;
+          $poe_kernel->post('logger' => 'log' => "SysStats: Uncaught error loading $module: $@") if $debug;
         }
         return;
       }
       else
       {
-        print "Loaded $module!\n" if $debug;
+        $poe_kernel->post('logger' => 'log' => "SysStats: Loaded $module") if $debug;
       }
     }
     else
@@ -96,7 +96,7 @@ sub new
   }
   else
   {
-    print "Loaded $module!\n" if $debug;
+    $poe_kernel->post('logger' => 'log' => "SysStats: Loaded $module") if $debug;
   }
 
   POE::Session->create
@@ -189,7 +189,7 @@ sub _scan_namespace
 
     if($key =~ /^run_/)
     {
-      print "Found run state: $key\n" if $debug;
+      $kernel->post('logger' => 'log' => "SysStats: Found run state: $key") if $debug;
       $run_states->{$key} = {};
     }
 

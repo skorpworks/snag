@@ -81,14 +81,14 @@ sub new
         {
           $heap->{run_monitor_wheel} = POE::Wheel::Run->new
           (
-            Program => \&run_monitor,
+            Program => \&monitor,
             ProgramArgs  => [ $monitor_defs ],
             StdioFilter  => POE::Filter::Reference->new(),
             StderrFilter => POE::Filter::Line->new(),
-            Conduit      => 'pipe',
             StdoutEvent  => 'wheel_stdio',
             StderrEvent  => 'wheel_stderr',
             CloseEvent   => 'wheel_close',
+	    CloseOnCall  => 1,
           );
         }
       },
@@ -167,16 +167,17 @@ sub new
   );
 }
 
-#          'ports' => {
-#                       '3306' => '1',
-#                       '188' => '1'
-#                     },
-
-sub run_monitor
+sub monitor
 {
   my $monitor_defs = shift;
 
   my $status = {};
+
+# 'ports' => {
+#              '3306' => '1',
+#              '188' => '1'
+#            },
+
 
   if(my $ports = $monitor_defs->{ports})
   {
