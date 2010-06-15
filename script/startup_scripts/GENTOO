@@ -3,18 +3,30 @@
 # Distributed under the terms of the GNU General Public License v2
 
 depend() {
-	need net 
-	provide snag 
+	need net
 }
 
 start() {
-	ebegin "Starting snag"
-	start-stop-daemon --start --quiet --exec /opt/snag/bin/snagw.pl -- --nosyslog 
-	eend $?
+        ebegin "Starting snag"
+        /opt/snag/bin/snagw.pl --nosyslog 
+        eend $?
 }
 
 stop() {
-	ebegin "Stopping snag"
-	start-stop-daemon --stop --quiet --pidfile /var/run/snag.pid
-	eend $?
+        ebegin "Stopping snag"
+
+        awkfield2='$2'
+        procs=(`ps -ef | awk "/(_snags.pl|snagc.pl)/ && ! /awk/ "| awk "{ print $awkfield2; }"`)
+                        
+        for proc in ${procs[@]}
+        do
+                ebegin " Killing ${proc}: "
+                kill ${proc}
+        done
+        eend $?
+}
+
+restart() {
+        svc_stop
+        svc_start
 }
