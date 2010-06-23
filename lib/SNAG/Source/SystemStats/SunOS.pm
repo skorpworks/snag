@@ -40,6 +40,7 @@ sub run_zpool
     Program      => [ '/usr/sbin/zpool', 'iostat', $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
+    Conduit      => 'pipe',
     StdoutEvent  => 'supp_zpool_child_stdio',       
     StderrEvent  => 'supp_zpool_child_stderr',       
     CloseEvent   => "supp_zpool_child_close",
@@ -145,7 +146,7 @@ sub run_nfsstat
     Program      => [ "/usr/bin/nfsstat", '-n', '-s', '-v 3', $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
-    Conduit      => 'pty',
+    Conduit      => 'pipe',
     StdoutEvent  => 'supp_nfsstat_child_stdio',       
     StderrEvent  => 'supp_nfsstat_child_stderr',       
     CloseEvent   => "supp_nfsstat_child_close",
@@ -700,6 +701,7 @@ sub run_df
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_child_close",
+    CloseOnCall  => 1,
   );
 }
 
@@ -731,6 +733,7 @@ sub run_df_nfs
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_nfs_child_close",
+    CloseOnCall  => 1,
   );
 }
 
