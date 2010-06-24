@@ -910,9 +910,9 @@ sub system
   }
 
   my $lspci_bin;
-  if (-e '/use/sbin/lspci')
+  if (-e '/usr/sbin/lspci')
   {
-    $lspci_bin = '/use/sbin/lspci';
+    $lspci_bin = '/usr/sbin/lspci';
   }
   else
   {
