@@ -460,14 +460,19 @@ sub new
                   {
                     my ($n, $t) = ($type =~ /^(\d+)(.+)$/);
 
+                    #enable aberrant
                     my $a = 0;
                     $a = 1 if ($t =~ s/a//i);
+
+                    #non-consolidated "infinite" rrd
+                    my $i = 0;
+                    $i = 1 if ($t =~ s/i//i);
                   
                     $t = 'COUNTER' if $t =~ /^c/;
                     $t = 'GAUGE'   if $t =~ /^g/;
                     $t = 'DERIVE'  if $t =~ /^d/;
                     $kernel->post("logger" => "log" => "LOAD: Creating $rrd_file");
-                    $rrd->{$hostkey}->{$ds}->create(@{&get_template($ds, $n, $t, $a, $time)});
+                    $rrd->{$hostkey}->{$ds}->create(@{&get_template($ds, $n, $t, $a, $i, $time)});
                     chmod 0740, $rrd_file || $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
                     #system "/bin/chgrp nobody $rrd_file" && $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
                     $stats->{stats}->{create}++;
@@ -601,7 +606,7 @@ sub new
 sub get_template
 ################################
 {
-  my ($ds, $n, $type, $aber, $time) = @_;
+  my ($ds, $n, $type, $aber, $inf, $time) = @_;
 
   my $data_source = {
        name => 'data',
@@ -698,72 +703,93 @@ sub get_template
 
     $data_source->{heartbeat} = 900;
 
-    return
-    [
-      step      => 300,
-      start     => $time - 300,
-      data_source => $data_source,
-      archive => { 
-        rows    => 1,
-        cpoints => 1,
-        cfunc   => 'LAST', 
-      },
-      archive => { 
-        rows    => 4032,
-        cpoints => 1,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 4032,
-        cpoints => 1,
-        cfunc   => 'MAX', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 6,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 6,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 6,
-        cfunc   => 'MAX', 
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 24,
-        cfunc   => 'AVERAGE',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 24,
-        cfunc   => 'MIN',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 24,
-        cfunc   => 'MAX',
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 288,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 288,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 288,
-        cfunc   => 'MAX', 
-      },
-    ];
+    if ($inf)
+    {
+      return
+      [
+        step      => 300,
+        start     => $time - 300,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 315360,
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+    }
+    else
+    {
+      return
+      [
+        step      => 300,
+        start     => $time - 300,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 4032,
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 4032,
+          cpoints => 1,
+          cfunc   => 'MAX', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 6,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 6,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 6,
+          cfunc   => 'MAX', 
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 24,
+          cfunc   => 'AVERAGE',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 24,
+          cfunc   => 'MIN',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 24,
+          cfunc   => 'MAX',
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 288,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 288,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 288,
+          cfunc   => 'MAX', 
+        },
+      ];
+    }
   }
   elsif($n == 15)
   {
