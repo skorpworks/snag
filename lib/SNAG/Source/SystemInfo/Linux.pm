@@ -13,7 +13,7 @@ use Digest::SHA qw(sha256_hex);
 use Digest::MD5 qw(md5_hex);
 use Net::Nslookup;
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host  arp startup system static_routes bonding config_files_whole cca installed_software_whole was_apps service_monitor iscsi mounts/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole service_monitor iscsi mounts/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -36,6 +36,9 @@ our $config =
   'arp' 		=> { 'period' => 7200 },
 
   'startup'             => { 'period' => 21600 },
+
+  'portage'             => { 'period' => 21600 },
+
   'system' 		=> { 'period' => 21600, data => $SNAG::Dispatch::shared_data },
   #'kernel_settings'     => { 'period' => 21600 }, ### Too noisy, refine and maybe use later
   'static_routes'       => { 'period' => 21600 },
@@ -45,8 +48,6 @@ our $config =
   'apache_version'      => { 'period' => 21600, if_tag => 'service.web.apache' },
 
   'installed_software_whole'	=> { 'period' => 43200 },
-
-  'was_apps'		=> { 'period' => 43200, if_tag => 'service.web.websphere' },
 };
 
 #our @EXPORT = keys %$config;
@@ -87,9 +88,10 @@ my %default_config_files =
   '/etc/system' => 1,
   '/etc/xinetd.d/eklogin' => 1, 
   '/proc/vmware/version' => 1,
+  '/proc/mdstat' => 1,
+  '/usr/lib/portage/bin/pkglist' => 1,
   '/usr/local/apache2/conf/httpd.conf' => 1,
   '/usr/local/apache2/conf/ssl.conf' => 1,
-  '/usr/vice/etc/cacheinfo' => 1,
   '/usr/local/apache2/conf/extra/Alias.conf' => 1,
   '/usr/local/apache2/conf/extra/Redirect.conf' => 1,
   '/usr/local/apache2/conf/extra/Proxy.conf' => 1,
@@ -97,12 +99,19 @@ my %default_config_files =
   '/usr/local/apache2/conf/extra/httpd-ssl.conf' => 1,
   '/usr/local/apache2/conf/workers.properties' => 1,
   '/usr/local/apache2/conf/uriworkermap.properties' => 1,
+  '/usr/portage/metadata/timestamp' => 1,
+  '/usr/vice/etc/cacheinfo' => 1,
+  '/var/lib/portage/config' => 1,
+  '/var/lib/portage/world' => 1,
   '/var/lib/pgsql/data/postgresql.conf' => 1,
   '/var/lib/pgsql/data/pg_hba.conf' => 1,
   '/etc/sysconfig/rhn/up2date' => 1,
   '/etc/sysconfig/rhn/systemid' => 1,
-  '/etc/yum.conf'
+  '/etc/yum.conf' => 1,
+  '/etc/make.conf' => 1,
 );
+
+$default_config_files{LOG_DIR . '/snag.uuid'} = 1;
 
 my %default_config_dirs =
 (
@@ -111,6 +120,7 @@ my %default_config_dirs =
   "/etc/yum.repos.d/" => '.', # use . for wildcard for entire directory
   "/etc/" => '.*.conf$', # use . for wildcard for entire directory
   "/etc/sysconfig/" => '.', # use . for wildcard for entire directory
+  "/etc/conf.d/" => '.', # use . for wildcard for entire directory
 );
 
 #### Add some more files at runtime
@@ -127,6 +137,10 @@ sub build_config_file_list
     delete $config_files{'/etc/group'};
     delete $config_files{'/etc/shadow'};
   }
+
+  # add all config files for vservers
+  my @vservers = glob('/etc/vservers/*');
+  $default_config_dirs{$_ . '/'} = '.' for @vservers;
   
   foreach my $dir (keys %default_config_dirs)
   {
@@ -210,7 +224,7 @@ sub service_monitor
   while( my ($pid, $ref) = each %$process_list)
   {
     ### Ignore any process owned by SNAGc.pl
-    if($process_list->{ $ref->{ppid} }->{fname} =~ m/SNAGc\.pl/)
+    if($process_list->{ $ref->{ppid} }->{fname} =~ m/\bsnagc(\.pl|.{0})\b/i)
     {
       #print "Skipping $ref->{fname} because owned by SNAGc.pl\n";
       next;
@@ -389,10 +403,21 @@ sub installed_software_check
   my $period = $args->{period};
   my $now = time;
 
-  my $mtime = (stat '/var/lib/rpm/Packages')[9];
-  if(($now - $mtime) < $period)
+  if (-d '/var/db/pkg')
   {
-    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+    my $mtime = (stat '/var/db/pkg')[9];
+    if(($now - $mtime) < $period)
+    {
+      $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `find /var/db/pkg/ -mindepth 2 -maxdepth 2 -printf "%P\n"` };
+    }
+  }
+  elsif ( -r '/var/lib/rpm/Packages')
+  {
+    my $mtime = (stat '/var/lib/rpm/Packages')[9];
+    if(($now - $mtime) < $period)
+    {
+      $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+    }
   }
 
   return $info;
@@ -402,7 +427,14 @@ sub installed_software_whole
 {
   my $info;
 
-  $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+  if (-d '/var/db/pkg')
+  {
+    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `find /var/db/pkg/ -mindepth 2 -maxdepth 2 -printf "%P\n"` };
+  }
+  elsif (-e '/bin/rpm')
+  {
+    $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+  }
 
   return $info;
 }
@@ -411,7 +443,16 @@ sub startup
 {
   my $info;
 
-  $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` };
+  $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` } if -e '/sbin/chkconfig';
+
+  return $info;
+}
+
+sub portage
+{
+  my $info;
+
+  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info 2>&1` } if -e '/usr/bin/emerge';
 
   return $info;
 }
@@ -429,13 +470,14 @@ sub bonding
 {
   my ($info, $int);
 
-  my $dir = '/proc/net/bonding/';
+  my $dir = '/proc/net/bonding';
 
   return unless -d $dir;
 
   opendir SCRIPTS, $dir;
   foreach my $file (readdir SCRIPTS)
   {
+    local $/ = "\n";
     my $contents;
     open BOND, "<$dir/$file";
     while (<BOND>)
@@ -460,23 +502,42 @@ sub bonding
     $info->{conf}->{$dir.'/'.$file} = { contents => $contents };
   }
   close SCRIPTS;
+
+  return $info;
 }
 
 sub arp
 {
-  local $/ = "\n";
-
   my $info;
 
   my $args = shift;
   delete $args->{state};
 
-  foreach my $line (`/sbin/arp -n`)
+
+  if ( -e '/proc/net/arp')
   {
-    next if $line =~ /^Address/;
-    next if $line =~ /incomplete/;
-    my ($ip, $mac) = (split /\s+/, $line)[0, 2];
-    push @{$info->{arp}}, { remote => $ip, mac => $mac };
+    local $/ = "\n";
+    open (ARP, "</proc/net/arp");
+    while(<ARP>)
+    { 
+      if ( m/^([\d\.]+) \s+ \S+ \s+ \S+ \s+ ([\w\:]+) \s+/x )
+      { 
+        push @{$info->{arp}}, { remote => $1, mac => $2 };
+      }
+    }
+    close ARP;
+  }
+  else
+  { 
+    local $/ = "\n";
+
+    foreach my $line (`/sbin/arp -n`)
+    { 
+      next if $line =~ /^Address/;
+      next if $line =~ /incomplete/;
+      my ($ip, $mac) = (split /\s+/, $line)[0, 2];
+      push @{$info->{arp}}, { remote => $ip, mac => $mac };
+    }
   }
 
   return $info;
@@ -537,14 +598,22 @@ sub system
     $info->{device}->{vendor} = 'Xen';
   }
 
-  my $dmi_bin = BASE_DIR . '/dmidecode';
+  # prefer system dmidecode over any one we've tried to include
+  my $dmi_bin;
+  if(-e '/usr/sbin/dmidecode')
+  {
+    $dmi_bin = '/usr/sbin/dmidecode';
+  }
+  else
+  {
+    $dmi_bin = BASE_DIR . '/sbin/dmidecode';
+  }
   my $dmi_section;
   my @mem_tot;
   foreach(`$dmi_bin`)
   {
     undef $dmi_section if /^Handle/;
-
-    if(/^\s+(\w+) Information\s*$/)
+    if(/^\s*(\w+)\s+Information\s*$/)
     {
       $dmi_section = $1;
     }
@@ -768,7 +837,6 @@ sub system
       $name = $1;
     }
 
-    next if $name eq 'lo';
 
     if(/HWaddr\s+([\w\:]{17})/)
     {
@@ -812,10 +880,12 @@ sub system
       
       foreach my $line (`$ethtool_bin $ifname 2>&1`)
       {
-  	    if($line =~ /^\s+Speed:\s+(\d+|Unknown)/)
-  	    {
+        next if $name =~ m/^lo/;
+
+        if($line =~ /^\s+Speed:\s+(\d+|Unknown)/)
+        {
           $iface->{$ifname}->{speed} = lc $1;
-  	    }
+        }
       	elsif($line =~ /^\s+Duplex:\s+(\w+)/)
       	{
           $iface->{$ifname}->{duplex} = lc $1;
@@ -839,7 +909,16 @@ sub system
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
   }
 
-  foreach my $line (sort `/sbin/lspci`)
+  my $lspci_bin;
+  if (-e '/use/sbin/lspci')
+  {
+    $lspci_bin = '/use/sbin/lspci';
+  }
+  else
+  {
+    $lspci_bin = BASE_DIR . '/sbin/lspci';
+  }
+  foreach my $line (sort `$lspci_bin`)
   {
     chomp $line;
     push @{$info->{pci}}, { description => $line };
@@ -947,31 +1026,6 @@ sub vmware_host
   }
 
   $info->{vmware_uuids} = $vmware_uuids;
-
-  return $info;
-}
-
-sub was_apps
-{
-  local $/ = "\n";
-
-  my $info; 
-
-  my $USERID     = 'was';
-  my $PASSWD     = 'no1nozit';
-
-  chop( my $hostname = `hostname` );
-  $hostname =~ /(.*)/;    # untaint
-
-  my @output = `/usr/local/was51/bin/wsadmin.sh -user $USERID -password $PASSWD -f /users/khopr/listapps.jacl $hostname`;
-
-  foreach my $line (@output)
-  {
-    if($line =~ /^\s+RUNNING\s+:\s+(.+)$/)
-    {
-      push @{$info->{was_apps}}, { app => $1 };
-    }
-  }
 
   return $info;
 }

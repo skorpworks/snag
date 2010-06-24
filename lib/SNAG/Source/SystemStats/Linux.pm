@@ -10,7 +10,7 @@ use Data::Dumper;
 use strict;
 
 my $host = HOST_NAME;
-my $rrd_step   = $SNAG::Source::SystemStats::rrd_step;
+my $rrd_step   = $SNAG::Source::SystemStats::rrd_step || 60;
 my $rrd_min    = $rrd_step/60;
 our $stat_quanta = $rrd_step - 2;
 our $stat_loops  = $rrd_min + 1;
@@ -27,6 +27,7 @@ sub run_df
   (
     Program      => sub
                     {
+                      $0 = 'snagc_stats_df';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next if $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -43,10 +44,10 @@ sub run_df
                     },
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_child_close",
+    CloseOnCall  => 1,
   );
 }
 
@@ -58,6 +59,7 @@ sub run_df_nfs
   (
     Program      => sub
                     {
+                      $0 = 'snagc_stats_dfnfs';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next unless $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -74,10 +76,10 @@ sub run_df_nfs
                     },
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_df_child_stdio',
     StderrEvent  => 'supp_df_child_stderr',
     CloseEvent   => "supp_df_nfs_child_close",
+    CloseOnCall  => 1,
   );
 }
 
@@ -136,7 +138,6 @@ sub run_iostat_io
     Program      => [ "iostat", "-x", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_iostat_io_child_stdio',       
     StderrEvent  => 'supp_iostat_io_child_stderr',       
     CloseEvent   => "supp_iostat_io_child_close",
@@ -221,7 +222,6 @@ sub run_iostat_cpu
     Program      => [ "iostat", "-c", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_iostat_cpu_child_stdio',       
     StderrEvent  => 'supp_iostat_cpu_child_stderr',       
     CloseEvent   => "supp_iostat_cpu_child_close",
@@ -295,7 +295,6 @@ sub run_vmstat
     Program      => [ "vmstat", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_vmstat_child_stdio',
     StderrEvent  => 'supp_vmstat_child_stderr',
     CloseEvent   => "supp_vmstat_child_close",
@@ -339,6 +338,141 @@ sub supp_vmstat_child_close
 }
 
 
+
+
+
+
+
+
+
+
+
+#####################################################################################
+############  nfsstat ############################################################
+#####################################################################################
+
+sub dont_run_nfsstat
+{
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+  $heap->{nfsstat_count} = 0;
+  $heap->{nfsstat_wheel} = POE::Wheel::Run->new
+  (
+    Program      => [ "nfsstat", "-n", "-3" ],
+    StdioFilter  => POE::Filter::Line->new(),
+    StderrFilter => POE::Filter::Line->new(),
+    StdoutEvent  => 'supp_nfsstat_child_stdio',
+    StderrEvent  => 'supp_nfsstat_child_stderr',
+    CloseEvent   => "supp_nfsstat_child_close",
+  );
+}
+
+sub supp_nfsstat_child_stdio
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+=cut
+  if($output =~ /^$/)
+  {
+    $heap->{nfsstat}->{valid} = 0;
+    $heap->{nfsstat}->{type} = '';
+    $heap->{nfsstat}->{nfsk} = ();
+		$heap->{nfsstat}->{nfsv} = ();
+  }
+  $output =~ m/(Server|Client) nfs v3:/;
+  next if(!$1 && $heap->{nfsstat}->{valid} == 0);
+
+  if($1)
+  {
+    $heap->{nfsstat}->{valid} = 1;
+    $heap->{nfsstat}->{type} = lc(substr($1,0,1));
+    next;
+  }
+  if($output =~ /^[a-z]/)
+  {
+    $heap->{nfsstat}->{nfsk} = [ split(/\s+/, $output) ];
+  }
+  elsif($output =~ /^\d/)
+  {
+    $heap->{nfsstat}->{nfsv} = [ grep { /^\d+$/ } split /\s+/, $output ];
+  }
+  else {}
+
+  if(scalar @$heap->{nfsstat}->{nfsk} == scalar @$heap->{nfsstat}->{nfsv})
+  {
+    for(my $i = 0; $i < $#{$heap->{nfsstat}->{nfsk}}; $i++)
+    {
+      $data->{$type}->{$heap->{nfsstat}->{nfsk}[$i] = $heap->{nfsstat}->{nfsv}[$i];
+    }
+  } 
+  return if $output =~ /^Server nfs/;
+  return if $output =~ /^Version/;
+
+  if($output =~ /^[a-z]/)
+  {
+    $heap->{nfsstat_keys} = [ split /\s+/, $output ];
+  }
+  elsif($output =~ /^\d/)
+  {
+    my @values = grep { /^\d+$/ } split /\s+/, $output;
+
+    if(scalar @{$heap->{nfsstat_keys}} == scalar @values)
+    {
+      for ( my $i = 0; $i < $#values; $i++)
+      {
+        $heap->{nfsstat_data}->{ $heap->{nfsstat_keys}->[$i] } = $values[$i];
+      }
+    }
+    else
+    {
+      print STDERR "key and value count mismatch :(";
+    }
+  }
+  if ($output =~ /^\s+\d/ && $heap->{vmstat_count}++ >= 1)
+  {
+    my $time = time();
+    my @stats = split /\s+/, $output;
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', "1g", $time, $stats[5]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcache', "1g", $time, $stats[6]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapin', "1g", $time, $stats[7]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapout', "1g", $time, $stats[8]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'blockin', "1g", $time, $stats[9]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'blockout', "1g", $time, $stats[10]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'intrpts', "1g", $time, $stats[11]));
+    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'contxts', "1g", $time, $stats[12]));
+  }
+=cut
+}
+
+sub supp_nfsstat_child_stderr
+{
+}
+
+sub supp_nfsstat_child_close
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+  delete $heap->{running_states}->{run_nfsstat};
+  delete $heap->{vmstat_wheel};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #####################################################################################
 ############  NETSTAT  ############################################################
 #####################################################################################
@@ -371,7 +505,6 @@ sub run_netstat
     Program      => [ "/bin/netstat -an --tcp" ],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
-    Conduit      => 'pipe',
     StdoutEvent  => 'supp_netstat_child_stdio',
     StderrEvent  => 'supp_netstat_child_stderr',
     CloseEvent   => "supp_netstat_child_close",
@@ -434,19 +567,6 @@ tcp        0      0 ::ffff:129.219.15.207:22    ::ffff:129.219.80.60:50444  ESTA
   elsif($state eq 'ESTABLISHED')
   {
     my ($remote_ip, $remote_port) = split /:/, $remote;
-
-=cut
-                     '129.219.10.133' => 'vmware5.inre',
-                     '10.106.150.72' => 'xen-istb1-c8-05',
-                     '10.106.152.181' => 'xen-eca-vrsw5-01',
-                     '10.106.140.109' => 'xenia11',
-                     '10.106.140.35' => 'bbappdev1',
-                     '129.219.7.82' => 'masondev1',
-                     '129.219.134.209' => 'webqa',
-                     '129.219.10.179' => 'xenia3',
-                     '10.219.26.112' => 'cps7.wineds',
-                     '10.106.164.29' => 'filesrvspare',
-=cut
 
     if(my $host = $SNAG::Dispatch::shared_data->{remote_hosts}->{ips}->{$remote_ip})
     {

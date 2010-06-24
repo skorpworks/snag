@@ -69,7 +69,7 @@ sub new
         {
           my ($kernel, $heap, $session, $name, $args) = @_[KERNEL, HEAP, SESSION, ARG0, ARG1];
           my $msg = "Illegal attempt to communicate with server: $heap->{alias}, method: $session, args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
-          $kernel->post('logger' => 'log' => $msg);
+          $kernel->post('logger' => 'log' => "_default: $msg");
         }
       }
     );
@@ -112,7 +112,7 @@ sub new
 
             if($queue->peek(1))
             {
-              print "  $queue_name is non-empty, requesting a connection to $server_name\n" if $SNAG::flags{debug};
+              $kernel->post('logger' => 'log' => "queue $queue_name is non-empty, requesting a connection to $server_name") if $SNAG::flags{debug};
               $kernel->state($server_name => \&handle_input);
 
               $heap->{client_queue}->{$server_name}->{has_data} = 1;
@@ -122,7 +122,7 @@ sub new
             }
             else
             {
-              print "  $queue_name is empty, deleting it.\n" if $SNAG::flags{debug};
+              $kernel->post('logger' => 'log' => "queue $queue_name is empty, deleting\n") if $SNAG::flags{debug};
               $queue->delete();
             }
           }
@@ -135,7 +135,7 @@ sub new
         return if $name eq '_child';
         return if $name eq '_stop';
 
-        print "Recieved unhandled request to communicate with the $name server\n";
+        $kernel->post('logger' => 'log' => "client: recieved unhandled request to communicate with the $name server");
 
         my ($function, $data) = @$args;
 
@@ -209,7 +209,8 @@ sub handle_input
       $heap->{client_queue}->{$name}->{functions}->{load} = new SNAG::Queue ( File => $queue_file, Seperator => PARCEL_SEP );
     }
 
-    print "Enqueue: $name($function): $data\n" if $SNAG::flags{debug};
+    $kernel->post('logger' => 'log' => "Enqueue: $name($function): " . substr($data, 0, 130) . "....") if $SNAG::flags{debug} && ! $SNAG::flags{verbose};
+    $kernel->post('logger' => 'log' => "Enqueue: $name($function): $data") if $SNAG::flags{verbose};
 
     $heap->{client_queue}->{$name}->{functions}->{load}->enq($data);
   }
@@ -218,12 +219,12 @@ sub handle_input
     my $queue_mode = delete $data->{queue_mode};
     if($queue_mode eq 'replace')
     {
-      print "Enqueue: $name($function), replacing\n" if $SNAG::flags{debug};
+      $kernel->post('logger' => 'log' => "Enqueue: $name($function), replacing") if $SNAG::flags{debug};
       $heap->{client_queue}->{$name}->{functions}->{$function} = [ $data ];
     }
     else
     {
-      print "Enqueue: $name($function)\n" if $SNAG::flags{debug};
+      $kernel->post('logger' => 'log' => "Enqueue: $name($function)") if $SNAG::flags{debug};
       push @{$heap->{client_queue}->{$name}->{functions}->{$function}}, $data;
     }
   }
@@ -238,7 +239,7 @@ sub create_connection
   {
     unless(defined $args->{$key})
     {
-      print "Missing required argument '$key'\n" if $SNAG::flags{debug};
+      $poe_kernel->post('logger' => 'log' => "Missing required argument '$key'") if $SNAG::flags{debug};
       push @$missing, $key;
     }
   }
@@ -364,7 +365,7 @@ sub create_connection
 
                           if($heap->{pending_data})
                           {
-                            die "This client already has pending data, this should never happen :(";
+			    $kernel->post('logger' => 'log' => 'CLIENT ERROR.  This client already has pending data, this should never happen');
                           }
 
                           return unless $heap->{initiated_connection};
@@ -397,7 +398,7 @@ sub create_connection
                               if($SNAG::flags{debug})
                               {
                                 my $args_str = join ', ', map { "$_ => $parcel->{data}->{$_}" } keys %{$parcel->{data}}; 
-                                print "Sending: $args->{name}($function): args($args_str)\n";
+                                $kernel->post('logger' => 'log' => "Sending: $args->{name}($function): args($args_str)");
                               }
                             }
                             elsif(my $chunk = $data->peek($max_chunk_size))
@@ -416,7 +417,7 @@ sub create_connection
                                 chunk_size => $chunk_size,
                               };
 
-                              print "Sending: $args->{name}($function): $chunk_size items\n" if $SNAG::flags{debug};
+                              $kernel->post('logger' => 'log' => "Sending: $args->{name}($function): $chunk_size items\n") if $SNAG::flags{debug};
                             }
 
                             last;
@@ -454,17 +455,17 @@ sub create_connection
                         {
                           my ($kernel, $heap) = @_[KERNEL, HEAP];
                          
-                          print "In check_queue for $heap->{name}\n" if $SNAG::flags{verbose};
+                          $kernel->post('logger' => 'log' => "check_queue for $heap->{name}") if $SNAG::flags{verbose};
 
                           if($heap->{client_queue}->{has_data})
                           {
-                            print "  sending parcel\n" if $SNAG::flags{verbose};
+                            $kernel->post('logger' => 'log' => "check_queue: sending parcel") if $SNAG::flags{verbose};
                             $kernel->yield('send_parcel');
                           }
                           else
                           {
                             $kernel->delay($_[STATE] => 2);
-                            print "  no parcels to send\n" if $SNAG::flags{verbose};
+                            $kernel->post('logger' => 'log' => "check_queue: no parcels to send") if $SNAG::flags{verbose};
                           }
                         },
 
@@ -550,7 +551,7 @@ sub receive
     {
       my $chunk_size = $pending_data->{chunk_size} or die "Function '$function' requires 'chunk_size' in 'pending_data'";
 
-      print "Receiving: $heap->{name}($function): status=$parcel->{status} $chunk_size items\n" if $SNAG::flags{debug};
+      $kernel->post('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status} $chunk_size items") if $SNAG::flags{debug};
 
       unless($parcel->{action} eq 'hold')
       {
@@ -559,18 +560,18 @@ sub receive
     }
     else
     {
-      print "Receiving: $heap->{name}($function): status=$parcel->{status}\n" if $SNAG::flags{debug};
+      $kernel->post('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status}") if $SNAG::flags{debug};
 
       if(my $postback = $pending_data->{postback})
       {
         if($parcel->{status} eq 'success')
         {
-          print "  calling postback\n" if $SNAG::flags{debug};
+          $kernel->post('logger' => 'log' =>  "Recieve: calling postback") if $SNAG::flags{debug};
           $postback->( $parcel->{result} );
         }
         else
         {
-          print "  NOT calling postback\n" if $SNAG::flags{debug};
+          $kernel->post('logger' => 'log' => "Recieve: NOT calling postback") if $SNAG::flags{debug};
         }
       }
 
@@ -587,7 +588,7 @@ sub receive
   }
   else
   {
-    die "No pending data on $heap->{name}, received this from server: " . Dumper $parcel;
+    $kernel->post("logger" => "log" => "SERVER ERROR: $heap->{name} received response yet has no pending data");
   }
 
   if($parcel->{status} eq 'error')

@@ -15,12 +15,7 @@ my $rec_sep = REC_SEP;
 my $debug = $SNAG::flags{debug};
 my $verbose = $SNAG::flags{verbose};
 # Server error codes
-my $error_regex = join '|', "terminating connection due to administrator command",
-                    				"no connection to the server",
-                    				"the database system is shutting down",
-                    				"message type 0x[\d]+ arrived from server",
-                    				"could not connect to server",
-                    				"server closed the connection unexpectedly";
+my $error_regex = qr/terminating connection due to administrator command|no connection to the server|the database system is shutting down|message type 0x[\d]+ arrived from server|could not connect to server|server closed the connection unexpectedly/;
 
 ################################
 sub new

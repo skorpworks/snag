@@ -48,7 +48,7 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-        $kernel->post("logger" => "log" => "Starting Dispatcher") if $debug;
+        $kernel->post("logger" => "log" => "Dispatch: starting") if $debug;
         $heap->{epoch} = time() + 5; #trying to  avoid a race condition when epoch %60 would be a time just passed
         $shared_data->{timer_60} = $heap->{epoch};
         $shared_data->{timer_300} = $heap->{epoch};  
@@ -64,6 +64,7 @@ sub new
         $shared_data->{tags}->{'entity'}->{'system'} = 1;
  
         $shared_data->{tags}->{'os'}->{ lc(&OS) }->{ lc(&OSDIST . &OSVER) } = 1;
+        $shared_data->{tags}->{'version'}->{'snagc'} = VERSION;
 
         if(OS eq 'Windows')
         {
@@ -77,7 +78,14 @@ sub new
           ### This is the only way to reliably determine if a linux host is a vmware guest
           if(OS eq 'Linux')
           {
-            my $dmi_bin = BASE_DIR . '/dmidecode';
+            my $dmi_bin;
+            if(-e '/usr/sbin/dmidecode')  {
+              $dmi_bin = '/usr/sbin/dmidecode';
+            }
+            else
+            {
+              $dmi_bin = BASE_DIR . '/sbin/dmidecode';
+            }	  
             foreach(`$dmi_bin`)
             {
               if(/Product Name:\s+(.+)\s*/)
@@ -90,6 +98,23 @@ sub new
                 }
               }
             }
+          }
+
+          my $uuid_file = LOG_DIR . '/snag.uuid';
+          unless ( -r $uuid_file)
+          {
+            use Data::UUID; 
+            my $ug = new Data::UUID; 
+            open(UUID, ">$uuid_file");
+            print UUID $ug->create_str();
+            close UUID;
+          }
+          { 
+            local $/;
+          
+            open UUID, $uuid_file; 
+            $shared_data->{uuid} = <UUID>;
+            close UUID;
           }
 
           require Proc::ProcessTable;
@@ -141,7 +166,7 @@ sub new
 
         unless($heap->{running_sources}->{$source_key})
         {
-          print "DISPATCHING: $source_key\n" if $SNAG::flags{debug};
+          $kernel->post('logger' => 'log' => "Dispatch: loading: $source_key") if $SNAG::flags{debug};
 
           (my $module_file = $module) =~ s/::/\//g;
           $module_file .= ".pm";
@@ -190,6 +215,12 @@ sub new
           {
             $shared_data->{tags}->{'virtual'}->{xen}->{guest} = 1;
           }
+        }
+
+        if(-e '/usr/sbin/vserver-stat')
+        {
+          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
+          $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
         }
 
         if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
@@ -256,11 +287,12 @@ sub new
 
         foreach my $alias (@server_uris)
         {
-	  unless(OS eq 'Windows')
-	  {
+					unless(OS eq 'Windows')
+					{
             $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-	  }
+					}
         }
+
       },
 
       check_process_table => sub
@@ -358,8 +390,6 @@ sub new
             $shared_data->{tags}->{service}->{syslog} = 1;
           }
 
-          #if(($proc->fname eq 'httpd' && $proc->cmndline =~ /apache/) || $proc->fname eq 'masond')
-          ### Had to make this more generic for the webauths that only report 'httpd' in the process list
           ###libhttpd.ep if from bb8 env
           if($proc->fname eq 'httpd' || $proc->fname eq 'masond' || $proc->fname eq 'apache' || $proc->fname eq 'apache2' || $proc->fname eq 'libhttpd.ep')
           {
@@ -562,7 +592,7 @@ sub new
             }
           }
 
-          if($proc->fname eq 'klogd')
+          if($proc->fname eq 'kaserver')
           {
             $shared_data->{tags}->{service}->{klog} = 1;
 

@@ -3,8 +3,7 @@
 
 use strict; 
 use FindBin qw($Bin $Script);
-use lib "$FindBin::Bin/../lib/perl5";
-use local::lib "$FindBin::Bin/../";
+use lib "/opt/snag/lib/perl5";
 
 use SNAG;
 use SNAG::Client;
@@ -28,6 +27,11 @@ elsif($SNAG::flags{uninstall} || $SNAG::flags{remove} || $SNAG::flags{'delete'})
 {
   install('uninstall');
 }
+elsif($SNAG::flags{version})
+{
+  print "Version: " . VERSION . "\n";
+  exit;
+}
 elsif($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
@@ -36,29 +40,42 @@ elsif($SNAG::flags{compile})
     my $src_script = catfile( $Bin, $Script );
 
     print "Compiling $src_script to $dest_bin ... ";
+    my $cmd = '
+               pp -c "/opt/snag/bin/snagc.pl" 
+               -M XML::LibXML::SAX 
+               -M XML::SAX::PurePerl  
+               -M Crypt::Blowfish  
+               -M POE::Filter::Reference  
+               -M POE::Wheel::Run  
+               -M Date::Parse 
+               -M DBM::Deep 
+               -M DBM::Deep::Engine::File 
+               -M DBM::Deep::Iterator::File 
+               -M Crypt::Blowfish  
+               -M Net::Ping 
+               -M SNAG  
+               -M SNAG::Source::apache
+               -M SNAG::Source::xen 
+               -M SNAG::Source::vserver
+               -M SNAG::Source::apache_logs
+               -M SNAG::Source::monitor     
+               -M SNAG::Source::SystemInfo 
+               -M SNAG::Source::SystemInfo::Linux 
+               -M SNAG::Source::SystemStats 
+               -M SNAG::Source::SystemStats::Linux 
+               -M SNAG::Source::SystemStats::Linux::RHEL5 
+               -a "/opt/snag/snag.conf" 
+               -a "/root/perl5/lib/perl5/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
+               --lib="/root/perl5/lib"  
+               --link="/usr/lib/libpci.so.3"
+               --link="/usr/lib/libpci.so"
+               --reusable 
+               -o snagc
+              ';
 
-    my $cmd = "pp -c \"$src_script\"";
-    $cmd .= " -M XML::LibXML::SAX";
-    $cmd .= " -M XML::SAX::PurePerl ";
-    $cmd .= " -M Crypt::Blowfish ";
-    $cmd .= " -M POE::Filter::Reference ";
-    $cmd .= " -M POE::Wheel::Run ";
-    $cmd .= " -M Date::Parse ";
-    $cmd .= " -M Crypt::Blowfish ";
-    $cmd .= " -M Net::Ping ";
-    $cmd .= " -M SNAG::Source::SystemInfo";
-    $cmd .= " -M SNAG::Source::SystemInfo::Linux";
-    $cmd .= " -M SNAG::Source::SystemStats";
-    $cmd .= " -M SNAG::Source::SystemStats::Linux";
-    $cmd .= " -M SNAG::Source::SystemStats::Linux::RHEL5";
-    $cmd .= " -M SNAG::Source::xen";
-    $cmd .= " -M SNAG::Source::checkpoint";
-    $cmd .= " -a \"/opt/local/SNAG/SNAG.xml;SNAG.xml\"";
-    $cmd .= " -a \"/opt/local/SNAG/lib/perl5/site_perl/5.10.0/XML/SAX/ParserDetails.ini;ParserDetails.ini\"";
-    $cmd .= " --lib=\"/opt/local/SNAG/modules\" ";
-    $cmd .= " -o $dest_bin 2>&1";
+    $cmd =~ s/([\n\r\l])+/ /g;
 
-
+    print "with cmd $cmd\n";
     my $out;
     open LOG, "$cmd |" || die "DIED: $!\n";
     while (<LOG>)
@@ -79,6 +96,8 @@ elsif($SNAG::flags{compile})
   {
     print "This is already a compile binary!\n";
   }
+
+  exit;
 }
 
 ### Get rid of this once all sources are converted to dispatching
