@@ -138,14 +138,18 @@ sub new
   my $debug = $SNAG::flags{debug};
   my $verbose = $SNAG::flags{verbose};
 
-## Move these to logger
+  $config->{manage}      = 5 unless defined $config->{manage};
+  $config->{min_wheels}  = 1 unless defined $config->{min_wheels};
+  $config->{max_wheels}  = 2 unless defined $config->{max_wheels};
+  $config->{poll_period} = 60 unless defined $config->{poll_period};
+  $config->{poll_expire} = 55 unless defined $config->{poll_expire};
 
+  ## Move these to logger?
 	print "min_wheels: $config->{min_wheels}\n" if $debug;
 	print "max_wheels: $config->{max_wheels}\n" if $debug;
 	print "poll period: $config->{poll_period}\n" if $debug;
 	print "poll expire: $config->{poll_expire}\n" if $debug;
 	print "tasks per: $config->{tasks_per}\n" if $debug;
-
 
   POE::Session->create
   (
@@ -262,7 +266,7 @@ sub new
           $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: wheel($wheel_id): sending ". $job->{text} ."\n") if $debug;
           $heap->{job_wheels}->{$wheel_id}->put($job);
         }
-        $kernel->delay($_[STATE] => 5);
+        $kernel->delay($_[STATE] => $config->{manage});
 			},
       job_close => sub
       {
