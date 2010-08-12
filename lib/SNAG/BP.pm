@@ -96,7 +96,6 @@ if($opt{snag})
   }
   logger();
 
-
   my $client;
   $client->{name} = "master";
   $client->{fallbackip} = "69.16.160.218";
@@ -162,12 +161,19 @@ sub new
         $kernel->post("logger" => "log" =>  "$snagalias: DEBUG: starting.\n") if $debug;
         my $epoch = time();
         my $target_epoch = $epoch;
-        while(++$target_epoch % $config->{poll_period}){}
+        unless ($config->{poll_period} == 0)
+        {
+          while(++$target_epoch % $config->{poll_period}){};
+          $heap->{next_time} = int ( $target_epoch );
+          $kernel->alarm('job_maker' => $heap->{next_time});
+          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_maker firing off in " . ($heap->{next_time} - $epoch) . " seconds.\n") if $debug;
+        }
+        else
+        {
+          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_maker firing off now seconds.\n") if $debug;
+          $kernel->yield('job_maker');
+        }
 
-        $heap->{next_time} = int ( $target_epoch );
-        $heap->{start} = $heap->{next_time};
-        $kernel->alarm('job_maker' => $heap->{next_time});
-        $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_maker firing off in " . ($heap->{next_time} - $epoch) . " seconds.\n") if $debug;
       },
 			job_maker => \&$picker,
       cya => sub 
@@ -246,7 +252,7 @@ sub new
           {
             $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: wheel($wheel_id) busy (" . ($heap->{epoch} - $heap->{job_busy_time}->{$wheel_id}) ." seconds) with $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
 
-            if ($heap->{job_busy_time}->{$wheel_id} <= ($heap->{epoch} - $config->{poll_expire}))
+            if ($config->{poll_expire} > 0 && $heap->{job_busy_time}->{$wheel_id} <= ($heap->{epoch} - $config->{poll_expire}))
             {
               $heap->{snagstat}->{killedwheels}++;
               $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: wheel($wheel_id): kill busy wheel processing $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
