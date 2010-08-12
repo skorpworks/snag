@@ -123,6 +123,7 @@ sub new
           $kernel->yield('check_mounts');
           $kernel->yield('check_virtual');
           $kernel->yield('check_checkpoint');
+          $kernel->yield('check_bins');
 
           $kernel->delay('check_listening_ports' => 60); ### Give SystemStats enough time to start running
         }
@@ -143,7 +144,7 @@ sub new
         #}
         #$kernel->yield('check_open_files');
       },
-
+      
       timer => sub
       {  
         my ($kernel, $heap) = @_[KERNEL, HEAP];
@@ -175,6 +176,16 @@ sub new
           $module->new( %$args );
 
           $heap->{running_sources}->{$source_key} = 1;
+        }
+      },
+
+      check_bins => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+        if ( -e '/usr/sbin/smartctl')
+        {
+          $kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
         }
       },
 
