@@ -185,7 +185,7 @@ sub new
 
         if ( -e '/usr/sbin/smartctl')
         {
-          $kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
+          #$kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
         }
       },
 
