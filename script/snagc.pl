@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/opt/snag/bin/perl
 ### This script is used to gather system statistics and information for use with snagweb and its subapps
 
 use strict; 
@@ -41,8 +41,7 @@ elsif($SNAG::flags{compile})
 
     print "Compiling $src_script to $dest_bin ... ";
     my $cmd = '
-               pp -c "/opt/snag/bin/snagc.pl" 
-               -M XML::LibXML::SAX 
+               /opt/snag/bin/pp -c "/opt/snag/bin/snagc.pl" 
                -M XML::SAX::PurePerl  
                -M Crypt::Blowfish  
                -M POE::Filter::Reference  
@@ -66,10 +65,8 @@ elsif($SNAG::flags{compile})
                -M SNAG::Source::SystemStats::Linux::RHEL5 
                -M SNAG::Source::SystemStats::Linux::GENTOO
                -a "/opt/snag/snag.conf" 
-               -a "/root/perl5/lib/perl5/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
+               -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
                --lib="/root/perl5/lib"  
-               --link="/usr/lib/libpci.so.3"
-               --link="/usr/lib/libpci.so"
                --reusable 
                -o snagc
               ';
