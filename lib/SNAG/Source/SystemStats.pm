@@ -4,6 +4,7 @@ use base qw/SNAG::Source/;
 use SNAG;
 use POE;
 use Data::Dumper;
+use Date::Format;
 use Carp qw(carp croak);
 
 #use Time::HiRes qw(time);
@@ -128,6 +129,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->alarm($_[STATE] => $heap->{next_time} += $rrd_step);
 
+        $heap->{run_epoch} = time();
         ### send rrds based on shared data here, no reason to fork it off the data is already present!
         if(my $cpu_count = $SNAG::Dispatch::shared_data->{cpu_count})
         {

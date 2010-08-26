@@ -7,12 +7,13 @@ use POE::Filter::Line;
 use Time::Local;
 use URI::Escape;
 use Data::Dumper;
+use Date::Format;
 use strict;
 
 my $host = HOST_NAME;
 my $rrd_step   = $SNAG::Source::SystemStats::rrd_step || 60;
 my $rrd_min    = $rrd_step/60;
-our $stat_quanta = $rrd_step - 2;
+our $stat_quanta = $rrd_step - 5;
 our $stat_loops  = $rrd_min + 1;
 
 #####################################################################################
@@ -27,7 +28,7 @@ sub run_df
   (
     Program      => sub
                     {
-                      $0 = 'snagc_stats_df';
+                      $0 = 'snagc_stat_df';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next if $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -59,7 +60,7 @@ sub run_df_nfs
   (
     Program      => sub
                     {
-                      $0 = 'snagc_stats_dfnfs';
+                      $0 = 'snagc_stat_df_nfs';
                       foreach my $dev (keys %{$SNAG::Dispatch::shared_data->{mounts}})
                       {
                         next unless $SNAG::Dispatch::shared_data->{mounts}->{$dev}->{type} =~ m/nfs/i;
@@ -94,7 +95,7 @@ sub supp_df_child_stdio
   #none                   2077280         0   2077280   0% /dev/shm
   #AFS                    9000000         0   9000000   0% /afs
 
-  my $time = time;
+  my $time = $heap->{run_epoch}; 
 
   my @fields = split /\s+/, $output;
 
@@ -175,7 +176,7 @@ sub supp_iostat_io_child_stdio
 
   if ($output =~ /^(\w+)\s+\d+\.\d+\s+/ && $heap->{iostat_io_count}->{$1}++ >= 1)
   {
-    my $time = time();
+    my $time = $heap->{run_epoch}; 
     my @stats = split /\s+/, $output;
 
     ### Only look at the mounted partitions, and send the mountpoint instead of the device
@@ -256,7 +257,7 @@ sub supp_iostat_cpu_child_stdio
   }
   elsif ($output =~ /^\s+\d/ && $heap->{iostat_cpu_count}++ >= 1)
   {
-    my $time = time();
+    my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'cpuuser', "1g", $time, $stats[ $heap->{fields_index}->{user} ]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'cpunic', "1g", $time, $stats[ $heap->{fields_index}->{nice} ]));
@@ -310,9 +311,11 @@ sub supp_vmstat_child_stdio
   # 0  0    160  25296 257552 1127744    0    0     0     0    4     2  1  0  4  1
   # 0  0    160  25296 257552 1127744    0    0     0    14  130    95  0  0 98  1
   # 1  2      3      4      5       6    7    8     9    10   11    12 13 14 15 16
-  if ($output =~ /^\s+\d/ && $heap->{vmstat_count}++ >= 1)
+  #18  0      0  83684  16952 15568772    0    0   316 99574 23122 45334 15 44 37  4 
+  $output = " " . $output;
+  if ($output =~ /^\s+\d+\s+/ && $heap->{vmstat_count}++ >= 1)
   {
-    my $time = time();
+    my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', "1g", $time, $stats[5]));
@@ -333,6 +336,7 @@ sub supp_vmstat_child_stderr
 sub supp_vmstat_child_close
 {
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+  my $time = time();
   delete $heap->{running_states}->{run_vmstat};
   delete $heap->{vmstat_wheel};
 }
@@ -598,7 +602,7 @@ sub supp_netstat_child_stderr
 sub supp_netstat_child_close
 {
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
-  my $time = time();
+  my $time = $heap->{run_epoch};
 
   while(my ($state, $count) = each %{$heap->{netstat_states}})
   {
@@ -635,7 +639,7 @@ sub supp_netstat_child_close
 sub run_uptime
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
-  my $time = time;
+  my $time = $heap->{run_epoch};
 
   open (PROC, "</proc/uptime");
   my @stats = split(/ /, <PROC>);
@@ -652,7 +656,7 @@ sub run_uptime
 sub run_network_dev
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
-  my $time = time;
+  my $time = $heap->{run_epoch};
 
   #Inter-|   Receive                                                |  Transmit
   # face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
@@ -701,7 +705,7 @@ sub run_network_dev
 sub run_loadavg
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
-  my $time = time;
+  my $time = $heap->{run_epoch};
 
   open (PROC, "</proc/loadavg");
   my @stats = split(/ /, <PROC>);
@@ -724,7 +728,7 @@ sub run_loadavg
 sub run_meminfo
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
-  my $time = time;
+  my $time = $heap->{run_epoch};
 
   open (PROC, "</proc/meminfo");
   while (<PROC>)
