@@ -323,6 +323,36 @@ sub new
             $shared_data->{tags}->{service}->{database}->{mysql} = 1;
           }
 
+          if($proc->fname eq 'nrpe')
+          {
+            $shared_data->{tags}->{service}->{nagios}->{client} = 1;
+          }
+	 
+          if($proc->fname eq 'stunnel')
+          {
+            $shared_data->{tags}->{service}->{stunnel} = 1;
+          }
+
+          if($proc->fname eq 'tornadod')
+          {
+            $shared_data->{tags}->{service}->{nntp}->{tornado} = 1;
+          }
+
+          if($proc->fname eq 'cycloned')
+          {
+            $shared_data->{tags}->{service}->{nntp}->{cyclone} = 1;
+          }
+
+          if($proc->fname eq 'nntpAdapter')
+          {
+            $shared_data->{tags}->{service}->{nntp}->{nntpAdapter} = 1;
+          }
+
+          if($proc->fname eq 'ntp')
+          {
+            $shared_data->{tags}->{service}->{ntp} = 1;
+          }
+
           if($proc->fname eq 'oracle')
           {
             $shared_data->{tags}->{service}->{database}->{oracle} = 1;
