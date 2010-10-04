@@ -30,7 +30,8 @@ if($options{compile})
 
     print "Compiling $src_script to $dest_bin ... ";
     my $cmd = '
-               /opt/snag/bin/pp -c "/opt/snag/bin/snagw.pl"
+               /opt/snag/bin/pp --compile "/opt/snag/bin/snagw.pl"
+               --bundle
                -M XML::SAX::PurePerl
                -M Mail::Sendmail
                -M Sys::Hostname

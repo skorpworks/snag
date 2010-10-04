@@ -41,17 +41,20 @@ elsif($SNAG::flags{compile})
 
     print "Compiling $src_script to $dest_bin ... ";
     my $cmd = '
-               /opt/snag/bin/pp -c "/opt/snag/bin/snagc.pl" 
+               /opt/snag/bin/pp --compile "/opt/snag/bin/snagc.pl" 
+               --bundle
                -M XML::SAX::PurePerl  
                -M Crypt::Blowfish  
                -M POE::Filter::Reference  
                -M POE::Wheel::Run  
                -M Date::Parse 
                -M DBM::Deep 
+               -M Data::Dumper
                -M DBM::Deep::Engine::File 
                -M DBM::Deep::Iterator::File 
                -M Crypt::Blowfish  
                -M Net::Ping 
+               -M Sys::Syslog
                -M SNAG  
                -M SNAG::Source::apache
                -M SNAG::Source::xen 
