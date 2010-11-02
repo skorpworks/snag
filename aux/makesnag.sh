@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#sh prep.sh
+sh prep.sh
 
 mkdir /var/tmp/snag_installer
 mkdir /var/tmp/snag_installer/bin

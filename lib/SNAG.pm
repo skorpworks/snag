@@ -88,9 +88,30 @@ if($^O =~ /linux/i)
     #Gentoo Base System release 1.12.9
     if($release =~ /Gentoo Base System (version|release) ([\.\d]+)/)
     {
-      #($ver = $2) =~ s/\.//g;
-      $dist = "GENTOO";
+      ($ver = $2) =~ s/\.//g;
+      $dist = "Gentoo";
     }    
+  }
+  elsif(-e '/etc/issue')
+  {
+    {
+      local $/;
+
+      open FILE, "/etc/issue";
+      $release = <FILE>;
+      close FILE;
+    }
+
+    $long = $release;
+    chomp $long;
+
+    #
+    #Ubuntu 10.04.1 LTS
+    if($release =~ /Ubuntu ([\.\d]+)/)
+    {
+      ($ver = $1) =~ s/\.//g;
+      $dist = "Ubuntu";
+    }
   }
   elsif(-e '/etc/cp-release')
   {

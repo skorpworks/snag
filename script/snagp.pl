@@ -13,7 +13,7 @@ use SNAG::Server;
 use SNAG::Client;
 
 use Getopt::Long;
-use Data::Dumper;
+use Data::Dumper::Concise;
 
 foreach my $arg (@ARGV)
 {
@@ -46,12 +46,9 @@ daemonize() unless $SNAG::flags{debug};
 
 my $confin = CONF;
 
-my $poller = $confin->{poller}->{$type} or die "Poller type $type does not exist in snag.conf!";
+print Dumper $confin;
 
-my $mod_file = $poller->{module};
-$mod_file =~ s/::/\//g;
-$mod_file .= ".pm";
-require $mod_file;
+my $poller = $confin->{poller}->{$type} or die "Poller type $type does not exist in snag.conf!";
 
 my $mod_file = $poller->{module};
 $mod_file =~ s/::/\//g;
