@@ -348,6 +348,10 @@ sub new
             $shared_data->{tags}->{service}->{nntp}->{nntpAdapter} = 1;
           }
 
+          if($proc->fname eq 'hw_stormcellard')
+          {
+            $shared_data->{tags}->{service}->{nntp}->{stormcellar} = 1;
+          }
           if($proc->fname eq 'ntp')
           {
             $shared_data->{tags}->{service}->{ntp} = 1;

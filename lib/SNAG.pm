@@ -88,7 +88,7 @@ if($^O =~ /linux/i)
     #Gentoo Base System release 1.12.9
     if($release =~ /Gentoo Base System (version|release) ([\.\d]+)/)
     {
-      ($ver = $2) =~ s/\.//g;
+      #($ver = $2) =~ s/\.//g;
       $dist = "Gentoo";
     }    
   }
@@ -109,7 +109,7 @@ if($^O =~ /linux/i)
     #Ubuntu 10.04.1 LTS
     if($release =~ /Ubuntu ([\.\d]+)/)
     {
-      ($ver = $1) =~ s/\.//g;
+      #($ver = $1) =~ s/\.//g;
       $dist = "Ubuntu";
     }
   }

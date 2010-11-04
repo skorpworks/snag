@@ -57,13 +57,14 @@ our $config =
 my %default_config_files = 
 (
   '/boot/grub/grub.conf' => 1,
+  '/etc/apt/sources.list' => 1,
   '/etc/fstab' => 1,
   '/etc/group' => 1,    
   '/etc/hosts' => 1,
   '/etc/hosts.allow' => 1,
   '/etc/hosts.deny' => 1,
-  '/etc/init.d/afs.rc' => 1, 
   '/etc/inittab' => 1,
+  '/etc/issue' => 1,
   '/etc/iscsi.conf' => 1,
   '/etc/krb5.conf' => 1,
   '/etc/krb.conf' => 1, 
@@ -71,6 +72,7 @@ my %default_config_files =
   '/etc/mail/submit.cf' => 1,
   '/etc/motd' => 1,     
   '/etc/nsswitch.conf' => 1,
+  '/etc/ntp.conf' => 1,
   '/etc/pam.d/su' => 1, 
   '/etc/pam.d/system-auth' => 1,
   '/etc/passwd' => 1,
@@ -89,6 +91,7 @@ my %default_config_files =
   '/etc/xinetd.d/eklogin' => 1, 
   '/proc/vmware/version' => 1,
   '/proc/mdstat' => 1,
+  '/root/.ssh/authorized_keys' => 1,
   '/usr/lib/portage/bin/pkglist' => 1,
   '/usr/local/apache2/conf/httpd.conf' => 1,
   '/usr/local/apache2/conf/ssl.conf' => 1,
@@ -115,12 +118,20 @@ $default_config_files{LOG_DIR . '/snag.uuid'} = 1;
 
 my %default_config_dirs =
 (
+  "/etc/"                           => '.*.conf$', # use . for wildcard for entire directory
+  "/etc/conf.d/"                    => '.', # use . for wildcard for entire directory
+  "/etc/cron.d/"                    => '.', # use . for wildcard for entire directory
+  "/etc/cron.daily/"                => '.', # use . for wildcard for entire directory
+  "/etc/cron.hourly/"               => '.', # use . for wildcard for entire directory
+  "/etc/cron.weekly/"               => '.', # use . for wildcard for entire directory
+  "/etc/logrotate.d/"               => '.',
+  "/etc/rsyslog.d/"                 => '.',
+  "/etc/ssh/"                       => '.',
+  "/etc/sysconfig/"                 => '.', # use . for wildcard for entire directory
   "/etc/sysconfig/network-scripts/" => 'ifcfg-',
-  "/etc/yum/" => 'yum-',
-  "/etc/yum.repos.d/" => '.', # use . for wildcard for entire directory
-  "/etc/" => '.*.conf$', # use . for wildcard for entire directory
-  "/etc/sysconfig/" => '.', # use . for wildcard for entire directory
-  "/etc/conf.d/" => '.', # use . for wildcard for entire directory
+  "/etc/yum/"                       => 'yum-',
+  "/etc/yum.repos.d/"               => '.', # use . for wildcard for entire directory
+  "/root/.ssh/"                     => '(.pub|authorized_keys)$',
 );
 
 #### Add some more files at runtime
@@ -130,7 +141,7 @@ sub build_config_file_list
 
   my $host = HOST_NAME;
 
-  if( $host =~ /^general\d$/ )
+  if( $host =~ /^somehosttoignore\d$/ ) #TODO this needs to be a config option or go away
   {
     ### ignore auth files on interactive machines, too noisy
     delete $config_files{'/etc/passwd'};
@@ -411,6 +422,18 @@ sub installed_software_check
       $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `find /var/db/pkg/ -mindepth 2 -maxdepth 2 -printf "%P\n"` };
     }
   }
+#  elsif (-x '/var/lib/dpkg/status')
+#  {
+#    my $mtime = (stat '/var/lib/dpkg/status')[9];
+#    if(($now - $mtime) < $period)
+#    {
+#      $info->{conf}->{installed_software} = { contents => join "\n", sort { $a cmp $b } split /\n/, `/bin/rpm -qa` };
+#    }
+##ii  xz-utils                                              4.999.9beta+20091116-1                                XZ-format compression utilities
+##ii  zlib1g                                                1:1.2.3.3.dfsg-15ubuntu1                              compression library - runtime
+##root@s04-b001:/var/tmp/snag# dpkg-query --list|wc -l
+#
+#  }
   elsif ( -r '/var/lib/rpm/Packages')
   {
     my $mtime = (stat '/var/lib/rpm/Packages')[9];
