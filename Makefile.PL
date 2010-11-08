@@ -8,6 +8,7 @@ WriteMakefile
     'VERSION_FROM' => 'lib/SNAG.pm',
     'ABSTRACT_FROM' => 'lib/SNAG.pm',
     'PREREQ_PM' => {
+          'Data::Dumper::Concise' => 0,
           'Capture::Tiny' => 0,
           'Try::Tiny' => 0,
 	  'Config::General' => 0,
