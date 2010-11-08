@@ -137,7 +137,7 @@ sub new
               {
                 if($@ =~ /$error_regex/) 
                 {
-                  $kernel->post('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } );
+                  $kernel->post('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } ); #TODO
                   delete $heap->{connected};
                   $kernel->yield('connect' => 60);
                 }
