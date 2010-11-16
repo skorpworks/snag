@@ -8,6 +8,7 @@ use Carp qw(carp croak);
 use FreezeThaw qw(thaw freeze cmpStr cmpStrHard);
 use Date::Format;
 use Data::Dumper;
+use Net::Patricia;
 
 use DBI;
 
@@ -162,6 +163,52 @@ sub new
           #die "remote_hosts data is not currently populated, try again later";
           $kernel->post('logger' => 'log' => "remote_hosts data is not currently populated, try again later");
         }
+      },
+
+      build_domain_map => sub
+      {
+        my ($heap, $kernel) = @_[ HEAP, KERNEL ];
+	$kernel->delay($_[STATE] => 300); # run every 5 min
+
+	print "START build_domain_map...\n" if $debug;
+
+	eval
+	{
+          my $get_nets = $heap->{dbh}->selectall_hashref("select subnet, name from domain_map", "subnet");
+	  delete $heap->{netpat};
+	  delete $heap->{netmap};
+	  $heap->{netpat} = new Net::Patricia;
+	  foreach my $key (keys %$get_nets)
+	  {
+            $heap->{netpat}->add_string($key);
+	  }
+	  $heap->{netmap} = $get_nets;
+	};
+	if($@)
+	{
+          $kernel->post('logger' => 'log' => "ERROR: " . $@);
+	}
+      },
+
+      get_domain => sub
+      {
+        my ($heap, $kernel, $input) = @_[HEAP, KERNEL, ARG0];
+
+        my $ip = $input->{ip};
+	$kernel->post('logger' => 'log' => "Finding domain for $ip") if $debug;
+        my $return;
+	$return->{domain} = "";
+
+        if(defined $heap->{netpat} && defined $heap->{netmap})
+	{
+	  my $sub = $heap->{netpat}->match_string($ip);
+	  if(defined $heap->{netmap}->{$sub})
+	  {
+            $return->{domain} = $heap->{netmap}->{$sub}->{name};
+	  }
+	}
+
+	return $return;
       },
 
       build_update_queue => sub
