@@ -128,10 +128,13 @@ sub new
 
       $ip = $heap->{remote_ip};
 			
-			($stdout) = capture_merged
-			{
-				$host = nslookup(host => $ip, type => "PTR") || $ip;
-			};
+      ($stdout) = capture_merged
+      {
+        # don't perform nslookups, as if many one of them time out, then future clients can't 
+	# get through the backlog and no one is happy 
+        #$host = nslookup(host => $ip, type => "PTR") || $ip;
+        $host = $ip;
+      };
 
       $server_data->{last_connect_attempt}->{$ip} = time2str('%Y-%m-%d %T', $now);
 
@@ -143,7 +146,7 @@ sub new
       $heap->{cipher} = $cipher;
       $heap->{key} = $key;
 
-      $kernel->post('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at" . ($now + 20));
+      $kernel->post('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at " . ($now + 20));
 
       $heap->{handshake_timeout_id} = $kernel->alarm_set('handshake_timeout' => ($now + 20));
     },
