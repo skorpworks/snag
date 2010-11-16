@@ -273,6 +273,7 @@ sub new
           $heap->{dbh} = $dbh;
   
           $kernel->yield('build_server_mappings');
+          $kernel->yield('build_domain_map');
           $kernel->delay('build_update_queue' => '5');
 
           $kernel->post('logger' => 'log' => "SystemInfo DB: connected to $args->{dsn}");
