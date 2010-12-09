@@ -143,7 +143,7 @@ sub new
       $heap->{cipher} = $cipher;
       $heap->{key} = $key;
 
-      $kernel->post('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at" . ($now + 20));
+      $kernel->post('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at " . ($now + 20));
 
       $heap->{handshake_timeout_id} = $kernel->alarm_set('handshake_timeout' => ($now + 20));
     },
