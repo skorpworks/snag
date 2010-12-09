@@ -720,6 +720,7 @@ sub get_template
           cpoints => 1,
           cfunc   => 'AVERAGE', 
         },
+      ]
     }
     else
     {
