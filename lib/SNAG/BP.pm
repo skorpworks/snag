@@ -39,7 +39,7 @@ BEGIN
     'Date::Parse'           => undef,
     'Sys::Syslog'           => undef,
   );
-
+#
   my ($args) = join ' ', @ARGV;
   %opt = ();
   GetOptions(\%opt, 'snag', 'debug', 'verbose', 'allowdup');
@@ -269,11 +269,11 @@ sub new
           $heap->{job_busy}->{$wheel_id} = 1;
           $heap->{job_busy_time}->{$wheel_id} = $heap->{epoch};
           $heap->{job_running_jobs}->{$wheel_id} = $job;
-          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: wheel($wheel_id): sending ". $job->{text} ."\n") if $debug;
+          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: wheel($wheel_id): sending ". $job->{text} ."TIME: " . $heap->{job_busy_time}->{$wheel_id} . "\n") if $debug;
           $heap->{job_wheels}->{$wheel_id}->put($job);
         }
         $kernel->delay($_[STATE] => $config->{manage});
-			},
+      },
       job_close => sub
       {
         my ($heap, $wheel_id) = @_[HEAP, ARG0];
@@ -289,7 +289,7 @@ sub new
       {
         my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
         my $alias = $heap->{alias};
-
+	$heap->{epoch} = time();
         given($output->{status})
         {
           when(/^(JOBFINISHED|ERROR)$/)
@@ -303,7 +303,7 @@ sub new
               $heap->{job_busy}->{$wheel_id} = 1;
               $heap->{job_busy_time}->{$wheel_id} = $heap->{epoch};
               $heap->{job_running_jobs}->{$wheel_id} = $job;
-              $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_stdouterr: wheel($wheel_id): sending ". $job->{text} ."\n") if $debug;
+              $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_stdouterr: wheel($wheel_id): sending ". $job->{text} ." TIME: " . $heap->{job_busy_time}->{$wheel_id} . "\n") if $debug;
               $heap->{job_wheels}->{$wheel_id}->put($job);
             }
             else
