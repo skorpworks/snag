@@ -317,7 +317,8 @@ sub new
         my ( $kernel, $heap, $output, $wheel_id ) = @_[ KERNEL, HEAP, ARG0, ARG1 ];
         my $alias = $heap->{alias};
 
-        if ( $output->{status} =~ m/^(JOBFINISHED|ERROR)$/ )
+        $heap->{epoch} = time();
+        if ($output->{status} =~ m/^(JOBFINISHED|ERROR)$/)
         {
           $heap->{snagstat}->{finishedwheels}++ if $output->{status} eq 'JOBFINISHED';
           $heap->{snagstat}->{erroredwheels}++  if $output->{status} eq 'ERROR';
