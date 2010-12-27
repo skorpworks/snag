@@ -174,28 +174,37 @@ sub supp_iostat_io_child_stdio
   #sda5         0.00   0.60  0.00  0.80    0.00   12.80     0.00     6.40    16.00     0.02   20.00  15.00   1.20
   #   0            1      2     3     4       5       6        7        8        9       10      11     12     13
 
-  if ($output =~ /^(\w+)\s+\d+\.\d+\s+/ && $heap->{iostat_io_count}->{$1}++ >= 1)
+  #Device:         rrqm/s   wrqm/s     r/s     w/s   rsec/s   wsec/s avgrq-sz avgqu-sz   await  svctm  %util
+  #sda            1012.40     0.00   48.80    1.20  8560.00     9.60   171.39     0.96   19.12   9.12  45.60
+  #sdb             942.40     0.00   33.20    1.20  7830.40     9.60   227.91     0.51   14.77   7.67  26.40
+  #sdc             661.60     1.80   34.60    1.40  5704.00    25.60   159.16     0.44   11.89   8.28  29.80
+  #  0                  1        2       3       4        5        6        7        8       9     10     11
+
+  $heap->{iostat_io_count}++ if ($output =~ /^Device:/);
+  if ($output =~ /^(\w+) \s+ \d+\.\d+ \s+ \d+\.\d+ \s+/x && $heap->{iostat_io_count} > 1)
   {
-    my $time = $heap->{run_epoch}; 
+    my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
 
-    ### Only look at the mounted partitions, and send the mountpoint instead of the device
-    if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]})
+    my @mps;
+    $mps[0] = uri_escape("/dev/$stats[0]");
+    push @mps, uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount}) if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]});
+    foreach my $mp (@mps)
     {
-      my $mp = uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount} );
-
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorrms', "1g", $time, $stats[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowrms', "1g", $time, $stats[2]));
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iors', "1g", $time, $stats[3]));
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iows', "1g", $time, $stats[4]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorkbs', "1g", $time, $stats[7]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowkbs', "1g", $time, $stats[8]));
-      #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgrqsz', "1g", $time, $stats[9]));
-      #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgqusz', "1g", $time, $stats[10]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'await', "1g", $time, $stats[11]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'svctm', "1g", $time, $stats[12]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorss', "1g", $time, $stats[5]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowss', "1g", $time, $stats[6]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgrqsz', "1g", $time, $stats[7]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgqusz', "1g", $time, $stats[8]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'await', "1g", $time, $stats[9]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'svctm', "1g", $time, $stats[10]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'pct_util', "1g", $time, $stats[11]));
     }
   }
 }
-
 
 sub supp_iostat_io_child_stderr
 {
@@ -220,7 +229,7 @@ sub run_iostat_cpu
   $heap->{iostat_cpu_count} = 0; 
   $heap->{iostat_cpu_wheel} = POE::Wheel::Run->new 
   (  
-    Program      => [ "iostat", "-c", $stat_quanta, $stat_loops ],
+    Program      => [ "iostat", "-k", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
     StdoutEvent  => 'supp_iostat_cpu_child_stdio',       
@@ -242,6 +251,16 @@ sub supp_iostat_cpu_child_stdio
   #           1.30    0.00    0.40    1.30   97.00
   #avg-cpu:  %user   %nice %system %iowait  %steal   %idle
   #           0.00    0.00    0.00   49.94    0.00   50.06
+
+  #avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+  #           0.75    0.00    5.22   58.70    0.00   35.34
+  #
+  #Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn
+  #sda              47.60      8796.80         8.00      43984         40
+  #sdb              32.60      6579.20         6.40      32896         32
+  #sdc              45.40      7523.20        12.80      37616         64
+  #sde              60.00     11438.40       523.20      57192       2616
+
   if($output =~ s/^avg\-cpu://)
   {
     my @fields = map { s/\%//; $_ } split /\s+/, $output;
@@ -268,7 +287,20 @@ sub supp_iostat_cpu_child_stdio
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'cpuiow', "1g", $time, $stats[ $heap->{fields_index}->{iowait} ]));
     }
   }
-
+  elsif ($output =~ /^\w+ \s+ [\d\.]+ \s+ [\d\.]+ \s+/x && $heap->{iostat_cpu_count} > 1)
+  {
+    my $time = $heap->{run_epoch};
+    my @stats = split /\s+/, $output;
+    my @mps;
+    $mps[0] = uri_escape("/dev/$stats[0]");
+    push @mps, uri_escape($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount}) if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]});
+    foreach my $mp (@mps)
+    { 
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iops', "1g", $time, $stats[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'kb_read', "1g", $time, $stats[4]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'kb_write', "1g", $time, $stats[5]));
+    }
+  }
 }
 
 sub supp_iostat_cpu_child_stderr
