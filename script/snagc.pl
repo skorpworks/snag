@@ -65,8 +65,6 @@ elsif($SNAG::flags{compile})
                -M SNAG::Source::SystemInfo::Linux 
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
-               -M SNAG::Source::SystemStats::Linux::RHEL5 
-               -M SNAG::Source::SystemStats::Linux::GENTOO
                -a "/opt/snag/snag.conf" 
                -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
                --lib="/root/perl5/lib"  
