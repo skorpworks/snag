@@ -232,6 +232,7 @@ sub service_monitor
   }
 
   my $active_procs;
+  my $info;
   while( my ($pid, $ref) = each %$process_list)
   {
     ### Ignore any process owned by SNAGc.pl
@@ -253,6 +254,13 @@ sub service_monitor
       {
         $service_monitor->{ $ref->{fname} } = {};
       }
+    }
+
+    if($service_monitor->{ $ref->{fname}} && $service_monitor->{$proc}->{run_ratio} > .9 && $service_monitor->{$proc}->{samples} > 48)
+    {
+      $info->{procs}->{$ref->{fname}}->{'cmdline'} = $ref->{'cmdline'}; 
+      $info->{procs}->{$ref->{fname}}->{'cwd'} = $ref->{'cwd'}; 
+      $info->{procs}->{$ref->{fname}}->{'exec'} = $ref->{'exec'}; 
     }
   }
 
@@ -276,11 +284,10 @@ sub service_monitor
       print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'service_state', 'service state change', "proc $proc is not running.  usual run rate is $pct%", '', $seen);  print STDERR "\n";
     }
 
-    my $new_ratio
-      = ( ( $old_ratio * $samples ) + $running_flag ) / ( $samples + 1 );
+    my $new_ratio = ( ( $old_ratio * $samples ) + $running_flag ) / ( $samples + 1 );
 
     $service_monitor->{$proc}->{run_ratio} = $new_ratio;
- 
+    
     ### keep only a window of the last week
     $samples = $samples >= 10080 ? 10080 : ($samples + 1);
     $service_monitor->{$proc}->{samples} = $samples;
@@ -288,7 +295,7 @@ sub service_monitor
 
   store($service_monitor, $state_file) or die "Could not store $state_file";
 
-  return {};
+  return $info;
 }
 
 
