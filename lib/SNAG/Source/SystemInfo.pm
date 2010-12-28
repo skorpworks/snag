@@ -270,6 +270,10 @@ sub new
           {
             $shared_data->{cpu_count} = $pruned->{cpumem}->{cpu_count};
           }
+          elsif(defined $pruned->{iface})
+          {
+            $shared_data->{iface} = $pruned->{iface};
+          }
 
           $kernel->post('client' => 'sysinfo' => 'load' => freeze($pruned));
         }
