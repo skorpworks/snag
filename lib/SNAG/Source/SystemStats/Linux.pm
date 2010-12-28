@@ -297,8 +297,8 @@ sub supp_iostat_cpu_child_stdio
     foreach my $mp (@mps)
     { 
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iops', "1g", $time, $stats[1]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'kb_read', "1g", $time, $stats[4]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'kb_write', "1g", $time, $stats[5]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorkb', "1g", $time, $stats[4]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowkb', "1g", $time, $stats[5]));
     }
   }
 }
