@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sh prep.sh
+#sh prep.sh
 
 mkdir /var/tmp/snag_installer
 mkdir /var/tmp/snag_installer/bin
@@ -15,17 +15,12 @@ cp install.sh /var/tmp/snag_installer/
 
 cd /var/tmp/
 
-makeself=`which makeself.sh`
-if [ ! -z $makeself ]
+makeself=`which makeself 2>/dev/null || which makeself.sh  2>/dev/null`
+if [ -z $makeself ]
 then
-  makeself.sh --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
+  echo "No makeself found"
 fi
-
-makeself=`which makeself`
-if [ ! -z $makeself ]
-then
-  makeself --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
-fi
+$makeself --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
 
 cd -
 
