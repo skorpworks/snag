@@ -30,8 +30,6 @@ then
   chmod +x /etc/cron.hourly/snagw
 fi 
 
-echo "here"
-
 
 if [ -e '/etc/conf.d/local.start' ]
 then

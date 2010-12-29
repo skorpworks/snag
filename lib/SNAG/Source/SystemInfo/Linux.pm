@@ -265,6 +265,8 @@ sub service_monitor
     }
   }
 
+  @{$info} = sort { $a->{process} cmp $b->{process} } @{$info};
+
   foreach my $proc (keys %$service_monitor)
   {
     my $running_flag = exists $active_procs->{$proc} ? 1 : 0;
