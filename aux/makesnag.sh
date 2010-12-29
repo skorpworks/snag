@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#sh prep.sh
+sh prep.sh
 
 mkdir /var/tmp/snag_installer
 mkdir /var/tmp/snag_installer/bin
@@ -21,6 +21,8 @@ then
   echo "No makeself found"
 fi
 $makeself --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
+package=`uname -a | awk '{if ($0 ~ /gentoo/) {printf "gentoo"} else if ($0 ~ /Ubuntu/) {printf "ubuntu"} if ($0 ~ /x86_64/) {printf "-x86_64"} else {printf "-x86"}}'`
+mv snag_installer.sh snag-installer-${package}.sh
 
 cd -
 
