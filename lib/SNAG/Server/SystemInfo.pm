@@ -54,14 +54,11 @@ sub new
   my $args   = delete $params{Args};
   my $alias  = $params{Alias};
 
-  croak "Args must be a arrayref" if $args and ref $args ne 'ARRAY';
+  croak "Args must be a hashref" if $args and ref $args ne 'HASH';
 
   my $database_info;
-  foreach my $ref (@$args)
-  {
-    my $name = delete $ref->{name};
-    $database_info->{$name} = $ref;
-  }
+  my $name = delete $args->{name};
+  $database_info->{$name} = $args;
 
   POE::Session->create(
     inline_states => {
