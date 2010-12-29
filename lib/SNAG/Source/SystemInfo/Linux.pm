@@ -256,11 +256,12 @@ sub service_monitor
       }
     }
 
-    if($service_monitor->{ $ref->{fname}} && $service_monitor->{$proc}->{run_ratio} > .9 && $service_monitor->{$proc}->{samples} > 48)
+    if( !$ref->{ttydev} && defined $service_monitor->{$ref->{fname}} && $service_monitor->{$ref->{fname}}->{run_ratio} > .9 && $service_monitor->{$ref->{fname}}->{samples} > 48)
     {
-      $info->{procs}->{$ref->{fname}}->{'cmdline'} = $ref->{'cmdline'}; 
-      $info->{procs}->{$ref->{fname}}->{'cwd'} = $ref->{'cwd'}; 
-      $info->{procs}->{$ref->{fname}}->{'exec'} = $ref->{'exec'}; 
+      unless ($ref->{'cmndline'} =~ m/^\/proc/)
+      {
+        push @{$info->{process}}, { 'process' => $ref->{fname}, 'cmdline' => $ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'} };
+      }
     }
   }
 
