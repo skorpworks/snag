@@ -258,7 +258,7 @@ sub service_monitor
 
     if( !$ref->{ttydev} && defined $service_monitor->{$ref->{fname}} && $service_monitor->{$ref->{fname}}->{run_ratio} > .9 && $service_monitor->{$ref->{fname}}->{samples} > 48)
     {
-      unless ($ref->{'cmndline'} =~ m/^\/proc/)
+      unless ($ref->{'cmndline'} =~ m/^\/proc/ || $ref->{'exec'} =~ m/^\/usr\/sbin\/cron/)
       {
         push @{$info->{process}}, { 'process' => $ref->{fname}, 'cmdline' => $ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'} };
       }
