@@ -23,7 +23,7 @@ my $hold_period = 120;
 my $parcel_sep = PARCEL_SEP;
 my $line_sep = LINE_SEP;
 my $rec_sep = REC_SEP;
-
+my $client_conf = CLIENT_CONF;
 my $init_handshake_timeout = 20;
 my $parcel_ack_timeout = 60;
 
@@ -52,28 +52,28 @@ sub new
 
   ## handle and log attempts to communicate with servers based old aliasing method
   ## we can get rid of this some day
-  foreach my $name ('sysinfo', 'sysrrd', 'dashboard', 'sysrrd', 'flowrrd', 'gunitloader', 'snag', 'noc', 'barracuda', 'sysinfo3', 'sysinfo2', 'netrrd', 'ciscorrd2', 'spazd', 'ciscorrd4', 'ciscorrd1', 'oldsysinfo', 'olddashboard', 'master', 'oldsysrrd', 'benchrrd', 'oldsysrrdpublic', 'sysrrdpublic', 'oldpollrrd', 'pollrrd') 
-  {
-    POE::Session->create
-    (  
-      inline_states =>
-      {  
-        _start => sub
-        {
-          my ($kernel, $heap) = @_[KERNEL, HEAP];
-          $heap->{alias} = $name;
-          $kernel->alias_set($name);
-        },
-       
-        _default => sub
-        {
-          my ($kernel, $heap, $session, $name, $args) = @_[KERNEL, HEAP, SESSION, ARG0, ARG1];
-          my $msg = "Illegal attempt to communicate with server: $heap->{alias}, method: $session, args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
-          $kernel->post('logger' => 'log' => "_default: $msg");
-        }
-      }
-    );
-  }
+#  foreach my $name ('sysinfo', 'sysrrd', 'dashboard', 'sysrrd', 'flowrrd', 'gunitloader', 'snag', 'noc', 'barracuda', 'sysinfo3', 'sysinfo2', 'netrrd', 'ciscorrd2', 'spazd', 'ciscorrd4', 'ciscorrd1', 'oldsysinfo', 'olddashboard', 'master', 'oldsysrrd', 'benchrrd', 'oldsysrrdpublic', 'sysrrdpublic', 'oldpollrrd', 'pollrrd') 
+#  {
+#    POE::Session->create
+#    (  
+#      inline_states =>
+#      {  
+#        _start => sub
+#        {
+#          my ($kernel, $heap) = @_[KERNEL, HEAP];
+#          $heap->{alias} = $name;
+#          $kernel->alias_set($name);
+#        },
+#       
+#        _default => sub
+#        {
+#          my ($kernel, $heap, $session, $name, $args) = @_[KERNEL, HEAP, SESSION, ARG0, ARG1];
+#          my $msg = "Illegal attempt to communicate with server: $heap->{alias}, method: $session, args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
+#          $kernel->post('logger' => 'log' => "_default: $msg");
+#        }
+#      }
+#    );
+#  }
  
 
   POE::Session->create
@@ -87,6 +87,19 @@ sub new
         $kernel->alias_set('client');
 
         my $master_info_exists;
+        
+	# want this inline so it blocks and runs before anything is established
+	#
+	# INIT -> UUID + HOSTNAME
+	#
+	if($SNAG::flags{init} || (! -r $client_conf))
+	{
+          $kernel->call($_[SESSION], 'run_init', $default_connections);
+	}
+	else
+	{
+          $kernel->call($_[SESSION], 'load_conf');
+	}
 
         foreach my $ref (@$default_connections)
         {
@@ -153,6 +166,86 @@ sub new
         my $msg = "Calling depricated state 'add' with args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
 
         $kernel->post('logger' => 'log' => $msg);
+      },
+
+      run_init => sub
+      {
+        my ($kernel, $heap, $session,$default_connections) = @_[KERNEL, HEAP, SESSION, ARG0];
+	$kernel->post('logger' => 'log' => "Initializing (running snag init)...!") if $SNAG::flags{debug};
+        $kernel->post('logger' => 'log' => "Running init even though a client config exists.  Overwriting.") if $SNAG::flags{debug} && (-r $client_conf);
+
+        # Assume that master is the first ref of default connections
+        my $master = $default_connections->[0];          
+	my $socket;
+	eval
+	{
+	  $socket = IO::Socket::INET->new( PeerAddr => $master->{fallbackip},
+                                           PeerPort => $master->{port},
+                                           Proto    => 'tcp') or die $!;
+        };
+	if($@)
+	{
+          $kernel->post('logger' => 'log' => "Error getting raw socket to master: $@");
+	}
+        my $ip = $socket->sockhost();
+        close($socket);
+
+        $kernel->call($session, 'query_hostname',$ip);
+      },
+	
+      query_hostname => sub
+      {
+        my ($kernel, $heap, $session, $ip) = @_[KERNEL, HEAP, SESSION, ARG0];
+
+	$kernel->yield('master' => 'get_domain' => { raw_hostname => HOST_NAME, ip => $ip, postback => $session->postback('get_hostname_response', $ip)});
+      },
+
+      get_hostname_response => sub
+      {
+        my ($kernel, $heap, $session, $passed_through, $passed_back) = @_[ KERNEL, HEAP, SESSION, ARG0, ARG1 ];
+	foreach my $ref (@$passed_back)
+	{
+          $kernel->post('logger' => 'log' => "Received proper hostname from master: $ref->{hostname}");
+	  $kernel->call($session, 'create_conf', $ref->{hostname});
+	}
+
+      },
+
+      create_conf => sub
+      {
+        my ($kernel, $heap, $newhost) = @_[ KERNEL, HEAP, ARG0];
+	my $config;
+	$config->{hostname} = $newhost;
+	
+	# create UUID
+	use Data::UUID;
+	my $ug = new Data::UUID;
+	$config->{uuid} = $ug->create_str();
+
+        $kernel->post("logger" => 'log' => "saving config file: " . $client_conf) if $SNAG::flags{debug};
+	use Config::General;
+	my $cg = new Config::General();
+	$cg->save_file($client_conf, $config);
+        $kernel->call($_[SESSION], 'load_conf');	
+      },
+
+      load_conf => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+        if(-r $client_conf)
+	{
+	  use Config::General;
+	  my $cg = Config::General->new(-ConfigFile => $client_conf);
+	  my %conf = $cg->getall();
+	  $kernel->post("logger" => "log" => "Loaded $client_conf") if $SNAG::flags{debug};
+	  SET_HOST_NAME($conf{hostname});
+	  SET_UUID($conf{uuid});
+	}
+	else
+	{
+          $kernel->post("logger" => "log" => "WARNING: running load_conf but I can't find $client_conf.  I should've called init, but something must've happend");
+	}
       },
 
       ### need some state to periodically check to see if client_queue's that have data have corresponding _connection
