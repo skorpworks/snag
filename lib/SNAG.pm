@@ -18,7 +18,7 @@ use Config::General qw/ParseConfig/;
 
 our %flags;
 
-our $VERSION = '4.22';
+our $VERSION = '4.23';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);
@@ -254,11 +254,18 @@ sub CHECK_HOST_NAME
 
 my $host_name = CHECK_HOST_NAME;
 
+
 sub HOST_NAME { $host_name };
+sub CLIENT_CONF { return LOG_DIR . '/client.conf'; };
+
+sub SET_HOST_NAME
+{
+  my $new = shift || $host_name;
+  $host_name = $new;
+}
 
 my $name = basename $0;
 sub SCRIPT_NAME { $name };
-
 
 sub REC_SEP { '~_~' };
 sub RRD_SEP { ':' };
