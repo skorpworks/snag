@@ -66,6 +66,12 @@ sub new
         $shared_data->{tags}->{'os'}->{ lc(&OS) }->{ lc(&OSDIST . &OSVER) } = 1;
         $shared_data->{tags}->{'version'}->{'snagc'} = VERSION;
 
+	$kernel->delay('delayed_start' => 10);
+      },
+
+      delayed_start => sub 
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
         if(OS eq 'Windows')
         {
           require Win32::Service;
@@ -100,22 +106,7 @@ sub new
             }
           }
 
-          my $uuid_file = LOG_DIR . '/snag.uuid';
-          unless ( -r $uuid_file)
-          {
-            use Data::UUID; 
-            my $ug = new Data::UUID; 
-            open(UUID, ">$uuid_file");
-            print UUID $ug->create_str();
-            close UUID;
-          }
-          { 
-            local $/;
-          
-            open UUID, $uuid_file; 
-            $shared_data->{uuid} = <UUID>;
-            close UUID;
-          }
+	  $shared_data->{uuid} = UUID;
 
           require Proc::ProcessTable;
 
