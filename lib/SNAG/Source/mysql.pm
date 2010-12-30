@@ -1,5 +1,4 @@
-package SNAG::Source::mysql;
-use base qw/SNAG::Source/;
+package SNAG::Source::mysql; use base qw/SNAG::Source/;
 
 use strict;
 use SNAG;
@@ -13,18 +12,21 @@ use Carp qw(carp croak);
 use Data::Dumper;
 
 my $mapping = {
-                'Aborted_clients'       => 'c',
-                'Aborted_connects'      => 'c',
-                'Connections'           => 'c',
-                'Max_used_connections'  => 'g',
-                'Open_tables'           => 'g',
-                'Questions'             => 'c',
-                'Table_locks_immediate' => 'c',
-                'Table_locks_waited'    => 'c',
-                'Threads_connected'     => 'g',
-                'Threads_created'       => 'c',
-                'Threads_running'       => 'g',
-                'Uptime'                => 'g',
+                'Aborted_clients'        => 'c',
+                'Aborted_connects'       => 'c',
+                'Connections'            => 'c',
+                'Max_used_connections'   => 'g',
+                'Open_tables'            => 'g',
+                'Questions'              => 'c',
+                'Table_locks_immediate'  => 'c',
+                'Table_locks_waited'     => 'c',
+                'Threads_connected'      => 'g',
+                'Threads_created'        => 'c',
+                'Threads_running'        => 'g',
+                'Uptime'                 => 'g',
+                'Slow_queries'           => 'c',
+                'Opens'                  => 'c', 
+                'Queries_per_second_avg' => 'g',
               };
 
 #################################
@@ -78,7 +80,7 @@ sub new
           $kernel->post( "logger" => "log" => "SNAG::Source::mysql: server_stats is starting" ) if $debug;
           $heap->{this_time} = $heap->{next_time} - 60;
           $heap->{child} = POE::Wheel::Run->new(
-                                                 Program      => 'echo "show status;" | mysql -u snag --password=snag',
+                                                 Program      => 'echo "status;show status;" | mysql -u snag --password=snag',
                                                  StdioFilter  => POE::Filter::Line->new(),
                                                  StderrFilter => POE::Filter::Line->new(),
                                                  StdoutEvent  => 'server_stats_stdio',
@@ -94,10 +96,24 @@ sub new
       {
         my ( $kernel, $heap, $input ) = @_[ KERNEL, HEAP, ARG0 ];
 
-        my ( $key, $val ) = ( $input =~ /^([\w\_]+)\s+(\d+)$/ );
-        if ( $input =~ m/^(Open_tables|Aborted_clients|Aborted_connects|Connections|Max_used_connections|Questions|Table_locks_immediate|Table_locks_waited|Threads_connected|Threads_created|Threads_running|Uptime)\s+(\d+)/ )
+        if ( $input =~ /^([\w\_]+)\s+(\d+)$/ )
         {
-          $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($1), '1' . $mapping->{$1}, $heap->{this_time}, $2 ) );
+	  $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($1), '1' . $mapping->{$1}, $heap->{this_time}, $2) ) if ($mapping->{$1}) && $1 > 0;
+        }
+	elsif ($input =~ m/^Threads:/) 
+	{
+	  my (@tuples, $tuple);
+	  @tuples = split /  /, $input; 
+	  foreach $tuple (@tuples) 
+	  { 
+            if ( $tuple =~ /^([\w\s]+):\s+([\d\.]+)/ )
+	    {
+	    print "2!!!!!!!!! $1 !!!!!!!!!!\n";
+	      my($ds, $value) = ($1,$2);
+	      $ds =~ s/ /_/g;
+	      $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($ds), '1' . $mapping->{$ds}, $heap->{this_time}, $value ) ) if ($mapping->{$ds});
+	    }
+	  } 
         }
       },
 
