@@ -58,6 +58,7 @@ elsif($SNAG::flags{compile})
                -M SNAG  
                -M SNAG::Source::apache
                -M SNAG::Source::xen 
+               -M SNAG::Source::mysql
                -M SNAG::Source::vserver
                -M SNAG::Source::apache_logs
                -M SNAG::Source::monitor     

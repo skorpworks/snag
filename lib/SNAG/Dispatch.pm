@@ -320,6 +320,7 @@ sub new
         {
           if($proc->fname eq 'mysqld')
           {
+            $kernel->yield('dispatcher' => 'SNAG::Source::mysql', {Alias => 'mysql'} );
             $shared_data->{tags}->{service}->{database}->{mysql} = 1;
           }
 
