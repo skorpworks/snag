@@ -174,7 +174,7 @@ sub new
 
 	eval
 	{
-          my $get_nets = $heap->{dbh}->selectall_hashref("select subnet, name from domain_map", "subnet");
+          my $get_nets = $heap->{dbh}->selectall_hashref("select subnet, pop, domain, override from domain_map", "subnet");
 	  delete $heap->{netpat};
 	  delete $heap->{netmap};
 	  $heap->{netpat} = new Net::Patricia;
@@ -195,16 +195,24 @@ sub new
         my ($heap, $kernel, $input) = @_[HEAP, KERNEL, ARG0];
 
         my $ip = $input->{ip};
-	$kernel->post('logger' => 'log' => "Finding domain for $ip") if $debug;
-        my $return;
-	$return->{domain} = "";
+	my $raw_hostname = $input->{raw_hostname};
+	$kernel->post('logger' => 'log' => "Finding domain for $ip and client host $raw_hostname") if $debug;
+        my $return->{hostname} = $input->{raw_hostname};
 
         if(defined $heap->{netpat} && defined $heap->{netmap})
 	{
 	  my $sub = $heap->{netpat}->match_string($ip);
 	  if(defined $heap->{netmap}->{$sub})
 	  {
-            $return->{domain} = $heap->{netmap}->{$sub}->{name};
+	    if(($return->{hostname} =~ /\./) && ($heap->{netmap}->{$sub}->{override} == 1))
+	    {
+	      $return->{hostname} =~ s/\..*$//g;
+	      $return->{hostname} .= $heap->{netmap}->{$sub}->{pop} . $heap->{netmap}->{$sub}->{domain};
+	    }
+	    elsif(! $return->{hostname} =~ /\./)
+	    {
+	      $return->{hostname} .= $heap->{netmap}->{$sub}->{pop} . $heap->{netmap}->{$sub}->{domain};
+	    }
 	  }
 	}
 
