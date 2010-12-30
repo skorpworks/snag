@@ -196,26 +196,43 @@ sub new
 
         my $ip = $input->{ip};
 	my $raw_hostname = $input->{raw_hostname};
-	$kernel->post('logger' => 'log' => "Finding domain for $ip and client host $raw_hostname") if $debug;
+	print "Finding domain for IP: $ip and client host $raw_hostname\n" if $SNAG::flags{debug};
         my $return->{hostname} = $input->{raw_hostname};
-
-        if(defined $heap->{netpat} && defined $heap->{netmap})
+        print Dumper($heap->{netmap}); 
+        if(defined $heap->{netpat} && defined $heap->{netmap} && defined $ip)
 	{
 	  my $sub = $heap->{netpat}->match_string($ip);
-	  if(defined $heap->{netmap}->{$sub})
+	  if(defined $sub && defined $heap->{netmap}->{$sub})
 	  {
 	    if(($return->{hostname} =~ /\./) && ($heap->{netmap}->{$sub}->{override} == 1))
 	    {
 	      $return->{hostname} =~ s/\..*$//g;
-	      $return->{hostname} .= $heap->{netmap}->{$sub}->{pop} . $heap->{netmap}->{$sub}->{domain};
+	      if(defined $heap->{netmap}->{$sub}->{pop} && $heap->{netmap}->{$sub}->{pop} ne "")
+	      {
+	        $return->{hostname} .= "." . $heap->{netmap}->{$sub}->{pop};
+	      }	
+	      if(defined $heap->{netmap}->{$sub}->{domain} && $heap->{netmap}->{$sub}->{domain} ne "")
+	      {
+	        $return->{hostname} .= "." . $heap->{netmap}->{$sub}->{domain};
+              }
 	    }
-	    elsif(! $return->{hostname} =~ /\./)
+	    elsif($return->{hostname} !~ /\./)
 	    {
-	      $return->{hostname} .= $heap->{netmap}->{$sub}->{pop} . $heap->{netmap}->{$sub}->{domain};
+	      if(defined $heap->{netmap}->{$sub}->{pop} && $heap->{netmap}->{$sub}->{pop} ne "")
+	      {
+	        $return->{hostname} .= "." . $heap->{netmap}->{$sub}->{pop};
+	      }	
+	      if(defined $heap->{netmap}->{$sub}->{domain} && $heap->{netmap}->{$sub}->{domain} ne "")
+	      {
+	        $return->{hostname} .= "." . $heap->{netmap}->{$sub}->{domain};
+              }
 	    }
 	  }
 	}
-
+        if($SNAG::flags{debug})
+	{
+	  print "Returning hostname: " . Dumper($return);
+	}
 	return $return;
       },
 

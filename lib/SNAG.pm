@@ -2,7 +2,7 @@ package SNAG;
 
 our @ISA = qw(Exporter);
 
-our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR SMTP SENDTO CONF);
+our @EXPORT = qw( VERSION PARCEL_SEP REC_SEP LOG_DIR LINE_SEP RRD_SEP INFO_SEP SCRIPT_NAME CHECK_HOST_NAME HOST_NAME BASE_DIR CFG_DIR STATE_DIR MOD_DIR OS OSDIST OSVER OSLONG SITE_PERL logger daemonize already_running TMP_DIR SMTP SENDTO CONF CLIENT_CONF SET_HOST_NAME SET_UUID UUID);
 
 use Exporter;
 
@@ -18,7 +18,7 @@ use Config::General qw/ParseConfig/;
 
 our %flags;
 
-our $VERSION = '4.22';
+our $VERSION = '4.23';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);
@@ -253,12 +253,26 @@ sub CHECK_HOST_NAME
 }
 
 my $host_name = CHECK_HOST_NAME;
+my $uuid = 0;
 
 sub HOST_NAME { $host_name };
+sub CLIENT_CONF { return $conf->{directory}->{log_dir} . '/client.conf'; };
 
+sub SET_HOST_NAME
+{
+  my $new = shift || $host_name;
+  $host_name = $new;
+}
+
+sub SET_UUID
+{
+  my $u = shift || 0;
+  $uuid = $u; 
+}
+
+sub UUID { return $uuid };
 my $name = basename $0;
 sub SCRIPT_NAME { $name };
-
 
 sub REC_SEP { '~_~' };
 sub RRD_SEP { ':' };
