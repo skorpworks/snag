@@ -98,7 +98,7 @@ sub new
 
         if ( $input =~ /^([\w\_]+)\s+(\d+)$/ )
         {
-	  $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($1), '1' . $mapping->{$1}, $heap->{this_time}, $2) ) if ($mapping->{$1}) && $1 > 0;
+	  $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($1), '1' . $mapping->{$1}, $heap->{this_time}, $2) ) if ($mapping->{$1}) && $2 > 0;
         }
 	elsif ($input =~ m/^Threads:/) 
 	{
@@ -108,7 +108,6 @@ sub new
 	  { 
             if ( $tuple =~ /^([\w\s]+):\s+([\d\.]+)/ )
 	    {
-	    print "2!!!!!!!!! $1 !!!!!!!!!!\n";
 	      my($ds, $value) = ($1,$2);
 	      $ds =~ s/ /_/g;
 	      $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . lc($ds), '1' . $mapping->{$ds}, $heap->{this_time}, $value ) ) if ($mapping->{$ds});
