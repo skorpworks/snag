@@ -369,7 +369,7 @@ sub input
 
       my $dest_session;
                                                     
-      if($function eq 'heartbeat' and $server_data->{server_alias} =~ /^(sysinfo\d*|dashboard|alerts|master)$/ )
+      if($function eq 'heartbeat' and $server_data->{server_alias} =~ /^(sysinfo|dashboard|alerts|master|sysrrd)$/ )
       {
         ### for some reason settting this to the alias does not work   
         $dest_session = $_[SESSION];
