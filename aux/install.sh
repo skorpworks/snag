@@ -63,5 +63,11 @@ then
 fi
 
 echo "Starting snag..."
-/opt/snag/bin/snagw
+
+if [[ ! -e "/opt/snag/log/client.conf" ]]
+then
+  /opt/snag/bin/snagc --init
+else
+  /opt/snag/bin/snagw
+fi
 

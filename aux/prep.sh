@@ -1,7 +1,7 @@
 
 
 pkill -f /opt/snag/bin/snagc
-ps -ef |grep '/opt/snag/bin/perl /root/perl5/bin/snagc.pl' |grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
+ps -ef |grep 'snagc.pl' |grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
 
 cd /var/tmp/snag \
 && /opt/snag/bin/perl Makefile.PL && make && make test && make install \
