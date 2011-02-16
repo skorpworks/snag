@@ -211,7 +211,6 @@ sub build_config_file_list
   return \%config_files;
 }
 
-
 sub service_monitor
 {
   my $state_file = catfile(LOG_DIR, 'service_monitor.state');
@@ -265,6 +264,7 @@ sub service_monitor
     }
   }
 
+  #@{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
   @{$info} = sort { $a->{process} cmp $b->{process} } @{$info};
 
   foreach my $proc (keys %$service_monitor)
@@ -942,6 +942,37 @@ sub system
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
   }
 
+  my $info;
+  if(-e '/proc/mdstat')
+  {
+    open MDSTAT, '/proc/mdstat';
+    my $dev;
+    my $md;
+    while(<MDSTAT>)
+    {
+      if (m/^md(\d+) \s+ : \s+ active \s+ (raid\d+)(.*)/x)
+      {
+        $md = ();
+        $dev = "md$1";
+        ($md->{level}, $md->{members}) = ( $2, join(" ", sort( split(/ /, $3))) );
+        my (%devs) = $md->{members} =~ m/\s+(\w+)\[(\d+)\]/g;
+        $md->{members} =~ s/^\s+//;
+        $md->{dev_map} = \%devs;
+      }
+      if (m/\s+ (\d+) \s+ blocks \s/x)
+      {
+        $md->{blocks} = $1;
+        $md->{chunk} = $1 if (m/\s+ (\d+k) \s+ chunk[,s]/ix);
+        $md->{devices} = $1 if (m/\s+ \[\d+\/(\d+)\] \s+ \[/x);
+      }
+      if (m/^\s+$/)
+      {
+        push @{$info->{md}}, { md => $dev, %{$md} };
+      }
+    }
+    close MDSTAT;
+  }
+
   my $lspci_bin;
   if (-e '/usr/sbin/lspci')
   {
@@ -959,7 +990,6 @@ sub system
 
   return $info;
 }
-
 
 ### Get the linux kernel parameters
 sub kernel_settings
