@@ -211,7 +211,6 @@ sub new
             else
             {
 	      $kernel->post('logger' => 'log' => 'Sysinfo: Starting a new wheel to run (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
-
     
 	      my $wheel = POE::Wheel::Run->new
 	      (
@@ -243,7 +242,6 @@ sub new
         $heap->{wheels}->{$id}->kill or $heap->{wheels}->{$id}->kill(9);
         delete $heap->{wheels}->{$id};
  
-        #$kernel->post('client' => 'dashboard' => 'load' => );
         $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'aslc', 'sysinfo', 'A Sysinfo PWR exceeded its timeout', "$timeout seconds: $heap->{sysinfo_debug}", '', time2str("%Y-%m-%d %T", time())));
       },
 
@@ -259,7 +257,7 @@ sub new
           $SNAG::Source::sysinfo_prune_state = undef;
           $heap->{state}->{host} = HOST_NAME;
         }
-
+        
         if(%$info && ( my $pruned = SNAG::Source::sysinfo_prune($info) ) )
         {
           $pruned->{host} = HOST_NAME;
@@ -285,8 +283,8 @@ sub new
 
         #shell-init: could not get current directory: getcwd: cannot access parent directories: No such file or directory
         #bash: /root/.bashrc: Permission denied
-
         #print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'service_state', 'service state change', "service $service is not running.  usual run rate is $pct%", '', $seen);  print STDERR "\n";
+
         if($output =~ /^events/)
         {
           $kernel->post('client' => 'dashboard' => 'load' => $output);
@@ -294,18 +292,18 @@ sub new
         elsif($output =~ s/^\s*sysinfo_debug://)
         {
           $kernel->post('logger' => 'log' => "Sysinfo: $output") if $debug; 
-	  $heap->{sysinfo_debug} = $output;
+          $heap->{sysinfo_debug} = $output;
         }
         else
         {
           unless($output =~ /got duplicate tcp line/
              || $output =~ /got bogus tcp line/
              || $output =~ /could not get current directory/
-             || $output =~ /bashrc: Permission denied/)
-             #|| $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
+             || $output =~ /bashrc: Permission denied/
+             || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
     	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
-            $kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
+          #$kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
           }
         }
       },
@@ -362,11 +360,17 @@ sub info
   {
     no strict 'refs';
 
-    print STDERR "sysinfo_debug:info PWR: running $sub \n" if $debug;
-
-    if(my $new_info = $sub->($args))
+    print STDERR "sysinfo_debug:PWR: running $sub \n" if $debug;
+    eval
     {
-      $info = SNAG::Source::merge_hashref($info, $new_info);
+      if(my $new_info = $sub->($args))
+      {
+        $info = SNAG::Source::merge_hashref($info, $new_info);
+      }
+    };
+    if ($@)
+    {
+      print STDERR "PWR: $sub aborted: $@ \n" if $debug;
     }
   }
 
@@ -381,7 +385,7 @@ sub info
     print @$return;
   }
 
-  print STDERR "sysinfo_debug:info PWR subs done!\n" if $debug;
+  print STDERR "sysinfo_debug:PWR subs done!\n" if $debug;
 }
 
 sub apache_version
