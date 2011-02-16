@@ -12,20 +12,20 @@ use Carp qw(carp croak);
 use Data::Dumper;
 
 my $mapping = {
-                'Aborted_clients'        => 'c',
-                'Aborted_connects'       => 'c',
-                'Connections'            => 'c',
+                'Aborted_clients'        => 'd',
+                'Aborted_connects'       => 'd',
+                'Connections'            => 'd',
                 'Max_used_connections'   => 'g',
                 'Open_tables'            => 'g',
-                'Questions'              => 'c',
-                'Table_locks_immediate'  => 'c',
-                'Table_locks_waited'     => 'c',
+                'Questions'              => 'd',
+                'Table_locks_immediate'  => 'd',
+                'Table_locks_waited'     => 'd',
                 'Threads_connected'      => 'g',
-                'Threads_created'        => 'c',
+                'Threads_created'        => 'd',
                 'Threads_running'        => 'g',
                 'Uptime'                 => 'g',
-                'Slow_queries'           => 'c',
-                'Opens'                  => 'c', 
+                'Slow_queries'           => 'd',
+                'Opens'                  => 'd', 
                 'Queries_per_second_avg' => 'g',
               };
 
