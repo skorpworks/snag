@@ -10,11 +10,13 @@ use Data::Dumper;
 use Date::Format;
 use strict;
 
-my $host = HOST_NAME;
+my $shared_data = $SNAG::Dispatch::shared_data;
+
 my $rrd_step   = $SNAG::Source::SystemStats::rrd_step || 60;
 my $rrd_min    = $rrd_step/60;
 our $stat_quanta = $rrd_step - 5;
 our $stat_loops  = $rrd_min + 1;
+
 
 #####################################################################################
 ############  DF  ############################################################
@@ -102,6 +104,7 @@ sub supp_df_child_stdio
   my $mount = URI::Escape::uri_escape($fields[5]);
   $fields[4] =~ s/\%//;
 
+  my $host = HOST_NAME;
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host . "[$mount]", 'dsk_cap', '1g', $time, $fields[1]));
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host . "[$mount]", 'dsk_used', '1g', $time, $fields[2]));
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host . "[$mount]", 'dsk_pct', '1g', $time, $fields[4]));
@@ -188,6 +191,7 @@ sub supp_iostat_io_child_stdio
 
     my @mps;
     $mps[0] = uri_escape("/dev/$stats[0]");
+    my $host = HOST_NAME;
     push @mps, uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount}) if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]});
     foreach my $mp (@mps)
     {
@@ -276,6 +280,7 @@ sub supp_iostat_cpu_child_stdio
   }
   elsif ($output =~ /^\s+\d/ && $heap->{iostat_cpu_count}++ >= 1)
   {
+    my $host = HOST_NAME;
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'cpuuser', "1g", $time, $stats[ $heap->{fields_index}->{user} ]));
@@ -289,6 +294,7 @@ sub supp_iostat_cpu_child_stdio
   }
   elsif ($output =~ /^\w+ \s+ [\d\.]+ \s+ [\d\.]+ \s+/x && $heap->{iostat_cpu_count} > 1)
   {
+    my $host = HOST_NAME;
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
     my @mps;
@@ -347,6 +353,7 @@ sub supp_vmstat_child_stdio
   $output = " " . $output;
   if ($output =~ /^\s+\d+\s+/ && $heap->{vmstat_count}++ >= 1)
   {
+    my $host = HOST_NAME;
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
@@ -491,28 +498,9 @@ sub supp_nfsstat_child_close
   delete $heap->{vmstat_wheel};
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #####################################################################################
 ############  NETSTAT  ############################################################
 #####################################################################################
-
 my %states =
 (
   'CLOSING' => 'clsng',
@@ -672,6 +660,7 @@ sub run_uptime
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
   my $time = $heap->{run_epoch};
+  my $host = HOST_NAME;
 
   open (PROC, "</proc/uptime");
   my @stats = split(/ /, <PROC>);
@@ -689,6 +678,7 @@ sub run_network_dev
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
   my $time = $heap->{run_epoch};
+  my $host = HOST_NAME;
 
   #Inter-|   Receive                                                |  Transmit
   # face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
@@ -738,6 +728,7 @@ sub run_loadavg
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
   my $time = $heap->{run_epoch};
+  my $host = HOST_NAME;
 
   open (PROC, "</proc/loadavg");
   my @stats = split(/ /, <PROC>);
@@ -761,6 +752,7 @@ sub run_meminfo
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
   my $time = $heap->{run_epoch};
+  my $host = HOST_NAME;
 
   open (PROC, "</proc/meminfo");
   while (<PROC>)
@@ -845,6 +837,7 @@ sub supp_proc_stat_collect
 
   my ($stat, $val, $diff_val);
   my $time = time();
+  my $host = HOST_NAME;
 
   open (PROC, "</proc/stat");
   my (@lines) = <PROC>;
