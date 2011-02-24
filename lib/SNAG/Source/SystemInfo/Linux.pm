@@ -264,8 +264,7 @@ sub service_monitor
     }
   }
 
-  #@{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
-  @{$info} = sort { $a->{process} cmp $b->{process} } @{$info};
+  @{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
 
   foreach my $proc (keys %$service_monitor)
   {
@@ -956,8 +955,8 @@ sub system
         $dev = "md$1";
         ($md->{level}, $md->{members}) = ( $2, join(" ", sort( split(/ /, $3))) );
         my (%devs) = $md->{members} =~ m/\s+(\w+)\[(\d+)\]/g;
+        $info->{mdmap}->{$dev} = \%devs;
         $md->{members} =~ s/^\s+//;
-        $md->{dev_map} = \%devs;
       }
       if (m/\s+ (\d+) \s+ blocks \s/x)
       {
