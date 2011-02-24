@@ -179,7 +179,7 @@ sub new
         $kernel->alarm( 'stats_update' => $heap->{next_time} );
 
         $target_epoch = $epoch;
-        while ( ++$target_epoch % $config->{poll_period} ) { }
+        while ( $config->{poll_period} > 0 && (++$target_epoch % $config->{poll_period}) ) { }
         $heap->{next_time} = int($target_epoch);
 
         unless ( $config->{poll_period} == 0 )
