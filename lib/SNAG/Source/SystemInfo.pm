@@ -257,21 +257,24 @@ sub new
           $SNAG::Source::sysinfo_prune_state = undef;
           $heap->{state}->{host} = HOST_NAME;
         }
+
+        if(defined $info->{cpumem} && defined $info->{cpumem}->{cpu_count})
+        {
+          $shared_data->{cpu_count} = $info->{cpumem}->{cpu_count};
+        }
+        elsif(defined $info->{iface})
+        {
+          $shared_data->{iface} = $info->{iface};
+        }
+        elsif(defined $info->{md})
+        {
+          $shared_data->{mdmap} = delete $info->{mdmap};
+        }
         
         if(%$info && ( my $pruned = SNAG::Source::sysinfo_prune($info) ) )
         {
           $pruned->{host} = HOST_NAME;
           $pruned->{seen} = time2str("%Y-%m-%d %T", time);
-
-          ### save data here for other sources to use
-          if(defined $pruned->{cpumem} && defined $pruned->{cpumem}->{cpu_count})
-          {
-            $shared_data->{cpu_count} = $pruned->{cpumem}->{cpu_count};
-          }
-          elsif(defined $pruned->{iface})
-          {
-            $shared_data->{iface} = $pruned->{iface};
-          }
 
           $kernel->post('client' => 'sysinfo' => 'load' => freeze($pruned));
         }
