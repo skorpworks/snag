@@ -30,8 +30,8 @@ my $debug = $SNAG::flags{debug};
 my $scriptname = SCRIPT_NAME;
 exit if already_running();
 
-die "Invalid usage of snagp.pl!" unless (split /_snagp/, $scriptname) == 2;
-my ($type) = (split /_snagp/, $scriptname)[0];
+die "Invalid usage of snagp.pl\n" unless ($scriptname =~ /(.+?)_snagp/);
+my $type = $1;
 
 my ($login,$pass,$uid,$gid) = getpwnam('snag');
 if ( defined $uid )
