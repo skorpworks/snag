@@ -941,7 +941,6 @@ sub system
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
   }
 
-  my $info;
   if(-e '/proc/mdstat')
   {
     open MDSTAT, '/proc/mdstat';
