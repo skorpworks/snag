@@ -190,8 +190,11 @@ sub new
           
           ## TODO put in remote IP and port kludge overrides
 
-          $heap->{host_ips}     = $host_ips;
-          $heap->{remote_hosts} = $remote_hosts;
+          ## TODO this can be to intensive to perform on the client side
+          #$heap->{host_ips}     = $host_ips;
+          #$heap->{remote_hosts} = $remote_hosts;
+          $heap->{host_ips} = {};  
+          $heap->{remote_hosts} = {};
 
           $kernel->delay( 'build_remote_hosts' => 3600 );
 
