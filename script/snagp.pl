@@ -3,7 +3,8 @@
 use strict;
 
 BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };
-use FindBin;
+use FindBin qw($Bin $Script);
+use File::Spec::Functions qw(catfile);
 use lib "/opt/snag/lib/perl5";
 
 use POE;
@@ -25,7 +26,7 @@ foreach my $arg (@ARGV)
 my %options;
 GetOptions(\%options, 'debug', 'verbose', 'compile');
 
-if($options{compile})
+if($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
   {
