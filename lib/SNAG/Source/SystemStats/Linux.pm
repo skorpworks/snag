@@ -184,7 +184,7 @@ sub supp_iostat_io_child_stdio
   #  0                  1        2       3       4        5        6        7        8       9     10     11
 
   $heap->{iostat_io_count}++ if ($output =~ /^Device:/);
-  if ($output =~ /^(\w+) \s+ \d+\.\d+ \s+ \d+\.\d+ \s+/x && $heap->{iostat_io_count} > 1)
+  if ($output =~ /^[\w\-]+ \s+ \d+\.\d+ \s+ \d+\.\d+ \s+/x && $heap->{iostat_io_count} > 1)
   {
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
@@ -292,7 +292,7 @@ sub supp_iostat_cpu_child_stdio
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'cpuiow', "1g", $time, $stats[ $heap->{fields_index}->{iowait} ]));
     }
   }
-  elsif ($output =~ /^\w+ \s+ [\d\.]+ \s+ [\d\.]+ \s+/x && $heap->{iostat_cpu_count} > 1)
+  elsif ($output =~ /^[\w\-]+ \s+ [\d\.]+ \s+ [\d\.]+ \s+/x && $heap->{iostat_cpu_count} > 1)
   {
     my $host = HOST_NAME;
     my $time = $heap->{run_epoch};

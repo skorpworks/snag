@@ -63,7 +63,7 @@ sub new
         ### Populate all the static tags here
         $shared_data->{tags}->{'entity'}->{'system'} = 1;
  
-        $shared_data->{tags}->{'os'}->{ lc(&OS) }->{ lc(&OSDIST . &OSVER) } = 1;
+        $shared_data->{tags}->{'os'}->{ lc(&OS) }->{ lc(&OSDIST) }->{ lc(&OSVER) } = 1;
         $shared_data->{tags}->{'version'}->{'snagc'} = VERSION;
 
 	$kernel->delay('delayed_start' => 10);

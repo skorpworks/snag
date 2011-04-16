@@ -18,7 +18,7 @@ use Config::General qw/ParseConfig/;
 
 our %flags;
 
-our $VERSION = '4.23';
+our $VERSION = '4.25';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);
@@ -86,12 +86,30 @@ if($^O =~ /linux/i)
 
     #Gentoo Base System version 1.6.13
     #Gentoo Base System release 1.12.9
-    if($release =~ /Gentoo Base System (version|release) ([\.\d]+)/)
+    if(($dist, $ver) = ($release =~ /^(\w+) Base System (version|release) ([\.\d]+)/))
     {
-      #($ver = $2) =~ s/\.//g;
-      $dist = "Gentoo";
+      $ver =~ s/\./-/g;
     }    
   }
+  elsif(-e '/etc/lsb-release')
+  {
+    {
+      local $/;
+
+      open FILE, '/etc/lsb-release';
+      $release = <FILE>;
+      close FILE;
+    }
+    #DISTRIB_ID=Ubuntu
+    #DISTRIB_RELEASE=10.04
+    #DISTRIB_CODENAME=lucid
+    #DISTRIB_DESCRIPTION="Ubuntu 10.04.1 LTS"
+    ($dist) = ($release =~ m/DISTRIB_ID=(?=(.*))\b/);
+    ($ver)  = ($release =~ m/DISTRIB_RELEASE=(?=(.*))\b/);
+    ($long) = ($release =~ m/DISTRIB_DESCRIPTION=\"(.*)\"/);
+    $ver =~ s/\./-/g;
+  }
+
   elsif(-e '/etc/issue')
   {
     {
@@ -103,6 +121,8 @@ if($^O =~ /linux/i)
     }
 
     $long = $release;
+    $dist = 'na';
+    $ver = '00';
     chomp $long;
 
     #

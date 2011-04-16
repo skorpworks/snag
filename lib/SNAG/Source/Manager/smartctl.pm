@@ -195,9 +195,22 @@ sub poller
           $hours = $1;                                                                                   
         }                                                                                                
                                                                                                          
+#Reallocated_Sector_Ct
+#Spin_Retry_Count
+#Power_Cycle_Count
+#Hardware_ECC_Recovered
+#High_Fly_Writes
+#Reported_Uncorrect
+#Multi_Zone_Error_Rate
+#ATA Error Count: 5
+
         elsif (m/^\s+\d+\s+Power_On_Hours\s+.*(\d+)\s*$/i)                                               
         {                                                                                                
           $hours = $1;                                                                                   
+        }                                                                                                
+        elsif (m/^\s+\d+\s+Multi_Zone_Error_Rate\s+.*(\d+)\s*$/i)                                               
+        {                                                                                                
+          $mzer= $1;                                                                                   
         }                                                                                                
                                                                                                          
         elsif (m/^Non-medium error count:\s+(.*)$/i)                                                     

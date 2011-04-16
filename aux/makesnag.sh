@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 sh prep.sh
 
@@ -16,7 +16,7 @@ cp install.sh /var/tmp/snag_installer/
 cd /var/tmp/
 
 makeself=`which makeself 2>/dev/null || which makeself.sh  2>/dev/null`
-if [ -z $makeself ]
+if [[ -z $makeself ]]
 then
   echo "No makeself found"
 fi

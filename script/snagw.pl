@@ -40,7 +40,7 @@ if($options{compile})
                -M Date::Parse
                -M SNAG
                -a "/opt/snag/snag.conf"
-               -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini"
+               -a "/opt/snag/lib/perl5/site_perl/5.12.2/XML/SAX/ParserDetails.ini;ParserDetails.ini"
                -o snagw 
               ';
 

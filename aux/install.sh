@@ -1,14 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 pkill snagc
 pkill snagc.pl
 
-if [ ! -d "/opt/snag" ]
-then
-  echo "Creating /opt/snag base dir"
-  mkdir /opt/snag
-  mkdir /opt/snag/log
-fi
+echo "Creating /opt/snag base dir"
+mkdir /opt/snag      2>/dev/null
+mkdir /opt/snag/log  2>/dev/null
+mkdir /opt/snag/conf 2>/dev/null
 
 echo "Copying snag binaries to /opt/snag"
 dir=`pwd`
@@ -35,7 +33,7 @@ if [ -e '/etc/conf.d/local.start' ]
 then
   startup=`grep snagw /etc/conf.d/local.start|grep -v '^#'`
   
-  if [ -z "$startup" ]
+  if [[ -z "$startup" ]]
   then
     echo "Adding snagw to local.start"
     echo '/opt/snag/bin/snagw >/dev/null 2>&1' >> /etc/conf.d/local.start
@@ -43,20 +41,19 @@ then
   
 fi
 
-if [ -e "/etc/rc.local" ]
+if [[ -e "/etc/rc.local" ]]
 then
   endexit=`grep -v '^$' /etc/rc.local | grep -v '^#' | tail -n 1 |grep 'exit 0'`
   startup=`grep snagw /etc/rc.local |grep -v '^#'`
 
-  if [ -z "$startup" ]
+  if [[ -z "$startup" ]]
   then
     echo "Adding snagw to rc.local"
     echo '/opt/snag/bin/snagw >/dev/null 2>&1' >> /etc/rc.local
   fi
 
-  if [ ! -z "$endexit" ]
+  if [[ ! -z "$endexit" ]]
   then
-    echo 'rc.local terminated by exit 0'
     sed -i -e 's/^exit 0//' /etc/rc.local
     echo 'exit 0' >> /etc/rc.local
   fi
@@ -70,4 +67,3 @@ then
 else
   /opt/snag/bin/snagw
 fi
-
