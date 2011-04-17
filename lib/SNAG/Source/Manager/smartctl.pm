@@ -92,9 +92,9 @@ sub picker
 $heap->{timings} =     
 {                                                                                                                                                                                                                                                                             
   'min_wheels'  => 1,                                                                                                                                                                                                                                                         
-  'max_wheels'  => 3,                                                                                                                                                                                                                                                        
-  'poll_period' => 60,                                                                                                                                                                                                                                                        
-  'poll_expire' => 35,                                                                                                                                                                                                                                                        
+  'max_wheels'  => 5,                                                                                                                                                                                                                                                        
+  'poll_period' => 900,                                                                                                                                                                                                                                                        
+  'poll_expire' => 30,                                                                                                                                                                                                                                                        
   'tasks_per'   => 1,                                                                                                                                                                                                                                                         
 };   
 

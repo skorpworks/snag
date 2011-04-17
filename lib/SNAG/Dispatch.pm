@@ -173,11 +173,13 @@ sub new
       check_bins => sub
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
-
-        if ( -e '/usr/sbin/smartctl')
-        {
-          #$kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
-        }
+        #if(HOST_NAME =~ m/^s05-/)
+        #{
+        #  if ( -e '/usr/sbin/smartctl')
+        #  {
+        #    $kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
+        #  }
+        #}
       },
 
       check_checkpoint => sub
