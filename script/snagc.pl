@@ -42,7 +42,10 @@ elsif($SNAG::flags{compile})
     print "Compiling $src_script to $dest_bin ... ";
                #/opt/snag/bin/pp --compile "/opt/snag/bin/snagc.pl" 
     my $cmd = "
-               pp --compile $0 
+               pp $0 
+               --cachedeps=/var/tmp/snag.pp 
+               --compile
+               --execute 
                --bundle
                -M XML::SAX::PurePerl  
                -M Crypt::Blowfish  
@@ -65,9 +68,9 @@ elsif($SNAG::flags{compile})
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
                -a /opt/snag/snag.conf 
-               --reusable 
                -o snagc
               ";
+               #--reusable 
                #-M DBM::Deep 
                #-M DBM::Deep::Engine::File 
                #-M DBM::Deep::Iterator::File 

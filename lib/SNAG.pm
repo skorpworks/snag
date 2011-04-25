@@ -86,7 +86,8 @@ if($^O =~ /linux/i)
 
     #Gentoo Base System version 1.6.13
     #Gentoo Base System release 1.12.9
-    if(($dist, $ver) = ($release =~ /^(\w+) Base System (version|release) ([\.\d]+)/))
+    my $filler;
+    if(($dist, $filler, $ver) = ($release =~ /^(\w+) Base System (version|release) ([\.\d]+)/))
     {
       $ver =~ s/\./-/g;
     }    

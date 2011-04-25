@@ -5,6 +5,8 @@ use strict;
 use SNAG;
 use File::Find;
 use DBM::Deep;
+use DBM::Deep::Engine::File;                                                                                                                                                                                                                                                   
+use DBM::Deep::Iterator::File;   
 use File::Spec::Functions qw/catfile/;
 use Storable qw/dclone store retrieve/;
 use Proc::ProcessTable;
@@ -310,7 +312,7 @@ sub config_files_whole
   #Add any new files that might have popped up
   my $config_files = build_config_file_list();
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
@@ -366,7 +368,7 @@ sub config_files_check
 
   my $now = time;
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
