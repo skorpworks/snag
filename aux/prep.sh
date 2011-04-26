@@ -4,10 +4,10 @@ pkill -f /opt/snag/bin/snagc
 ps -ef |grep 'snagc.pl' |grep -v grep | awk '{print $2}' | xargs kill 2>/dev/null
 
 cd /var/tmp/snag \
-&& /opt/snag/bin/perl Makefile.PL && make && make test && make install \
+&& perl Makefile.PL && make && make test && make install \
 && cd /var/tmp \
-&& /opt/snag/bin/perl /opt/snag/bin/snagc.pl --compile --debug \
-&& /opt/snag/bin/perl /opt/snag/bin/snagw.pl --compile --debug \
+&& perl /opt/snag/perls/current/bin/snagc.pl --compile --debug \
+&& perl /opt/snag/perls/current/bin/snagw.pl --compile --debug \
 cd -
 
 #&& mv snagc /opt/snag/bin/  \

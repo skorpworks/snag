@@ -5,6 +5,8 @@ use strict;
 use SNAG;
 use File::Find;
 use DBM::Deep;
+use DBM::Deep::Engine::File;                                                                                                                                                                                                                                                   
+use DBM::Deep::Iterator::File;   
 use File::Spec::Functions qw/catfile/;
 use Storable qw/dclone store retrieve/;
 use Proc::ProcessTable;
@@ -264,8 +266,7 @@ sub service_monitor
     }
   }
 
-  #@{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
-  @{$info} = sort { $a->{process} cmp $b->{process} } @{$info};
+  @{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
 
   foreach my $proc (keys %$service_monitor)
   {
@@ -311,7 +312,7 @@ sub config_files_whole
   #Add any new files that might have popped up
   my $config_files = build_config_file_list();
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
@@ -367,7 +368,7 @@ sub config_files_check
 
   my $now = time;
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
@@ -942,7 +943,6 @@ sub system
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
   }
 
-  my $info;
   if(-e '/proc/mdstat')
   {
     open MDSTAT, '/proc/mdstat';
@@ -956,8 +956,8 @@ sub system
         $dev = "md$1";
         ($md->{level}, $md->{members}) = ( $2, join(" ", sort( split(/ /, $3))) );
         my (%devs) = $md->{members} =~ m/\s+(\w+)\[(\d+)\]/g;
+        $info->{mdmap}->{$dev} = \%devs;
         $md->{members} =~ s/^\s+//;
-        $md->{dev_map} = \%devs;
       }
       if (m/\s+ (\d+) \s+ blocks \s/x)
       {

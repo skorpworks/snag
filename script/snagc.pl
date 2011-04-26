@@ -40,18 +40,19 @@ elsif($SNAG::flags{compile})
     my $src_script = catfile( $Bin, $Script );
 
     print "Compiling $src_script to $dest_bin ... ";
-    my $cmd = '
-               /opt/snag/bin/pp --compile "/opt/snag/bin/snagc.pl" 
+               #/opt/snag/bin/pp --compile "/opt/snag/bin/snagc.pl" 
+    my $cmd = "
+               pp $0 
+               --cachedeps=/var/tmp/snag.pp 
+               --compile
+               --execute 
                --bundle
                -M XML::SAX::PurePerl  
                -M Crypt::Blowfish  
                -M POE::Filter::Reference  
                -M POE::Wheel::Run  
                -M Date::Parse 
-               -M DBM::Deep 
                -M Data::Dumper
-               -M DBM::Deep::Engine::File 
-               -M DBM::Deep::Iterator::File 
                -M Crypt::Blowfish  
                -M Net::Ping 
                -M Sys::Syslog
@@ -66,12 +67,13 @@ elsif($SNAG::flags{compile})
                -M SNAG::Source::SystemInfo::Linux 
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
-               -a "/opt/snag/snag.conf" 
-               -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
-               --lib="/root/perl5/lib"  
-               --reusable 
+               -a /opt/snag/snag.conf 
                -o snagc
-              ';
+              ";
+               #--reusable 
+               #-M DBM::Deep 
+               #-M DBM::Deep::Engine::File 
+               #-M DBM::Deep::Iterator::File 
 
     $cmd =~ s/([\n\r\l])+/ /g;
 

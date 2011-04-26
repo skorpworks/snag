@@ -4,7 +4,6 @@
 use strict;
 
 use FindBin qw($Bin $Script);
-use lib "/opt/snag/lib/perl5";
 
 use SNAG;
 use Config::General qw/ParseConfig/; 
@@ -29,8 +28,8 @@ if($options{compile})
     my $src_script = catfile( $Bin, $Script );
 
     print "Compiling $src_script to $dest_bin ... ";
-    my $cmd = '
-               /opt/snag/bin/pp --compile "/opt/snag/bin/snagw.pl"
+    my $cmd = "
+               pp --compile $0
                --bundle
                -M XML::SAX::PurePerl
                -M Mail::Sendmail
@@ -39,10 +38,10 @@ if($options{compile})
                -M Data::Dumper
                -M Date::Parse
                -M SNAG
-               -a "/opt/snag/snag.conf"
-               -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini"
+               -a /opt/snag/snag.conf
                -o snagw 
-              ';
+              ";
+               #-a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini"
 
     $cmd =~ s/([\n\r\l])+/ /g;
 

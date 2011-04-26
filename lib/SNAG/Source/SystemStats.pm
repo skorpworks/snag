@@ -67,7 +67,7 @@ sub new
     if($@ =~ /Can\'t locate/)  
    {
       $poe_kernel->post('logger' => 'log' => "SysStats: Could not find $module") if $debug;
-      $module =~ s/\/\w*$//;
+      $module =~ s/\/[^\/]+$//;
 
       eval
       {
