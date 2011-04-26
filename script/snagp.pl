@@ -1,8 +1,10 @@
 #!/usr/bin/env perl
 
 use strict;
+use warnings;
 
-BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };
+BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::EPoll"; };
+
 use FindBin qw($Bin $Script);
 use File::Spec::Functions qw(catfile);
 use lib "/opt/snag/lib/perl5";
@@ -34,18 +36,17 @@ if($SNAG::flags{compile})
     my $src_script = catfile( $Bin, $Script );
 
     print "Compiling $src_script to $dest_bin ... ";
-    my $cmd = '
-               /opt/snag/bin/pp --compile "/opt/snag/bin/snagp.pl" 
+    my $cmd = "
+               pp $0
+               --compile
+               --execute
                --bundle
                -M XML::SAX::PurePerl  
                -M Crypt::Blowfish  
                -M POE::Filter::Reference  
                -M POE::Wheel::Run  
                -M Date::Parse 
-               -M DBM::Deep 
                -M Data::Dumper
-               -M DBM::Deep::Engine::File 
-               -M DBM::Deep::Iterator::File 
                -M Crypt::Blowfish  
                -M Net::Ping 
                -M Sys::Syslog
@@ -56,19 +57,17 @@ if($SNAG::flags{compile})
                -M SNAG::Source::vserver
                -M SNAG::Source::apache_logs
                -M SNAG::Source::monitor     
-               -M SNAG::Source::stormcellar     
+               -M SNAGx::Source::stormcellar     
                -M SNAG::Source::SystemInfo 
                -M SNAG::Source::SystemInfo::Linux 
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
-               -a "/opt/snag/snag.conf" 
-               --lib="/root/perl5/lib"  
-               --reusable 
+               -a /opt/snag/snag.conf
                -o snagp
-              ';
-               #-a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
+              ";
 
     $cmd =~ s/([\n\r\l])+/ /g;
+    $cmd =~ tr/ //s;
 
     print "with cmd $cmd\n";
     my $out;

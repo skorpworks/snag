@@ -1,9 +1,8 @@
-#!/opt/snag/bin/perl
+#!/usr/bin/env perl
 ### This script is used to gather system statistics and information for use with snagweb and its subapps
 
 use strict; 
 use FindBin qw($Bin $Script);
-use lib "/opt/snag/lib/perl5";
 
 use SNAG;
 use SNAG::Client;
@@ -40,7 +39,6 @@ elsif($SNAG::flags{compile})
     my $src_script = catfile( $Bin, $Script );
 
     print "Compiling $src_script to $dest_bin ... ";
-               #/opt/snag/bin/pp --compile "/opt/snag/bin/snagc.pl" 
     my $cmd = "
                pp $0 
                --cachedeps=/var/tmp/snag.pp 
@@ -70,10 +68,6 @@ elsif($SNAG::flags{compile})
                -a /opt/snag/snag.conf 
                -o snagc
               ";
-               #--reusable 
-               #-M DBM::Deep 
-               #-M DBM::Deep::Engine::File 
-               #-M DBM::Deep::Iterator::File 
 
     $cmd =~ s/([\n\r\l])+/ /g;
 
