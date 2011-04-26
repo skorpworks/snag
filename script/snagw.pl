@@ -96,12 +96,16 @@ if($conf->{poller})
 {
   foreach my $poller (keys %{$conf->{poller}})
   {
-    my $script_bin = $poller . '_snagp';
-    my $script_path = BASE_DIR . "/bin/" . $script_bin;
-
-    print "Starting $script_path ... " if $debug;
-    system $script_path;
-    print "Done!\n" if $debug;
+    my $default_bin   = BASE_DIR . "/bin/" . $poller . '_snagp';
+    my $alternate_bin = BASE_DIR . "/bin/" . $poller . '_snagp.pl';
+    for my $script_path ($default_bin, $alternate_bin) {
+      if (-e $script_path) {
+        print "Starting $script_path ..." if $debug;
+        system $script_path;
+        print "Done!\n" if $debug;
+        last;
+      }
+    }
   }
 }
 
