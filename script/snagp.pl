@@ -62,11 +62,11 @@ if($SNAG::flags{compile})
                -M SNAG::Source::SystemStats 
                -M SNAG::Source::SystemStats::Linux 
                -a "/opt/snag/snag.conf" 
-               -a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
                --lib="/root/perl5/lib"  
                --reusable 
                -o snagp
               ';
+               #-a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini" 
 
     $cmd =~ s/([\n\r\l])+/ /g;
 
