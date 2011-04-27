@@ -1,0 +1,8 @@
+XML::SAX::PurePerl
+Crypt::Blowfish
+POE::Filter::Reference
+POE::Wheel::Run
+Date::Parse
+Data::Dumper
+Net::Ping
+Sys::Syslog
