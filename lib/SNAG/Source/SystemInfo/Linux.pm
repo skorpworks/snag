@@ -234,16 +234,17 @@ sub service_monitor
 
   my $active_procs;
   my $info;
+
   while( my ($pid, $ref) = each %$process_list)
   {
     ### Ignore any process owned by SNAGc.pl
-    if($process_list->{ $ref->{ppid} }->{fname} =~ m/\bsnagc(\.pl|.{0})\b/i)
+    if(defined $ref->{ppid} && defined $process_list->{ $ref->{ppid} }->{fname} && $process_list->{ $ref->{ppid} }->{fname} =~ m/\bsnagc(\.pl|.{0})\b/i)
     {
       #print "Skipping $ref->{fname} because owned by SNAGc.pl\n";
       next;
     }
 
-    next if $ref->{state} eq 'defunct';
+    next if (defined $ref->{state} && $ref->{state} eq 'defunct');
     next unless $ref->{fname};
 
     $active_procs->{ $ref->{fname} }->{ $ref->{cmndline} }++;
@@ -257,16 +258,17 @@ sub service_monitor
       }
     }
 
-    if( !$ref->{ttydev} && defined $service_monitor->{$ref->{fname}} && $service_monitor->{$ref->{fname}}->{run_ratio} > .9 && $service_monitor->{$ref->{fname}}->{samples} > 48)
+    if( !$ref->{ttydev} && defined $service_monitor->{$ref->{fname}} && defined $service_monitor->{$ref->{fname}}->{run_ratio} && $service_monitor->{$ref->{fname}}->{run_ratio} > .9 && $service_monitor->{$ref->{fname}}->{samples} > 48)
     {
       unless ($ref->{'cmndline'} =~ m/^\/proc/ || $ref->{'exec'} =~ m/^\/usr\/sbin\/cron/)
       {
+print "$ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'}\n";
         push @{$info->{process}}, { 'process' => $ref->{fname}, 'cmdline' => $ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'} };
       }
     }
   }
 
-  @{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}};
+  @{$info->{process}} = sort { $a->{process} cmp $b->{process} } @{$info->{process}} if defined $info->{process};
 
   foreach my $proc (keys %$service_monitor)
   {
