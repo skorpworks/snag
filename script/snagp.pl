@@ -70,7 +70,7 @@ if($SNAG::flags{compile})
     $cmd =~ tr/ //s;
 
     print "with cmd $cmd\n";
-    my $out;
+    my $out = '';
     open LOG, "$cmd |" || die "DIED: $!\n";
     while (<LOG>)
     {
