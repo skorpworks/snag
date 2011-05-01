@@ -2,12 +2,11 @@
 ### This script is used to gather system statistics and information for use with snagweb and its subapps
 
 use strict; 
-use FindBin qw($Bin $Script);
+use warnings;
 
 use SNAG;
 use SNAG::Client;
 use SNAG::Dispatch;
-use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
 use POE;
 
 use Getopt::Long;
@@ -35,44 +34,21 @@ elsif($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
   {
-    my $dest_bin = 'snagc';
-    my $src_script = catfile( $Bin, $Script );
-
-    print "Compiling $src_script to $dest_bin ... ";
-    my $cmd = "
-               pp $0 
-               --cachedeps=/var/tmp/snag.pp 
-               --compile
-               --execute 
-               --bundle
-               -M XML::SAX::PurePerl  
-               -M Crypt::Blowfish  
-               -M POE::Filter::Reference  
-               -M POE::Wheel::Run  
-               -M Date::Parse 
-               -M Data::Dumper
-               -M Crypt::Blowfish  
-               -M Net::Ping 
-               -M Sys::Syslog
-               -M SNAG  
-               -M SNAG::Source::apache
-               -M SNAG::Source::xen 
-               -M SNAG::Source::mysql
-               -M SNAG::Source::vserver
-               -M SNAG::Source::apache_logs
-               -M SNAG::Source::monitor     
-               -M SNAG::Source::SystemInfo 
-               -M SNAG::Source::SystemInfo::Linux 
-               -M SNAG::Source::SystemStats 
-               -M SNAG::Source::SystemStats::Linux 
-               -a /opt/snag/snag.conf 
-               -o snagc
-              ";
-
-    $cmd =~ s/([\n\r\l])+/ /g;
+    print "Compiling $0 to snagc ... ";
+    my $includes;
+    for my $include_file qw(includes/pp_includes includes/snagc_includes) {
+        open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
+        while (<$fh>) {
+            chomp;
+            next unless (/\w+/);
+            $includes .= " -M $_";
+        }
+        close($fh);
+    }
+    my $cmd = "pp $0 --compile --cachedeps=/var/tmp/snag.pp --execute --bundle" . $includes . " -a /opt/snag/snag.conf -o snagc";
 
     print "with cmd $cmd\n";
-    my $out;
+    my $out = '';
     open LOG, "$cmd |" || die "DIED: $!\n";
     while (<LOG>)
     {
