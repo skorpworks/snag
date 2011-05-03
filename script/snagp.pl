@@ -26,9 +26,11 @@ if($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
   {
+    die "PP_INCLUDES environment variable not set.\n" unless $ENV{PP_INCLUDES};
+    die "SNAGX_INCLUDES environment variable not set.\n" unless $ENV{SNAGX_INCLUDES};
     print "Compiling $0 to snagp ... ";
     my $includes;
-    for my $include_file qw(includes/pp_includes includes/snagp_includes) {
+    for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGX_INCLUDES}) {
         open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
         while (<$fh>) {
             chomp;

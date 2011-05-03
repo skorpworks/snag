@@ -1,14 +1,14 @@
 #!/bin/bash
 
-
 bash prep.sh
 
-mkdir /var/tmp/snag_installer
-mkdir /var/tmp/snag_installer/bin
-mkdir /var/tmp/snag_installer/sbin
+mkdir /var/tmp/snag_installer       >/dev/null 2>&1
+mkdir /var/tmp/snag_installer/bin   >/dev/null 2>&1
+mkdir /var/tmp/snag_installer/sbin  >/dev/null 2>&1
 
 cp /var/tmp/snagc /var/tmp/snag_installer/bin
 cp /var/tmp/snagw /var/tmp/snag_installer/bin
+cp /var/tmp/snagp /var/tmp/snag_installer/bin
 cp /opt/snag/snag.conf /var/tmp/snag_installer/snag.conf.def
 cp `which dmidecode` /var/tmp/snag_installer/sbin
 

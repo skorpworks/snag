@@ -10,7 +10,7 @@ use SNAG::Dispatch;
 use POE;
 
 use Getopt::Long;
-
+#TODO actually *use* Getopt::Long;
 foreach my $arg (@ARGV)
 {
   $arg =~ s/^\-{1,2}//;
@@ -34,9 +34,11 @@ elsif($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
   {
+    die "PP_INCLUDES environment variable not set.\n" unless $ENV{PP_INCLUDES};
+    die "SNAGC_INCLUDES environment variable not set.\n" unless $ENV{SNAGC_INCLUDES};
     print "Compiling $0 to snagc ... ";
     my $includes;
-    for my $include_file qw(includes/pp_includes includes/snagc_includes) {
+    for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGC_INCLUDES}) {
         open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
         while (<$fh>) {
             chomp;
