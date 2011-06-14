@@ -18,6 +18,28 @@ our $stat_quanta = $rrd_step - 5;
 our $stat_loops  = $rrd_min + 1;
 
 
+#Device:         rrqm/s   wrqm/s   r/s   w/s  rsec/s  wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
+#Device:         rrqm/s   wrqm/s   r/s   w/s  rsec/s  wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
+#Device:         rrqm/s   wrqm/s   r/s   w/s  rsec/s  wsec/s    avgrq-sz avgqu-sz   await  svctm  %util
+#Device:         rrqm/s   wrqm/s   r/s   w/s  rkB/s   wkB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+our $io_fields;
+$io_fields->{'rrqm/s'}->{ds}     = 'iorrms';
+$io_fields->{'wrqm/s'}->{ds}     = 'iowrms';
+$io_fields->{'r/s'}->{ds}        = 'iors';
+$io_fields->{'w/s'}->{ds}        = 'iows';
+$io_fields->{'rsec/s'}->{ds}     = 'iorss';
+$io_fields->{'wsec/s'}->{ds}     = 'iowss';
+$io_fields->{'rkB/s'}->{ds}      = 'iorkb';
+$io_fields->{'wkB/s'}->{ds}      = 'iowkb';
+$io_fields->{'avgrq-sz'}->{ds}   = 'avgrqsz';
+$io_fields->{'avgqu-sz'}->{ds}   = 'avgqusz';
+$io_fields->{'await'}->{ds}      = 'await';
+$io_fields->{'r_await'}->{ds}    = 'rawait';
+$io_fields->{'w_await'}->{ds}    = 'wawait';
+$io_fields->{'svctm'}->{ds}      = 'svctm';
+$io_fields->{'%util'}->{ds}      = 'pct_util';
+
+
 #####################################################################################
 ############  DF  ############################################################
 #####################################################################################
@@ -157,25 +179,25 @@ sub supp_iostat_io_child_stdio
   #avg-cpu:  %user   %nice    %sys %iowait   %idle
   #1.05    0.01    0.29    0.72   97.94
   #
-  #Device:    rrqm/s wrqm/s   r/s   w/s  rsec/s  wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
-  #sda          0.03   1.51  0.02  2.03    0.43   28.96     0.21    14.48    14.34     0.00    2.39   2.51   0.51
-  #sda1         0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     4.15     0.00  902.14 531.63   0.00
-  #sda2         0.00   0.00  0.00  0.00    0.00    0.02     0.00     0.01    69.78     0.00  812.96 245.24   0.01
-  #sda3         0.02   0.63  0.02  0.37    0.32    8.02     0.16     4.01    21.50     0.00    2.86  11.78   0.46
-  #sda4         0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     2.00     0.00   10.00  10.00   0.00
-  #sda5         0.01   0.88  0.01  1.65    0.10   20.93     0.05    10.46    12.66     0.01    2.14   2.82   0.47
+  #Device:         rrqm/s wrqm/s   r/s   w/s  rsec/s  wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
+  #sda               0.03   1.51  0.02  2.03    0.43   28.96     0.21    14.48    14.34     0.00    2.39   2.51   0.51
+  #sda1              0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     4.15     0.00  902.14 531.63   0.00
+  #sda2              0.00   0.00  0.00  0.00    0.00    0.02     0.00     0.01    69.78     0.00  812.96 245.24   0.01
+  #sda3              0.02   0.63  0.02  0.37    0.32    8.02     0.16     4.01    21.50     0.00    2.86  11.78   0.46
+  #sda4              0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     2.00     0.00   10.00  10.00   0.00
+  #sda5              0.01   0.88  0.01  1.65    0.10   20.93     0.05    10.46    12.66     0.01    2.14   2.82   0.47
   #
   #avg-cpu:  %user   %nice    %sys %iowait   %idle
   #0.00    0.00    0.20    0.60   99.20
   #
-  #Device:    rrqm/s wrqm/s   r/s   w/s  rsec/s  wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
-  #sda          0.00   2.00  0.00  1.20    0.00   27.20     0.00    13.60    22.67     0.03   21.67  10.00   1.20
-  #sda1         0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
-  #sda2         0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
-  #sda3         0.00   1.40  0.00  0.40    0.00   14.40     0.00     7.20    36.00     0.01   25.00  25.00   1.00
-  #sda4         0.00   0.00  0.00  0.00    0.00    0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
-  #sda5         0.00   0.60  0.00  0.80    0.00   12.80     0.00     6.40    16.00     0.02   20.00  15.00   1.20
-  #   0            1      2     3     4       5       6        7        8        9       10      11     12     13
+  #Device:         rrqm/s   wrqm/s     r/s     w/s   rsec/s   wsec/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await  svctm  %util
+  #sda               0.00     2.00    0.00    1.20     0.00    27.20     0.00    13.60    22.67     0.03   21.67  10.00   1.20
+  #sda1              0.00     0.00    0.00    0.00     0.00     0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
+  #sda2              0.00     0.00    0.00    0.00     0.00     0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
+  #sda3              0.00     1.40    0.00    0.40     0.00    14.40     0.00     7.20    36.00     0.01   25.00  25.00   1.00
+  #sda4              0.00     0.00    0.00    0.00     0.00     0.00     0.00     0.00     0.00     0.00    0.00   0.00   0.00
+  #sda5              0.00     0.60    0.00    0.80     0.00    12.80     0.00     6.40    16.00     0.02   20.00  15.00   1.20
+  #   0                 1        2       3       4        5        6        7        8        9       10      11     12     13
 
   #Device:         rrqm/s   wrqm/s     r/s     w/s   rsec/s   wsec/s avgrq-sz avgqu-sz   await  svctm  %util
   #sda            1012.40     0.00   48.80    1.20  8560.00     9.60   171.39     0.96   19.12   9.12  45.60
@@ -183,7 +205,27 @@ sub supp_iostat_io_child_stdio
   #sdc             661.60     1.80   34.60    1.40  5704.00    25.60   159.16     0.44   11.89   8.28  29.80
   #  0                  1        2       3       4        5        6        7        8       9     10     11
 
-  $heap->{iostat_io_count}++ if ($output =~ /^Device:/);
+  #Device:         rrqm/s   wrqm/s     r/s     w/s   rsec/s   wsec/s avgrq-sz avgqu-sz   await  svctm  %util
+  #sdk             391.83     0.00   14.34    0.00  3249.40     0.00   226.56     0.07    5.14   4.58   6.57
+
+  #Device:         rrqm/s   wrqm/s     r/s     w/s    rkB/s    wkB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+  #sdk               0.40     0.00 1317.73    0.00  5272.51     0.00     8.00     0.09    0.07    0.07    0.00   0.06   7.37
+  #sdj               0.00     0.00    0.20    0.00     0.80     0.00     8.00     0.08  390.00  390.00    0.00 390.00   7.77
+
+
+  if ($output =~ /^Device:/)
+  {
+    $heap->{iostat_io_count}++;
+    if ($heap->{iostat_io_count} == 1)
+    {
+      my @fields = split /\s+/, $output;
+      for (my $i; $i <= $#fields; $i++)
+      {
+        $io_fields->{"$fields[$i]"}->{idx} = $i;
+      }
+    }
+  }
+
   if ($output =~ /^[\w\-]+ \s+ \d+\.\d+ \s+ \d+\.\d+ \s+/x && $heap->{iostat_io_count} > 1)
   {
     my $time = $heap->{run_epoch};
@@ -195,17 +237,10 @@ sub supp_iostat_io_child_stdio
     push @mps, uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount}) if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]});
     foreach my $mp (@mps)
     {
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorrms', "1g", $time, $stats[1]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowrms', "1g", $time, $stats[2]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iors', "1g", $time, $stats[3]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iows', "1g", $time, $stats[4]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iorss', "1g", $time, $stats[5]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'iowss', "1g", $time, $stats[6]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgrqsz', "1g", $time, $stats[7]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'avgqusz', "1g", $time, $stats[8]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'await', "1g", $time, $stats[9]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'svctm', "1g", $time, $stats[10]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", 'pct_util', "1g", $time, $stats[11]));
+      foreach my $key (keys %{$io_fields})
+      {
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", $io_fields->{"$key"}->{ds}, "1g", $time, $stats[$io_fields->{"$key"}->{idx}])) if defined $io_fields->{"$key"}->{idx};
+      }
     }
   }
 }
