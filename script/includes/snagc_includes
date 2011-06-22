@@ -7,5 +7,7 @@ SNAG::Source::apache_logs
 SNAG::Source::monitor     
 SNAG::Source::SystemInfo 
 SNAG::Source::SystemInfo::Linux 
+SNAG::Source::SystemInfo::SunOS
 SNAG::Source::SystemStats 
 SNAG::Source::SystemStats::Linux
+SNAG::Source::SystemStats::SunOS

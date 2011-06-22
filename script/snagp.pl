@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::EPoll"; };
+use if $^O eq 'linux', 'POE::Kernel' => { loop => 'POE::XS::Loop::EPoll' };
+use if $^O ne 'linux', 'POE::Kernel' => { loop => 'POE::XS::Loop::Poll' };
 
 use POE;
 use SNAG;

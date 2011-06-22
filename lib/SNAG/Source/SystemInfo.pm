@@ -198,7 +198,7 @@ sub new
           {  
             my $count = scalar(keys %{$heap->{wheels}} );
     
-	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Too many forked processes', "$count processes already running", '', time2str("%Y-%m-%d %T", time())));
+	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'Too many forked processes', "$count processes already running", '', time2str("%Y-%m-%d %T", time())));
             $kernel->post('logger' => 'log' => "Sysinfo: $count forked processes were already running when I wanted to start a new one" );
           }
           else
@@ -244,7 +244,7 @@ sub new
         $heap->{wheels}->{$id}->kill or $heap->{wheels}->{$id}->kill(9);
         delete $heap->{wheels}->{$id};
  
-        $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'aslc', 'sysinfo', 'A Sysinfo PWR exceeded its timeout', "$timeout seconds: $heap->{sysinfo_debug}", '', time2str("%Y-%m-%d %T", time())));
+        $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'A Sysinfo PWR exceeded its timeout', "$timeout seconds: $heap->{sysinfo_debug}", '', time2str("%Y-%m-%d %T", time())));
       },
 
       info_stdio => sub
@@ -307,7 +307,7 @@ sub new
              || $output =~ /bashrc: Permission denied/
              || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
-    	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'aslc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
+    	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
           #$kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
           }
         }

@@ -23,7 +23,7 @@ then
 fi
 $makeself --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
 
-os=`uname -a | awk 'BEGIN {IGNORECASE=1} {if ($0 ~ /Gentoo/) {printf "gentoo"} else if ($0 ~ /Ubuntu/) {printf "ubuntu"}}'`
+os=`uname -a | awk 'BEGIN {IGNORECASE=1} {if ($0 ~ /Gentoo/) {printf "gentoo"} else if ($0 ~ /Ubuntu/) {printf "ubuntu"} else if ($0 ~ /SunOS/) {printf "solaris"} }'`
 arch=`uname -a | awk '{if ($0 ~ /x86_64/) {printf "x86_64"} else {printf "x86"}}'`
 : ${os:="gentoo"}
 package=$os-$arch
