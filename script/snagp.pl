@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::EPoll"; };
+use if $^O eq 'linux', 'POE::Kernel' => { loop => 'POE::XS::Loop::EPoll' };
+use if $^O ne 'linux', 'POE::Kernel' => { loop => 'POE::XS::Loop::Poll' };
 
 use POE;
 use SNAG;
@@ -31,6 +32,10 @@ if($SNAG::flags{compile})
     print "Compiling $0 to snagp ... ";
     my $includes;
     for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGX_INCLUDES}) {
+        unless ( -r $include_file ) {
+            warn "$include_file does not exist - skipping\n";
+            next;
+        }
         open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
         while (<$fh>) {
             chomp;
