@@ -10,7 +10,12 @@ cp /var/tmp/snagc /var/tmp/snag_installer/bin
 cp /var/tmp/snagw /var/tmp/snag_installer/bin
 cp /var/tmp/snagp /var/tmp/snag_installer/bin
 cp /opt/snag/snag.conf /var/tmp/snag_installer/snag.conf.def
-cp `which dmidecode` /var/tmp/snag_installer/sbin
+
+dmidecode=`which dmidecode 2>/dev/null`
+if [[ -x $dmidecode ]]
+then
+  cp $dmidecode /var/tmp/snag_installer/sbin
+fi
 
 cp install.sh /var/tmp/snag_installer/
 
@@ -21,6 +26,7 @@ if [[ -z $makeself ]]
 then
   echo "No makeself found"
 fi
+
 $makeself --copy snag_installer snag_installer.sh "SNAG binary installer" ./install.sh
 
 os=`uname -a | awk 'BEGIN {IGNORECASE=1} {if ($0 ~ /Gentoo/) {printf "gentoo"} else if ($0 ~ /Ubuntu/) {printf "ubuntu"} else if ($0 ~ /SunOS/) {printf "solaris"} }'`

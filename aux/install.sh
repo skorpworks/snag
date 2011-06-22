@@ -20,7 +20,7 @@ then
   cp snag.conf.def /opt/snag/snag.conf
 fi
 
-if [ ! -x /etc/cron.hourly/snagw ]
+if [[ -d /etc/cron.hourly && ! -x /etc/cron.hourly/snagw ]]
 then
   echo "Adding snagw to cron.hourly"
   echo '#!/bin/sh' > /etc/cron.hourly/snagw
@@ -49,6 +49,7 @@ then
   if [[ -z "$startup" ]]
   then
     echo "Adding snagw to rc.local"
+    echo '' >> /etc/rc.local
     echo '/opt/snag/bin/snagw >/dev/null 2>&1' >> /etc/rc.local
   fi
 

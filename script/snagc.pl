@@ -39,6 +39,10 @@ elsif($SNAG::flags{compile})
     print "Compiling $0 to snagc ... ";
     my $includes;
     for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGC_INCLUDES}) {
+        unless ( -r $include_file ) {
+            warn "$include_file does not exist - skipping\n";
+            next;   
+        }
         open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
         while (<$fh>) {
             chomp;
