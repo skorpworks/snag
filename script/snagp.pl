@@ -104,6 +104,7 @@ $poller->{module}->new
 (
   Alias   => $type,
   Source  => $poller->{ds},
+  Options => $poller->{options},
 );
 
 SNAG::Client->new( $confin->{client} );
