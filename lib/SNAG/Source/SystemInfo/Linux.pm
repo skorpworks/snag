@@ -11,11 +11,12 @@ use File::Spec::Functions qw/catfile/;
 use Storable qw/dclone store retrieve/;
 use Proc::ProcessTable;
 use Date::Format;
+use Data::Dumper::Concise;
 use Digest::SHA qw(sha256_hex);
 use Digest::MD5 qw(md5_hex);
 use Net::Nslookup;
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole service_monitor iscsi mounts/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole service_monitor iscsi mounts smartctl/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -32,6 +33,8 @@ our $config =
   'config_files_check' 	=> { 'period' => 600 },
 
   'bonding' => { 'period' => 300 },
+
+  'smartctl' => { 'period' => 900 },
 
   'vmware_host'		=> { 'period' => 1800, if_tag => 'virtual.vmware.host' },
 
@@ -539,6 +542,134 @@ sub bonding
   }
   close SCRIPTS;
 
+  return $info;
+}
+
+sub smartctl
+{                                                                                                                                                                                                                                                                             
+  my $info;
+
+  local $/ = "\n";
+
+  foreach (`fdisk -l 2>&1`)                                                                                                                                                                                                                                                   
+  {                                                                                                                                                                                                                                                                           
+    #~~~~~~~~~Disk ~_~~_~2011-06-17 16:09:48....
+    #
+    #~~~~~~~~~Disk Disk /dev/sda: 300.0 GB, 300069052416 b....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~line smartctl version 5.38 [x86_64-pc-linux-....
+    #~~~~~~~~~line Home page is http://smartmontools.sourc....
+    #~~~~~~~~~line ~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~line === START OF INFORMATION SECTION ===~_~....
+    #~~~~~~~~~line Device Model:     WDC WD3000BLFS-01YBU0....
+    #~~~~~~~~~line Serial Number:    WD-WXL708078197~_~~_~....
+    #~~~~~~~~~line Firmware Version: 04.04V01~_~~_~2011-06....
+    #~~~~~~~~~line User Capacity:    300,069,052,416 bytes....
+    #~~~~~~~~~line Device is:        Not in smartctl datab....
+    #~~~~~~~~~line ATA Version is:   8~_~~_~2011-06-17 16:....
+    #~~~~~~~~~line ATA Standard is:  Exact ATA specificati....
+    #~~~~~~~~~line Local Time is:    Fri Jun 17 16:09:48 2....
+    #~~~~~~~~~line SMART support is: Available - device ha....
+    #~~~~~~~~~line SMART support is: Enabled~_~~_~2011-06-....
+    #~~~~~~~~~line ~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk 255 heads, 63 sectors/track, 36481 cyli....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk Units = cylinders of 16065 * 512 = 8225....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk Disk identifier: 0x00000000~_~~_~2011-0....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk ~_~~_~2011-06-17 16:09:48....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk    Device Boot      Start         End  ....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk /dev/sda1               1           5  ....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk /dev/sda2               6         492  ....
+    #~_~~_~2011-06-17 16:09:48....
+    #~~~~~~~~~Disk /dev/sda3             493       36481  ....
+    #~_~~_~2011-06-17 16:09:48....
+
+    if (m/^Disk \s+ (\/dev\/[sh]d[\w]+)\:/x) 
+    { 
+      my $drive = $1;
+      eval 
+      {    
+        my ($disk, $device, $version, $serial, $capacity, $transport, $smart);  
+        foreach (`smartctl -i $drive`)
+        {                                                                                 
+          chomp;                                                                          
+                                                                                          
+          print STDERR "~~~~~~~~~line $_\n";
+          ($disk, $device, $version, $serial, $capacity, $transport) = '';  
+          $smart = 0;
+          #Device: CSC300GB 10K REFURBISHED  Version: 0123
+          #Device: FUJITSU  MAP3735NC        Version: 0108
+          if (m/^Device(:)\s+(.*?)Version: (.*)$/i)                                       
+          {                                                                               
+            $device = $2;                                                                 
+            $version = $3;                                                                
+          }                                                                               
+          #Device Model:     WDC WD30EZRS-00J99B0                                           
+          #Device Model:     SAMSUNG HD203WI                                                
+          #Device Model:     SAMSUNG HD203WI
+          elsif (m/^Device Model:\s+(.*)$/i)                                              
+          {                                                                               
+            $device = $1;                                                                 
+          }                                                                               
+          #Serial number:                     
+          #Serial number: UPE0P49025D2
+          #Serial Number:    S1UYJ1YZ600005
+          #Serial Number:    WD-WCAWZ0117762                                                
+          elsif (m/^Serial Number:\s+(.*)$/i)                                             
+          {                                                                               
+            $serial = $1;                                                                 
+          }                                                                               
+          #Firmware Version: 80.00A80                                                       
+          #Firmware Version: 1AN10002                                                       
+          #Firmware Version: 1AN10002
+          elsif (m/^Firmware Version:\s+(.*)$/i)                                          
+          {                                                                               
+            $version = $1;                                                                
+          }                                                                               
+          #User Capacity:    3,000,592,982,016 bytes                                        
+          #User Capacity:    2,000,398,934,016 bytes                                        
+          #User Capacity:    2,000,398,934,016 bytes [2.00 TB]
+          elsif (m/^User Capacity:\s+(.*)$/i)                                             
+          {                                                                               
+            $capacity = $1;                                                               
+            $capacity =~ s/,//g;
+          }                                                                               
+          #ATA Standard is:  Exact ATA specification draft version not indicated                
+          #ATA Standard is:  Not recognized. Minor revision code: 0x28                      
+          #ATA Version is:   8
+          #ATA Standard is:  ATA-8-ACS revision 6
+          elsif (m/^ATA Version is:\s+(.*)$/i)                                             
+          {
+            $transport = "ATA $1";                                                               
+          }
+          #Transport protocol: Parallel SCSI (SPI-4)
+          elsif (m/^Transport protocol:\s+(.*)$/i)                                             
+          {
+            $transport = "$1";                                                               
+          }
+          #Device supports SMART and is Enabled
+          #Device supports SMART and is Disabled
+          #SMART support is: Available - device has SMART capability.
+          #SMART support is: Enabled
+          elsif (m/^(Device supports SMART and is Enabled|SMART support is: Enabled)/)    
+          {                                                                               
+            $smart = 1;                                                                 
+          }           
+        }
+        push @{$info->{smartctl}}, { drive => $drive, device => $device, version => $version, serial => $serial, capacity => $capacity||'NA', transport => $transport, smart => $smart };  
+      };
+      if ($@)
+      {
+        push @{$info->{smartctl}}, { drive => $drive, device => 'X', version => 'X', serial => 'X', capacity => 'X', transport => 'X', smart => 'X'};  
+      }
+    }
+  }
+print STDERR Dumper $info;
   return $info;
 }
 
