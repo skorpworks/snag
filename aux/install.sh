@@ -4,7 +4,7 @@ pkill snagc
 pkill snagc.pl
 
 echo "Creating /opt/snag base dir"
-mkdir /opt/snag      2>/dev/null
+mkdir -p /opt/snag   2>/dev/null
 mkdir /opt/snag/log  2>/dev/null
 mkdir /opt/snag/conf 2>/dev/null
 
