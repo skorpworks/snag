@@ -34,7 +34,7 @@ our $config =
 
   'bonding' => { 'period' => 300 },
 
-  'smartctl' => { 'period' => 900 },
+  #'smartctl' => { 'period' => 900 },
 
   'vmware_host'		=> { 'period' => 1800, if_tag => 'virtual.vmware.host' },
 
@@ -265,7 +265,7 @@ sub service_monitor
     {
       unless ($ref->{'cmndline'} =~ m/^\/proc/ || $ref->{'exec'} =~ m/^\/usr\/sbin\/cron/)
       {
-print "$ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'}\n";
+        #print "$ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'}\n";
         push @{$info->{process}}, { 'process' => $ref->{fname}, 'cmdline' => $ref->{'cmndline'}, 'cwd' => $ref->{'cwd'}, 'exec' => $ref->{'exec'} };
       }
     }
@@ -551,6 +551,7 @@ sub smartctl
 
   local $/ = "\n";
 
+  open (DBG, ">/tmp/smart.dbg");
   foreach (`fdisk -l 2>&1`)                                                                                                                                                                                                                                                   
   {                                                                                                                                                                                                                                                                           
     #~~~~~~~~~Disk ~_~~_~2011-06-17 16:09:48....
@@ -588,10 +589,12 @@ sub smartctl
     #~_~~_~2011-06-17 16:09:48....
     #~~~~~~~~~Disk /dev/sda3             493       36481  ....
     #~_~~_~2011-06-17 16:09:48....
+    print DBG $_;
 
     if (m/^Disk \s+ (\/dev\/[sh]d[\w]+)\:/x) 
     { 
       my $drive = $1;
+      print DBG "~~~~~~~~~disk:$_\n";
       eval 
       {    
         my ($disk, $device, $version, $serial, $capacity, $transport, $smart);  
@@ -599,7 +602,7 @@ sub smartctl
         {                                                                                 
           chomp;                                                                          
                                                                                           
-          print STDERR "~~~~~~~~~line $_\n";
+          print DBG "~~~~~~~~~line $_\n";
           ($disk, $device, $version, $serial, $capacity, $transport) = '';  
           $smart = 0;
           #Device: CSC300GB 10K REFURBISHED  Version: 0123
@@ -669,7 +672,8 @@ sub smartctl
       }
     }
   }
-print STDERR Dumper $info;
+  print DBG Dumper $info;
+  close DBG;
   return $info;
 }
 
@@ -1289,8 +1293,9 @@ sub mounts
       {
         $mounts->{$mount} = { dev => $dev, type => $type, mount_options => $options, in_fstab => 0, in_mount => 1 };
 
-        if($mounts->{$mount}->{type} =~ /^ext\d+$/ || $mounts->{$mount}->{type} eq 'nfs')
+        if($mounts->{$mount}->{type} =~ /^ext\d+$/ || $mounts->{$mount}->{type} eq 'nfs' || $mounts->{$mount}->{type} eq 'xfs')
         {
+          next if $mount eq '/boot';
           print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'mount', 'Mounted device not defined in fstab', "Device: $dev, Mount: $mount, Type: $type, Options: $options", '', $seen);
           print STDERR "\n";
         }
@@ -1310,8 +1315,9 @@ sub mounts
     {
       $mounts->{$mount}->{in_mount} = 0;
 
-      if($mounts->{$mount}->{type} =~ /^ext\d+$/ || $mounts->{$mount}->{type} eq 'nfs')
+      if($mounts->{$mount}->{type} =~ /^ext\d+$/ || $mounts->{$mount}->{type} eq 'nfs' || $mounts->{$mount}->{type} eq 'xfs')
       {
+        next if $mount eq '/boot';
         print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'mount', 'Device defined in fstab is not mounted', "Device: $mounts->{$mount}->{dev}, Mount: $mount, Type: $mounts->{$mount}->{type}, Options: $mounts->{$mount}->{fstab_options}", '', $seen);
         print STDERR "\n";
       }
