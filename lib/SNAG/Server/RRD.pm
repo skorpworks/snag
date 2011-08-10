@@ -627,72 +627,94 @@ sub get_template
 
     $data_source->{heartbeat} = 360;
 
-    return 
-    [
-      step      => 60,
-      start     => $time - 60,
-      data_source => $data_source,
-      archive => { 
-        rows    => 1,
-        cpoints => 1,
-        cfunc   => 'LAST', 
-      },
-      archive => { 
-        rows    => 20160,
-        cpoints => 1,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 20160,
-        cpoints => 1,
-        cfunc   => 'MAX', 
-      },
-      archive => { 
-        rows    => 2688,
-        cpoints => 30,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 2688,
-        cpoints => 30,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 2688,
-        cpoints => 30,
-        cfunc   => 'MAX', 
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 120,
-        cfunc   => 'AVERAGE',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 120,
-        cfunc   => 'MIN',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 120,
-        cfunc   => 'MAX',
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 1440,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 1440,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 1440,
-        cfunc   => 'MAX', 
-      },
-    ];
+    if ($inf)
+    {
+      return
+      [
+        step      => 300,
+        start     => $time - 300,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 1051200,
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+      ]
+    }
+    else
+    {
+      return 
+      [
+        step      => 60,
+        start     => $time - 60,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 20160,
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 20160,
+          cpoints => 1,
+          cfunc   => 'MAX', 
+        },
+        archive => { 
+          rows    => 2688,
+          cpoints => 30,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 2688,
+          cpoints => 30,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 2688,
+          cpoints => 30,
+          cfunc   => 'MAX', 
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 120,
+          cfunc   => 'AVERAGE',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 120,
+          cfunc   => 'MIN',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 120,
+          cfunc   => 'MAX',
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 1440,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 1440,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 1440,
+          cfunc   => 'MAX', 
+        },
+      ];
+    }
   }
   elsif($n == 5)
   {
@@ -716,7 +738,7 @@ sub get_template
           cfunc   => 'LAST', 
         },
         archive => { 
-          rows    => 315360,
+          rows    => 210240,
           cpoints => 1,
           cfunc   => 'AVERAGE', 
         },
@@ -800,73 +822,142 @@ sub get_template
     ## 96:732  1(per D)*365*2   1-day avg/min/max for 2 years
 
     $data_source->{heartbeat} = 1800;
+    if ($inf)
+    {
+      return
+      [
+        step      => 300,
+        start     => $time - 300,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 105120, 
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+      ]
+    }
+    else
+    {
+      return
+      [
+        step      => 900,
+        start     => $time - 300,
+        data_source => $data_source,
+        archive => { 
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST', 
+        },
+        archive => { 
+          rows    => 1344,
+          cpoints => 1,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 1344,
+          cpoints => 1,
+          cfunc   => 'MAX', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 2,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 2,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 2016,
+          cpoints => 2,
+          cfunc   => 'MAX', 
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 8,
+          cfunc   => 'AVERAGE',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 8,
+          cfunc   => 'MIN',
+        },
+        archive => {
+          rows    => 1488,
+          cpoints => 8,
+          cfunc   => 'MAX',
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 96,
+          cfunc   => 'AVERAGE', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 96,
+          cfunc   => 'MIN', 
+        },
+        archive => { 
+          rows    => 732,
+          cpoints => 96,
+          cfunc   => 'MAX', 
+        },
+      ];
+    }
+  }
+  elsif($n == 3600)
+  {
+    $data_source->{heartbeat} = 7200;
 
-    return
-    [
-      step      => 900,
-      start     => $time - 300,
-      data_source => $data_source,
-      archive => { 
-        rows    => 1,
-        cpoints => 1,
-        cfunc   => 'LAST', 
-      },
-      archive => { 
-        rows    => 1344,
-        cpoints => 1,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 1344,
-        cpoints => 1,
-        cfunc   => 'MAX', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 2,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 2,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 2016,
-        cpoints => 2,
-        cfunc   => 'MAX', 
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 8,
-        cfunc   => 'AVERAGE',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 8,
-        cfunc   => 'MIN',
-      },
-      archive => {
-        rows    => 1488,
-        cpoints => 8,
-        cfunc   => 'MAX',
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 96,
-        cfunc   => 'AVERAGE', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 96,
-        cfunc   => 'MIN', 
-      },
-      archive => { 
-        rows    => 732,
-        cpoints => 96,
-        cfunc   => 'MAX', 
-      },
-    ];
+    if ($inf)
+    {
+      return
+      [
+        step      => 3600,
+        start     => $time - 3600,
+        data_source => $data_source,
+        archive => {
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST',
+        },
+        archive => {
+          rows    => 26280,
+          cpoints => 1,
+          cfunc   => 'AVERAGE',
+        },
+      ]
+    }
+  }
+  elsif($n == 86400)
+  {
+    $data_source->{heartbeat} = 172800;
+
+    if ($inf)
+    {
+      return
+      [
+        step      => 86400,
+        start     => $time - 86400,
+        data_source => $data_source,
+        archive => {
+          rows    => 1,
+          cpoints => 1,
+          cfunc   => 'LAST',
+        },
+        archive => {
+          rows    => 1825,
+          cpoints => 1,
+          cfunc   => 'AVERAGE',
+        },
+      ]
+    }
   }
   else
   {
