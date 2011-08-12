@@ -64,7 +64,11 @@ sub new
         $shared_data->{tags}->{'entity'}->{'system'} = 1;
  
         $shared_data->{tags}->{'os'}->{ lc(&OS) }->{ lc(&OSDIST) }->{ lc(&OSVER) } = 1;
-        $shared_data->{tags}->{'version'}->{'snagc'} = VERSION;
+
+        my $version = $SNAG::VERSION;
+        $version =~ s/\.//;
+        $shared_data->{tags}->{'version'}->{'snagc'}->{$version} = 1;
+        $shared_data->{tags}->{'version'}->{'snagp'} = 1;
 
 	$kernel->delay('delayed_start' => 10);
       },
