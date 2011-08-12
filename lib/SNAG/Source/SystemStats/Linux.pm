@@ -302,7 +302,7 @@ sub supp_iostat_cpu_child_stdio
 
   if($output =~ s/^avg\-cpu://)
   {
-    my @fields = map { s/\%//; $_ } split /\s+/, $output;
+    my @fields = map { s/\%//; s/system/sys/; $_ } split /\s+/, $output;
 
     my $fields_index;
 
