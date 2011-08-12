@@ -305,6 +305,7 @@ sub new
              || $output =~ /got bogus tcp line/
              || $output =~ /could not get current directory/
              || $output =~ /bashrc: Permission denied/
+             || $output =~ /dev\/mem: No such file or directory/
              || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
     	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
@@ -355,6 +356,8 @@ my $client_functions =
 
 sub info
 {
+  POE::Kernel->stop();
+
   local $/;
 
   my $subs = shift;
