@@ -911,7 +911,7 @@ sub get_template
       ];
     }
   }
-  elsif($n == 3600)
+  elsif($n == 60)
   {
     $data_source->{heartbeat} = 7200;
 
@@ -935,7 +935,7 @@ sub get_template
       ]
     }
   }
-  elsif($n == 86400)
+  elsif($n == 1440)
   {
     $data_source->{heartbeat} = 172800;
 
