@@ -203,10 +203,10 @@ sub new
         $kernel->alarm( $_[STATE] => $epoch + 60 );
 
         $uptime = $epoch - $heap->{start};
-        $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~uptime", '1g', $epoch, $uptime ) );
+        $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~uptime", '1g', $epoch, $uptime ) ) unless $config->{stats} = 0;
         while ( my ( $key, $value ) = each %{ $heap->{snagstat} } )
         {
-          $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~$key", '1g', $epoch, $value ) );
+          $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~$key", '1g', $epoch, $value ) ) unless $config->{stats} = 0;
           $heap->{snagstat}->{$key} = 0;
         }
       },
@@ -228,29 +228,15 @@ sub new
         $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n" ) if $debug;
 
         ## If we have no jobs queued, and no running jobs for greater than 60 seconds, close yourself
-        if ( $heap->{snagstat}->{jobs} == 0 && $heap->{snagstat}->{runningwheels} == 0 )
+        if ( $heap->{snagstat}->{jobs} == 0 && $heap->{snagstat}->{runningwheels} == 0 && $config->{exitonempty})
         {
-          if ( $heap->{snagstat}->{done} )
+          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: No jobs queued or running.  Goodbye!" ) if $debug;
+          foreach my $wheel_id ( keys %{ $heap->{job_wheels} } )
           {
-            if ( ( $heap->{epoch} - $heap->{snagstat}->{done} ) > 60 )
-            {
-              $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: No jobs queued or running for one minute.  Goodbye!" ) if $debug;
-              foreach my $wheel_id ( keys %{ $heap->{job_wheels} } )
-              {
-                $heap->{job_wheels}->{$wheel_id}->kill() || $heap->{job_wheels}->{$wheel_id}->kill(9);
-                $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) killed\n" ) if $debug;
-              }
-              $kernel->delay( cya => 10 );
-            }
+            $heap->{job_wheels}->{$wheel_id}->kill() || $heap->{job_wheels}->{$wheel_id}->kill(9);
+            $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) killed\n" ) if $debug;
           }
-          else
-          {
-            $heap->{snagstat}->{done} = $heap->{epoch};
-          }
-        }
-        else
-        {
-          delete $heap->{snagstat}->{done};
+          $kernel->delay( cya => 5 );
         }
         while (    ( !defined $heap->{job_wheels} )
                 || ( $heap->{snagstat}->{wheels} < $config->{min_wheels} )
@@ -331,6 +317,9 @@ sub new
               $heap->{snagstat}->{$key} += $value;
             }
           }
+          
+          $kernel->yield( 'process', $output ) if $config->{autoprocess};
+
           if ( my $job = shift @{ $heap->{jobs} } )
           {
             $heap->{job_busy}->{$wheel_id}         = 1;
