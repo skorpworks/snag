@@ -482,8 +482,8 @@ sub logger
 
         chomp $msg;
         my $now = time2str("%Y-%m-%d %T", $time);
-        print $fh "[$now] $msg\n";
-        print "[$now] $msg\n" if $flags{debug};
+        print $fh "[$now] [$$] $msg\n";
+        print "[$now] [$$] $msg\n" if $flags{debug};
       },
 
       alert => sub
