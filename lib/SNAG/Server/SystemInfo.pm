@@ -41,6 +41,12 @@ my $instructions = {
   },
 
   netapp_df => { 'ignore' => ['used'], },
+
+  process => {
+           'nohistory'   => 1,
+           'nodashboard' => 1,
+  },
+
 };
 
 ################################
