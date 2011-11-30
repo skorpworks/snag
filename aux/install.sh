@@ -2,17 +2,20 @@
 
 pkill snagc
 pkill snagc.pl
+pkill snagx
 
 echo "Creating /opt/snag base dir"
 mkdir -p /opt/snag   2>/dev/null
 mkdir /opt/snag/log  2>/dev/null
+mkdir /opt/snag/bin  2>/dev/null
+mkdir /opt/snag/sbin 2>/dev/null
 mkdir /opt/snag/conf 2>/dev/null
 
 echo "Copying snag binaries to /opt/snag"
 dir=`pwd`
 echo $dir
-cp -a bin /opt/snag/
-cp -a sbin /opt/snag/
+cp -a bin/* /opt/snag/bin/
+cp -a sbin/* /opt/snag/sbin/
 
 if [ ! -e "/opt/snag/snag.conf" ]
 then

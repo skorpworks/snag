@@ -76,6 +76,14 @@ print "Starting $script ... " if $debug;
 system $script;
 print "Done!\n" if $debug;
 
+my $script = BASE_DIR . "/bin/" . "snagx";
+if (-x $script)
+{
+  print "Starting $script ... " if $debug;
+  system $script;
+  print "Done!\n" if $debug;
+}
+
 ### Start any additional snags.pl or snagp.pl, if configured to run on this host
 my $conf = CONF;
 

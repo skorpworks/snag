@@ -5,7 +5,7 @@ ps -ef |grep 'snagc.pl' |grep -v grep | awk '{print $2}' | xargs kill 2>/dev/nul
 
 export PP_INCLUDES=/var/tmp/snag/script/includes/pp_includes
 export SNAGC_INCLUDES=/var/tmp/snag/script/includes/snagc_includes
-export SNAGX_INCLUDES=/var/tmp/snagx/includes/snagx_includes
+export SNAGX_INCLUDES=/var/tmp/snag-x/script/includes/snagx_includes
 
 cd /var/tmp/snag \
 && perl Makefile.PL && make && make test && make install \
@@ -13,6 +13,7 @@ cd /var/tmp/snag \
 && perl /opt/snag/perls/current/bin/snagc.pl --compile --debug \
 && perl /opt/snag/perls/current/bin/snagw.pl --compile --debug \
 && perl /opt/snag/perls/current/bin/snagp.pl --compile --debug \
+&& perl /opt/snag/perls/current/bin/snagx.pl --compile --debug \
 cd -
 
 #&& mv snagc /opt/snag/bin/  \

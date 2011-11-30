@@ -9,6 +9,7 @@ mkdir /var/tmp/snag_installer/sbin  >/dev/null 2>&1
 cp /var/tmp/snagc /var/tmp/snag_installer/bin
 cp /var/tmp/snagw /var/tmp/snag_installer/bin
 cp /var/tmp/snagp /var/tmp/snag_installer/bin
+cp /var/tmp/snagx /var/tmp/snag_installer/bin
 cp /opt/snag/snag.conf /var/tmp/snag_installer/snag.conf.def
 
 dmidecode=`which dmidecode 2>/dev/null`
