@@ -42,10 +42,7 @@ my $instructions = {
 
   netapp_df => { 'ignore' => ['used'], },
 
-  process => {
-           'nohistory'   => 1,
-           'nodashboard' => 1,
-  },
+  process => { 'ignore' => 1, },
 
 };
 
@@ -319,6 +316,12 @@ sub new
                 $kernel->post( 'logger' => 'log' => "No table: $table" );
                 next;
               }
+	      
+              if ( ref $instructions->{$table}->{ignore} ne 'ARRAY' && $instructions->{$table}->{ignore} == 1 )
+	      {
+                $kernel->post( 'logger' => 'log' => "Ignoring table: $table" );
+		next;
+	      }
 
               if ( $table eq 'tags' )
               {
