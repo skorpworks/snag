@@ -549,10 +549,12 @@ sub smartctl
 {                                                                                                                                                                                                                                                                             
   my $info;
 
-  local $/ = "\n";
+  
+  #perl -e 'if (-d "/sys/class/scsi_generic") {foreach $d (</sys/class/scsi_generic/sg*>) { print "$d\n"; }} elsif (-d "/sys/block") {foreach $d (</sys/block/[hs]d*>) { print "$d\n"; }}'
 
   foreach (`fdisk -l 2>/dev/null`) 
   { 
+    local $/ = "\n";
     if (m/^Disk \s+ (\/dev\/[sh]d[\w]+)\:/x) 
     { 
       my $drive = $1;
