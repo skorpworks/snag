@@ -276,7 +276,7 @@ sub new
           }
           else
           {
-            $kernel->post("logger" => "log" => "Invalid data in get_server_info_response:" . Dumper $ref);
+            $kernel->post("logger" => "log" => "Invalid data in get_server_info_response for $passed_through->[0]:" . Dumper $ref);
           }
         }
 
