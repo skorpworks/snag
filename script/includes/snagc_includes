@@ -4,6 +4,7 @@ SNAG::Source::xen
 SNAG::Source::mysql
 SNAG::Source::vserver
 SNAG::Source::apache_logs
+SNAG::Source::iptables
 SNAG::Source::monitor     
 SNAG::Source::SystemInfo 
 SNAG::Source::SystemInfo::Linux 

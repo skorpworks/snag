@@ -235,6 +235,12 @@ sub new
         {
           $shared_data->{tags}->{'virtual'}->{vmware}->{host} = 1;
         }
+
+        if(-e '/sbin/iptables')
+        {
+          $kernel->yield('dispatcher' => 'SNAG::Source::iptables' );
+          $shared_data->{tags}->{service}->{iptables} = 1;
+        }
       },
 
       check_mounts => sub

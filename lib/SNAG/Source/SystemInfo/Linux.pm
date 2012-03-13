@@ -15,8 +15,10 @@ use Data::Dumper::Concise;
 use Digest::SHA qw(sha256_hex);
 use Digest::MD5 qw(md5_hex);
 use Net::Nslookup;
+use File::Which;
+use Network::IPv4Addr qw(ipv4_parse ipv4_cidr2msk);
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole cca installed_software_whole service_monitor iscsi mounts smartctl/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole installed_software_whole service_monitor iscsi mounts smartctl/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -49,7 +51,6 @@ our $config =
   'static_routes'       => { 'period' => 21600 },
   'config_files_whole' 	=> { 'period' => 21600 },
 
-  'cca'			=> { 'period' => 21600, if_tag => 'service.perfigo.sm' },
   'apache_version'      => { 'period' => 21600, if_tag => 'service.web.apache' },
 
   'installed_software_whole'	=> { 'period' => 43200 },
@@ -674,20 +675,14 @@ sub arp
   return $info;
 }
 
-
-### Find ethtool on this box, it varies
-my $ethtool_bin;
-my @ethtool_paths = ('/sbin/ethtool', '/usr/sbin/ethtool');
-foreach (@ethtool_paths)
+my ($bins, $missing_bins);
+foreach my $bin (qw (ip ifconfig ethtool))
 {
-  if(-e $_)
-  {
-    $ethtool_bin = $_;
-    last;
-  }
+  $bins->{$bin} = which("$bin");
+  $missing_bins .= "$bin" unless defined $bins->{$bin};
 }
 
-unless($ethtool_bin)
+unless(defined $bins->{ethtool})
 {
   #$poe_kernel->post('logger' => 'alert' => { Subject => 'SNAG::Source::SystemInfo, ' . HOST_NAME . ', Could not find ethtool on this box!' } );
 }
@@ -934,19 +929,19 @@ sub system
       chomp;
       if(/Host:\s+(\w+)\s+Channel:\s+(\w+)\s+Id:\s+(\w+)\s+Lun:\s+(\w+)/)
       {
-	$name = "$1 $2.$3.$4"; 
+        $name = "$1 $2.$3.$4"; 
       }
 
       elsif(/Vendor:\s+(\w+)\s+Model:\s+(.+?)\s+Rev:\s+(\w+)/)
       {
-	$scsi->{$name}->{vendor} = $1;
-	$scsi->{$name}->{model} = $2;
-	$scsi->{$name}->{rev} = $3;
+        $scsi->{$name}->{vendor} = $1;
+        $scsi->{$name}->{model} = $2;
+        $scsi->{$name}->{rev} = $3;
       }
 
       elsif(/Type:\s+([\w\-]+)\s+ANSI/)
       {
-	$scsi->{$name}->{type} = $1;
+        $scsi->{$name}->{type} = $1;
       }
     }
     close SCSI;
@@ -956,36 +951,99 @@ sub system
   {
     push @{$info->{scsi}}, { device => $device, %{$scsi->{$device}} };
   }
- 
+
   my ($iface, $name);
-  foreach(`ifconfig -a`)
+  if (defined $bins->{ip})
   {
-    ###eth0      Link encap:Ethernet  HWaddr 00:09:6B:A3:C9:17  
-    ###          inet addr:129.219.13.115  Bcast:129.219.13.127  Mask:255.255.255.192
-
-    if(/^([\w:]+)\s+/)
+    my $int;
+    foreach (`$bins->{ip} addr`)
     {
-      $name = $1;
+ 
+      #1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN
+      #    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+      #    inet 127.0.0.1/8 scope host lo
+      #    inet 69.16.128.162/32 scope global lo
+      #    inet6 ::1/128 scope host
+      #       valid_lft forever preferred_lft forever
+      #2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+      #    link/ether 00:30:48:34:b2:fa brd ff:ff:ff:ff:ff:ff
+      #    inet 69.16.128.171/27 scope global eth0
+      #    inet 192.168.248.21/24 brd 192.168.248.255 scope global eth0
+      #    inet 69.16.128.164/27 brd 69.16.128.191 scope global secondary eth0
+      #    inet 69.16.128.183/27 brd 69.16.128.191 scope global secondary eth0
+      #    inet6 fe80::230:48ff:fe34:b2fa/64 scope link
+      #2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 100
+      if (m/^(\d+):\s(lo|eth\d+|em\d+|bond\d+|tunl\d|tun\d|tap\d):\s(.*)$/ )
+      {
+        $name = $2;
+        $iface->{$name}->{port} = $3;
+        $int=0;
+      }
+      elsif (m/^(\d+):\s/)
+      {
+        undef $name;
+      }
+      #    link/ether 00:30:48:c6:70:b6 brd ff:ff:ff:ff:ff:ff
+      elsif ( defined $name && m/\s+link\/ether ([\da-f:]+) /i )
+      {
+        $iface->{$name}->{mac} = lc($1);
+      }
+      #    inet 69.16.168.98/28 brd 69.16.168.111 scope global eth0
+      elsif ( defined $name && m/\s+inet ([\d\.\/]+) .*scope global( | secondary )($name.*)$/ )
+      {
+        my ($ip,$cidr) = ipv4_parse( "$1" ) or dir $!;
+        #$cidr = ipv4_cidr2msk($cidr);
+        if ($3 eq $name && $int >= 1)
+        {
+          $iface->{"$name:$int"}->{ip} = $ip;
+          $iface->{"$name:$int"}->{netmask} = ipv4_cidr2msk($cidr) || '';
+          $int++;
+        }
+        else
+        {
+          $iface->{$3}->{ip} = $ip;
+          $iface->{$3}->{netmask} = ipv4_cidr2msk($cidr) || '';
+          $int++;
+        }
+      }
     }
 
-
-    if(/HWaddr\s+([\w\:]{17})/)
+  }
+  elsif (defined $bins->{ifconfig})
+  {
+    foreach(`$bins->{ifconfig} -a`)
     {
-      $iface->{$name}->{mac} = $1;
-    }
-
-    if(/inet addr:\s*([\d\.]+)/)
-    {
-      $iface->{$name}->{ip} = $1;
-    }
-
-    if(/Mask:\s*([\d\.]+)/)
-    {
-      $iface->{$name}->{netmask} = $1;
+      ###eth0      Link encap:Ethernet  HWaddr 00:09:6B:A3:C9:17  
+      ###          inet addr:129.219.13.115  Bcast:129.219.13.127  Mask:255.255.255.192
+  
+      if(/^(lo|eth\d+|em\d+bond\d+|tunl0|tun0|tap0)\s+/)
+      {
+        $name = $1;
+      }
+      elsif (m/^\w+/)
+      {
+        undef $name;
+      }
+  
+  
+      if(defined $name && /HWaddr\s+([\w\:]{17})/)
+      {
+        $iface->{$name}->{mac} = $1;
+      }
+  
+      if(defined $name && /inet addr:\s*([\d\.]+)/)
+      {
+        $iface->{$name}->{ip} = $1;
+      }
+  
+      if(/defined $name && Mask:\s*([\d\.]+)/)
+      {
+        $iface->{$name}->{netmask} = $1;
+      }
     }
   }
 
-  if($ethtool_bin)
+  if($bins->{ethtool})
   {
     foreach my $ifname (sort keys %$iface)
     {
@@ -1009,7 +1067,7 @@ sub system
       #        Current message level: 0x000000ff (255)
       #        Link detected: yes
       
-      foreach my $line (`$ethtool_bin $ifname 2>&1`)
+      foreach my $line (`$bins->{ethtool} $ifname 2>&1`)
       {
         next if $name =~ m/^lo/;
 
@@ -1047,15 +1105,24 @@ sub system
     my $md;
     while(<MDSTAT>)
     {
-      if (m/^md(\d+) \s+ : \s+ active \s+ (raid\d+)(.*)/x)
-      {
-        $md = ();
-        $dev = "md$1";
-        ($md->{level}, $md->{members}) = ( $2, join(" ", sort( split(/ /, $3))) );
-        my (%devs) = $md->{members} =~ m/\s+(\w+)\[(\d+)\]/g;
-        $info->{mdmap}->{$dev} = \%devs;
-        $md->{members} =~ s/^\s+//;
-      }
+      if (m/^md(\d+) \s+ : \s+ active \s+ (raid\d+)(.*)/x)                                                                                                                                                                                  
+      {                                                                                                                                                                                                                                     
+        $md = ();                                                                                                                                                                                                                           
+        $dev = "md$1";                                                                                                                                                                                                                      
+        ($md->{level}, $md->{members}) = ( $2, join(" ", sort( split(/ /, $3))) );                                                                                                                                                          
+        my (%devs) = $md->{members} =~ m/\s+(\w+)\[(\d+)\]/g;                                                                                                                                                                               
+        $info->{mdmap}->{$dev} = \%devs;                                                                                                                                                                                                    
+        $md->{members} =~ s/^\s+//;                                                                                                                                                                                                         
+      }                                                                                                                                                                                                                                     
+      if (m/^md(\d+) \s+ : \s+ inactive \s+ (.*)/x)                                                                                                                                                                                         
+      {                                                                                                                                                                                                                                     
+        $md = ();                                                                                                                                                                                                                           
+        $dev = "md$1";                                                                                                                                                                                                                      
+        ($md->{members}) = ( $2, join(" ", sort( split(/ /, $2))) );                                                                                                                                                                        
+        my (%devs) = $md->{members} =~ m/\s*(\w+)\[(\d+)\]/g;                                                                                                                                                                               
+        $info->{mdmap}->{$dev} = \%devs;                                                                                                                                                                                                    
+        $md->{members} =~ s/^\s+//;                                                                                                                                                                                                         
+      }  
       if (m/\s+ (\d+) \s+ blocks \s/x)
       {
         $md->{blocks} = $1;
@@ -1442,138 +1509,9 @@ sub iscsi
   }
 }
 
-sub cca
-{
-  local $/ = "\n";
-
-  my $info;
-
-  my ($get_securesmart_info) = _query_controlsmartdb("select * from securesmart_info");
-  my ($get_securesmart_prop, $ss_prop_max) = _query_controlsmartdb("select * from securesmart_prop");
-
-  my ($secure_smarts, $prop);
-  foreach my $ref (@$get_securesmart_info)
-  {
-    my $host = SNAG::dns($ref->{ss_ip});
-
-    $secure_smarts->{ $ref->{ss_key} } = { ss_loc => $ref->{ss_loc}, farm_dns => $host };
-  }
-
-  foreach my $ref (@$get_securesmart_prop)
-  {
-    if($ref->{prop_name} =~ /^Real.+?Ip$/)
-    {
-      if($ref->{prop_value})
-      {
-	my ($primary_host, $failover_host);
-
-	$primary_host = SNAG::dns($ref->{prop_value});
-
-	if($primary_host =~ /^([^\.]+)(.+)$/)
-	{
-          (my $check_failover_host = $primary_host) =~ s/(\d)/$1 == 2 ? 1 : 2/e;
-
-	  my $check_failover_ip = SNAG::dns($check_failover_host);
-          ### Make sure it was resolved to an IP first (that it exists in dns)
-	  if($check_failover_ip =~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)
-	  {
-	    $failover_host = $check_failover_host;
-	  }
-	}
-
-	$secure_smarts->{ $ref->{ss_key} }->{primary_host} = $primary_host;
-	$secure_smarts->{ $ref->{ss_key} }->{failover_host} = $failover_host;
-      }
-    }
-
-    $prop->{ $ref->{ss_key} }->{ $ref->{prop_name} } = $ref->{prop_value};
-  }
-
-  my $prop_contents;
-  foreach my $key (sort keys %$prop)
-  {
-    $prop_contents .= "$key\n-----------------------------------------------------\n";
-
-    foreach my $prop_name (sort keys %{$prop->{$key}})
-    {
-      my $prop_value = $prop->{$key}->{$prop_name};
-
-      $prop_contents .= sprintf("%-$ss_prop_max->{prop_name}s", $prop_name) . "  " . $prop_value . "\n";
-    }
-
-    $prop_contents .= "\n\n";
-  }
-  $info->{conf}->{securesmart_prop} = { contents => $prop_contents };
-
-  foreach my $key (sort keys %$secure_smarts)
-  {
-    my $values = $secure_smarts->{$key};
-
-    push @{$info->{cca}}, { %$values };
-  }
-
-  foreach my $table ('accounting_conf', 'smartmanager_conf')
-  {
-    my ($get_conf, $max) = _query_controlsmartdb("select * from $table order by prop_name");
-
-    my $contents;
-    foreach my $row (@$get_conf)
-    {
-      next if $row->{prop_name} eq 'DMTemplateVersion'; ### This one changes too much
-
-      $contents .= sprintf("%-$max->{prop_name}s", $row->{prop_name}) . "  " . $row->{prop_value} . "\n";
-    }
-
-    $info->{conf}->{$table} = { contents => $contents };
-  }
-
-  return $info;
-}
-
 ######################################################################################
 ####################### HELPER SUBS ##################################################
 ######################################################################################
-
-sub _query_controlsmartdb
-{
-  my $field_sep = '~_~';
-
-  my $record_sep = '#_#';
-  local $/ = $record_sep;
-
-  my $q = shift or die "query needs an arg";
-
-  my ($result, $max_lengths);
-
-  open IN, "/usr/bin/psql -h 127.0.0.1 -A -F '$field_sep' -R '$record_sep' controlsmartdb postgres -c '$q' |";
-  chomp(my $first_line = <IN>);
-  my @keys = split /$field_sep/, $first_line;
-
-  while(<IN>)
-  {
-    chomp;
-
-    next if /^\(/;
-
-    my @values = split /$field_sep/, $_;
-
-    my $ref;
-    foreach my $i (0 .. $#keys)
-    {
-      $ref->{ $keys[$i] } = $values[$i];
-
-      if(length $values[$i] > $max_lengths->{ $keys[$i] })
-      {
-        $max_lengths->{ $keys[$i] } = length $values[$i] 
-      }
-    }
-
-    push @$result, $ref;
-  }
-
-  close IN;
-  return ($result, $max_lengths);
-}
 
 sub _get_kernel_settings
 {
