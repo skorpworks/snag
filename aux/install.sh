@@ -63,6 +63,13 @@ then
   fi
 fi
 
+if [[ -d "/etc/local.d" ]]
+then
+    echo "Adding snagw to /etc/local.d/snagw.start"
+    echo '/opt/snag/bin/snagw >/dev/null 2>&1' >/etc/local.d/snagw.start
+    chmod +x /etc/local.d/snagw.start
+fi
+
 echo "Starting snag..."
 
 if [[ ! -e "/opt/snag/log/client.conf" ]]
