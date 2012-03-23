@@ -606,16 +606,19 @@ tcp        0      0 ::ffff:129.219.15.207:22    ::ffff:129.219.80.60:50444  ESTA
   return if $output =~ /^Active Internet connections/;
   return if $output =~ /^Proto/;
 
-  my @fields = split /\s+/, $output;
+  
+  my (@fields, $state, $remote, $remote_ip, $remote_port, $local, $local_ip, $local_port);
 
-  my ($state, $remote, $local)  = @fields[-1, -2, -3];
+  @fields = split /\s+/, $output;
+
+  ($state, $remote, $local)  = @fields[-1, -2, -3];
 
   $remote =~ s/^::ffff://;
   $local =~ s/^::ffff://;
 
   $local =~ s/^(::1|::|0.0.0.0)/\*/;
 
-  my ($local_ip, $local_port) = split /:/, $local;
+  ($local_ip, $local_port) = split /:/, $local;
 
   $heap->{netstat_states}->{$state}++;
 
@@ -625,23 +628,23 @@ tcp        0      0 ::ffff:129.219.15.207:22    ::ffff:129.219.80.60:50444  ESTA
   }
   elsif($state eq 'ESTABLISHED')
   {
-    my ($remote_ip, $remote_port) = split /:/, $remote;
+    ($remote_ip, $remote_port) = split /:/, $remote;
 
-    if(my $host = $SNAG::Dispatch::shared_data->{remote_hosts}->{ips}->{$remote_ip})
-    {
-
-      ### Only look at activity on listening ports, Ignore SSH and SNAG connections, and ignore connections to the same host
-      if( $SNAG::Dispatch::shared_data->{remote_hosts}->{ports}->{$remote_port}
-          && $remote_port ne '22' 
-          && $local_port ne '22' 
-          && $remote_port !~ /^133[3-5]\d$/
-          && !$heap->{listening_ports}->{$local_port}
-          && $host ne HOST_NAME
-        )
-      {
-        $heap->{netstat_remote_cons}->{ $host }->{$remote_port}++;
-      }
-    }
+#    if(my $host = $SNAG::Dispatch::shared_data->{remote_hosts}->{ips}->{$remote_ip})
+#    {
+#
+#      ### Only look at activity on listening ports, Ignore SSH and SNAG connections, and ignore connections to the same host
+#      if( $SNAG::Dispatch::shared_data->{remote_hosts}->{ports}->{$remote_port}
+#          && $remote_port ne '22' 
+#          && $local_port ne '22' 
+#          && $remote_port !~ /^133[3-5]\d$/
+#          && !$heap->{listening_ports}->{$local_port}
+#          && $host ne HOST_NAME
+#        )
+#      {
+#        $heap->{netstat_remote_cons}->{ $host }->{$remote_port}++;
+#      }
+#    }
 
     if($heap->{listening_ports}->{$local_port} && $local_port ne '22' && $local_ip ne $remote_ip)
     {
