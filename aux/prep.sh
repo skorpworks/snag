@@ -7,6 +7,10 @@ export PP_INCLUDES=/var/tmp/snag/script/includes/pp_includes
 export SNAGC_INCLUDES=/var/tmp/snag/script/includes/snagc_includes
 export SNAGX_INCLUDES=/var/tmp/snag-x/script/includes/snagx_includes
 
+echo "PP_INCLUDES=$PP_INCLUDES"
+echo "SNAGC_INCLUDES=$SNAGC_INCLUDES"
+echo "SNAGX_INCLUDES=$SNAGX_INCLUDES"
+
 cd /var/tmp/snag \
 && perl Makefile.PL && make && make test && make install \
 && cd /var/tmp \
