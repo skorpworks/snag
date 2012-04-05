@@ -631,8 +631,8 @@ sub get_template
     {
       return
       [
-        step      => 300,
-        start     => $time - 300,
+        step      => 60,
+        start     => $time - 60,
         data_source => $data_source,
         archive => { 
           rows    => 1,
