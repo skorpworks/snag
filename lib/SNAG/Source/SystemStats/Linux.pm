@@ -735,7 +735,7 @@ sub run_network_dev
     s/\s+/ /g;
     if (s/^\s*([\w\.\-]+)\s*:\s*//)
     {
-      next if($1 =~ /^(vif|tap)/);
+      next if($1 =~ /^(vif|ppp)/);
       my @stats = split(/\s+/);
       #in
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inbyte', $rrd_min . "d", $time, $stats[0]));
