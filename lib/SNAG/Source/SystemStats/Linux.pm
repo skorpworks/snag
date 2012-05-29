@@ -39,6 +39,21 @@ $io_fields->{'w_await'}->{ds}    = 'wawait';
 $io_fields->{'svctm'}->{ds}      = 'svctm';
 $io_fields->{'%util'}->{ds}      = 'pct_util';
 
+#10:34:46     CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+#17:42:24     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+our $mp_fields;
+$mp_fields->{'%user'}->{ds} = 'user';
+$mp_fields->{'%usr'}->{ds} = 'user';
+$mp_fields->{'%nice'}->{ds} = 'nice';
+$mp_fields->{'%sys'}->{ds} = 'sys';
+$mp_fields->{'%iowait'}->{ds} = 'iowait';
+$mp_fields->{'%irq'}->{ds} = 'irq';
+$mp_fields->{'%soft'}->{ds} = 'soft';
+$mp_fields->{'%steal'}->{ds} = 'steal';
+$mp_fields->{'%idle'}->{ds} = 'idle';
+$mp_fields->{'%guest'}->{ds} = 'quest';
+$mp_fields->{'intr/s'}->{ds} = 'intrs';
+
 
 #####################################################################################
 ############  DF  ############################################################
@@ -149,10 +164,76 @@ sub supp_df_nfs_child_close
   delete $heap->{running_states}->{run_df_nfs};
   delete $heap->{df_nfs_wheel};
 }
+
+
 #####################################################################################
 ############  IOSTAT IO  ############################################################
 #####################################################################################
+sub run_mpstat
+{
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
 
+
+  $heap->{mpstat_wheel} = POE::Wheel::Run->new
+  (
+    Program      => [ "mpstat", $stat_quanta, 1],
+    StdioFilter  => POE::Filter::Line->new(),
+    StderrFilter => POE::Filter::Line->new(),
+    StdoutEvent  => 'supp_mpstat_child_stdio',
+    StderrEvent  => 'supp_mpstat_child_stderr',
+    CloseEvent   => "supp_mpstat_child_close",
+  );
+
+}
+
+sub supp_mpstat_child_stdio
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+
+  #10:34:46     CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+  #10:34:51     all   61.43    0.00    3.19    0.20    2.00    6.79    0.00   26.40   9503.40
+  #
+  #17:42:24     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+  #17:42:29     all    0.57    0.00    1.79   12.90    0.00    1.39    0.00    0.00   83.34
+
+  if ($output =~ s/^\d+:\d+:\d+\s+CPU\s+//)
+  {
+    my @fields = split /\s+/, $output;
+    for (my $i; $i <= $#fields; $i++)
+    {
+      $mp_fields->{"$fields[$i]"}->{idx} = $i;
+    }
+  }
+
+  if ($output =~ s/^\d+:\d+:\d+\s+all\s+//)
+  {
+    my $time = $heap->{run_epoch};
+    my @stats = split /\s+/, $output;
+
+    my $host = HOST_NAME;
+    foreach my $key (keys %{$mp_fields})
+    {
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host", "mp_" . $mp_fields->{"$key"}->{ds}, "1g", $time, $stats[$mp_fields->{"$key"}->{idx}])) if defined $mp_fields->{"$key"}->{idx};
+    }
+  }
+}
+
+sub supp_mpstat_child_stderr
+{
+}
+
+sub supp_mpstat_child_close
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+  delete $heap->{running_states}->{run_mpstat};
+  delete $heap->{mpstat_wheel};
+}
+
+
+
+#####################################################################################
+############  IOSTAT IO  ############################################################
+#####################################################################################
 sub run_iostat_io
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
@@ -814,6 +895,10 @@ sub run_meminfo
     elsif (/^Committed_AS:\s+(\d+)/)
     {
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcomm', $rrd_min . "g", $time, $1));
+    }
+    elsif (/^(CommitLimit|VmallocTotal|VmallocUsed|Dirty|Writeback):\s+(\d+)/)
+    {
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, "mem_" . lc($1), $rrd_min . "g", $time, $2));
     }
   }
   close PROC;
