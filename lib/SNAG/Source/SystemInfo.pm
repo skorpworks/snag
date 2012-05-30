@@ -272,6 +272,10 @@ sub new
         {
           $shared_data->{mdmap} = delete $info->{mdmap};
         }
+        elsif(defined $info->{lsscsi})
+        {
+          $shared_data->{lsscsi} = delete $info->{lsscsi};
+        }
         
         if(%$info && ( my $pruned = SNAG::Source::sysinfo_prune($info) ) )
         {

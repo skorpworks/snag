@@ -34,9 +34,9 @@ our $config =
   'installed_software_check' => { 'period' => 600 },
   'config_files_check' 	=> { 'period' => 600 },
 
-  'bonding' => { 'period' => 300 },
+  'bonding'             => { 'period' => 300 },
 
-  'smartctl' => { 'period' => 900 },
+  'smartctl'            => { 'period' => 900, data => $SNAG::Dispatch::shared_data },
 
   'vmware_host'		=> { 'period' => 1800, if_tag => 'virtual.vmware.host' },
 
@@ -550,21 +550,33 @@ sub smartctl
 {                                                                                                                                                                                                                                                                             
   my $info;
 
-  
+  my $args = shift;
+  my $lsscsi = dclone $args->{data}->{lsscsi} if defined $args->{data}->{lsscsi};
   #perl -e 'if (-d "/sys/class/scsi_generic") {foreach $d (</sys/class/scsi_generic/sg*>) { print "$d\n"; }} elsif (-d "/sys/block") {foreach $d (</sys/block/[hs]d*>) { print "$d\n"; }}'
-
-  foreach (`fdisk -l 2>/dev/null`) 
-  { 
+  
+  {
     local $/ = "\n";
-    if (m/^Disk \s+ (\/dev\/[sh]d[\w]+)\:/x) 
-    { 
-      my $drive = $1;
+    foreach my $out (`lsscsi -g`)
+    {
+      chomp $out;
+      push @{$info->{lsscsi}}, $out;
+    }
+  }
+
+  foreach my $out (@{$info->{lsscsi}})
+  {
+    if ($out =~ m/^\[([\d:]+)\].*(\/dev\/\w+)\s+(\/dev\/sg\d+)\s*$/)
+    {
+      my ($cp, $drive, $sg) = ($1, $2, $3);
       eval 
       {    
-        my ($disk, $device, $version, $serial, $capacity, $transport, $smart);  
+        local $/ = "\n";
+
+        my ($disk, $device, $vendor, $product, $version, $serial, $capacity, $transport, $smart);  
         ($disk, $device, $version, $serial, $capacity, $transport) = '';  
         $smart = 0;
-        foreach (`smartctl -i $drive`)
+
+        foreach (`smartctl -i $sg 2>&1`)
         {                                                                                 
           chomp;                                                                          
                                                                                           
@@ -581,6 +593,23 @@ sub smartctl
           elsif (m/^Device Model:\s+(.*)$/i)                                              
           {                                                                               
             $device = $1;                                                                 
+          }                                                                               
+	  #Vendor:               CSC300GB
+	  #Product:              10K REFURBISHED
+	  #Revision:             0123
+          elsif (m/^Vendor:\s+(.*)$/i)                                              
+          {                                                                               
+            $vendor = $1;                                                                 
+	    $device = "$vendor $product" if defined $product;
+	  }
+          elsif (m/^Product:\s+(.*)$/i)                                              
+          {                                                                               
+            $product = $1;                                                                 
+	    $device = "$vendor $product" if defined $vendor;
+	  }
+          elsif (m/^Revision:\s+(.*)$/i)                                              
+          {                                                                               
+            $version= $1;                                                                 
           }                                                                               
           #Serial number:                     
           #Serial number: UPE0P49025D2
@@ -631,6 +660,7 @@ sub smartctl
       };
       if ($@)
       {
+        print STDERR "sysinfo_debug: smartctl error $@\n";
         push @{$info->{smartctl}}, { drive => $drive, device => 'X', version => 'X', serial => 'X', capacity => 'X', transport => 'X', smart => 'X'};  
       }
     }
