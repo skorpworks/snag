@@ -199,10 +199,11 @@ sub supp_mpstat_child_stdio
   if ($output =~ s/^\d+:\d+:\d+\s+CPU\s+//)
   {
     my @fields = split /\s+/, $output;
-    for (my $i; $i <= $#fields; $i++)
+    for (my $i = 0; $i <= $#fields; $i++)
     {
       $mp_fields->{"$fields[$i]"}->{idx} = $i;
     }
+    print Dumper $mp_fields;
   }
 
   if ($output =~ s/^\d+:\d+:\d+\s+all\s+//)
