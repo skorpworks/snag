@@ -18,7 +18,7 @@ use Config::General qw/ParseConfig/;
 
 our %flags;
 
-our $VERSION = '4.41';
+our $VERSION = '4.42';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);

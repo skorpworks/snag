@@ -43,7 +43,7 @@ sub new
           foreach (`/usr/sbin/vserver-stat`)
           {
     				my @stats = split (/[' ']+/, $_);
-						next if $stats[7] =~ /[^(root|NAME)]/;
+						next if $stats[7] =~ /^(root|NAME)/;
 						$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'processes_' . $stats[7], "1g", time(), $stats[1]));
 						$kernel->post('client' => 'master' => 'heartbeat' => { source  => SCRIPT_NAME, host => $stats[7] , seen => time2str("%Y-%m-%d %T", time) } );
 						push @{$SNAG::Dispatch::shared_data->{vservers}}, $stats[7];
