@@ -1319,6 +1319,7 @@ sub mounts
   {
     next if /^none/;
     next if /^\s*$/;
+    next if /^rootfs/; # ignore / mounts reporting themselves as type rootfs
 
     if(/^(\S+) on (\S+) type (\S+) \((\S+)\)( \[(\S*)\])?$/)
     {
