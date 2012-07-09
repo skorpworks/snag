@@ -327,14 +327,19 @@ sub create_connection
 {
   my $args = shift;
 
+  $args->{override} = 0;
   my $missing;
+
   foreach my $key ('name', 'host', 'port', 'key', 'client_queue')
   {
     unless(defined $args->{$key})
     {
       $poe_kernel->post('logger' => 'log' => "Missing required argument '$key'") if $SNAG::flags{debug};
       push @$missing, $key;
+      next;
     }
+    $args->{$key} = $SNAG::flags{"$args->{name}$key"} if (defined ($SNAG::flags{"$args->{name}$key"});
+    $args->{override}++ if (defined ($SNAG::flags{"$args->{name}$key"});
   }
 
   return if $missing;
@@ -367,7 +372,8 @@ sub create_connection
                           }
                         );
 
-			                  $kernel->post("logger" => "log" => "CLIENT STARTING $args->{name}" );
+                        $args->{override} .= " overrides" if $args->{override} > 0;
+                        $kernel->post("logger" => "log" => "Client: Started: $args->{name}" );
                       },
 
     Connected      => sub
@@ -376,7 +382,7 @@ sub create_connection
         
                         delete $heap->{connect_attempts};
 
-                        $kernel->post("logger" => "log" => "CLIENT CONNECTED: $args->{name} to $heap->{host} on $args->{port}");
+                        $kernel->post("logger" => "log" => "Client: Connected: $args->{name} to $heap->{host} on $args->{port}");
 
                         ### Send handshake
                         $kernel->state('got_server_input' => \&receive_handshake);
@@ -393,7 +399,7 @@ sub create_connection
           
                         $heap->{connect_attempts}++;
 
-                        my $error_msg = "CLIENT ERROR: $args->{name} to $heap->{host} on $heap->{port}: syscall = $syscall, num = $num, error = $error, failed after $heap->{connect_attempts} attempts";
+                        my $error_msg = "Client: ConnectError: $args->{name} to $heap->{host} on $heap->{port}: syscall = $syscall, num = $num, error = $error, failed after $heap->{connect_attempts} attempts";
  
                         if ($heap->{connect_attempts} <= 5 && $heap->{fallbackip})
                         {
@@ -429,7 +435,7 @@ sub create_connection
 
                         my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
 
-                        $kernel->post("logger" => "log" => "DISCONNECTED: $args->{name} to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
+                        $kernel->post("logger" => "log" => "Client:: Disconnected: $args->{name} to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
 
                         $kernel->delay('reconnect' =>  $reconnect_time);
                       },
@@ -440,7 +446,7 @@ sub create_connection
                       {
                         my ($kernel, $heap, $syscall, $num, $error) = @_[ KERNEL, HEAP, ARG0, ARG1, ARG2 ];
 
-                        $kernel->post("logger" => "log" => "SERVER ERROR: $args->{name} to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
+                        $kernel->post("logger" => "log" => "Client ServerError: $args->{name} to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
                       },
 
     InlineStates   => { 
@@ -458,7 +464,7 @@ sub create_connection
 
                           if($heap->{pending_data})
                           {
-			    $kernel->post('logger' => 'log' => 'CLIENT ERROR.  This client already has pending data, this should never happen');
+			    $kernel->post('logger' => 'log' => 'Client: SendParcel.  This client already has pending data, this should never happen');
                           }
 
                           return unless $heap->{initiated_connection};
@@ -602,7 +608,7 @@ sub receive_handshake
   if($parcel->{handshake} eq 'To crush your enemies, to see them driven before you, and to hear the lamentations of their women.')
   {
     ## SUCCESS! Back to default ServerInput
-    $kernel->post("logger" => "log" => "CLIENT INITIATED: $heap->{name} to $heap->{host} on $heap->{port}");
+    $kernel->post("logger" => "log" => "Client: Handshake: $heap->{name} to $heap->{host} on $heap->{port}");
 
     $heap->{initiated_connection} = 1;
     $kernel->state('got_server_input' => \&receive);
@@ -615,11 +621,11 @@ sub receive_handshake
   {
     if($parcel->{error})
     {
-      $kernel->post("logger" => "log" => "CLIENT ERROR: $heap->{name} to $heap->{host} on $heap->{port}: $parcel->{error}");
+      $kernel->post("logger" => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: $parcel->{error}");
     }
     else
     {
-      $kernel->post("logger" => "log" => "CLIENT ERROR: $heap->{name} to $heap->{host} on $heap->{port}: Invalid handshake response");
+      $kernel->post("logger" => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: Invalid handshake response");
     }
 
     $kernel->yield('force_disconnect');
