@@ -20,8 +20,6 @@ foreach my $arg (@ARGV)
 }
 
 ### Get rid of this once all sources are converted to dispatching
-my %options;
-GetOptions(\%options, 'debug', 'verbose', 'compile');
 
 if($SNAG::flags{compile})
 {

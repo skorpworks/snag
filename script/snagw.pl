@@ -17,14 +17,8 @@ use Sys::Hostname;
 use Sys::Syslog;
 use Data::Dumper;
 
-use Getopt::Long;
 
-our %options;
-GetOptions(\%options, 'debug', 'syslog!', 'compile');
-my $debug = delete $options{debug};
-my $nosyslog = delete $options{nosyslog};
-
-if($options{compile})
+if($SNAG::flags{compile})
 {
   unless($ENV{PAR_SPAWNED})
   {
@@ -103,12 +97,12 @@ for my $proc (@{$procs->table()}) {
   if ($proc->cmndline() =~ /($script|$script_x)/) {
     my $foundproc = $1;
     $pids{basename($foundproc)} = $proc->pid();
-    print "Found " . basename($foundproc) . " running.\n" if $debug;
+    print "Found " . basename($foundproc) . " running.\n" if $SNAG::flags{debug};
   }
 }
 
 # FIXME: if we ever need snagw to run on windows, the mountpoint usage check will need re-writing...
-print "Checking mountpoint usage...\n" if $debug;
+print "Checking mountpoint usage...\n" if $SNAG::flags{debug};
 my %mountpoints;
 open(my $df, "df -k |") || die "Could not run df - $!\n";
 while (<$df>) {
@@ -125,7 +119,7 @@ my ($basedir) = (File::Spec->splitdir($absdirname))[1];
 $basedir = '/' . $basedir;
 my $snag_mounted_on = $mountpoints{$basedir} ? $basedir : '/';
 
-print "Checking available disk space...\n" if $debug;
+print "Checking available disk space...\n" if $SNAG::flags{debug};
 # check to ensure whatever mount point BASE_DIR is found is under 98% full...
 my $above_disk_threshold = $mountpoints{$snag_mounted_on} >= 98 ? 1 : 0;
 if ($above_disk_threshold) {
@@ -140,16 +134,16 @@ if ($above_disk_threshold) {
       sleep 1;
       last unless ((kill 0, $pids{$daemon}));
       if ($attempt == 3) {
-        print "Tried to kill $daemon with PID $pids{$daemon} $attempt times, failed.\n" if $debug;
+        print "Tried to kill $daemon with PID $pids{$daemon} $attempt times, failed.\n" if $SNAG::flag{debug};
       }
     }
   }
-  print "$snag_mounted_on is $mountpoints{$snag_mounted_on}% full.  Exiting.\n" if $debug;
+  print "$snag_mounted_on is $mountpoints{$snag_mounted_on}% full.  Exiting.\n" if $SNAG::flags{debug};
   exit();
 }
      
 # check to ensure queue files are not above 200MB
-print "Checking size of queue files in " . LOG_DIR . "...\n" if $debug;
+print "Checking size of queue files in " . LOG_DIR . "...\n" if $SNAG::flags{debug};
 opendir(my $logdir, LOG_DIR) || die "Could not open " . LOG_DIR . " - $!\n";
 for my $filefound (grep /queue/, readdir($logdir)) {
   my $queue_file_path = File::Spec->catfile($logdir, $filefound);
@@ -158,13 +152,13 @@ for my $filefound (grep /queue/, readdir($logdir)) {
     openlog('snagw', 'ndelay', 'user');
     syslog('notice', "queue file error: file is $filesize bytes " . HOST_NAME);
     closelog();
-    print "$queue_file_path is $filesize bytes, wrote to syslog\n" if $debug;
+    print "$queue_file_path is $filesize bytes, wrote to syslog\n" if $SNAG::flags{debug};
   }
 }
 closedir($logdir);
 
 # check that snagc is updating the queue file...
-print "Checking mtime of queue file in " . LOG_DIR . "...\n" if $debug;
+print "Checking mtime of queue file in " . LOG_DIR . "...\n" if $SNAG::flags{debug};
 # not doing the queue file mtime check for snagx queue files because it's possible for a product
 # to be purposely down and thus *_snagx will not run and thus not update queue files...
 my $file_to_check = File::Spec->catfile(LOG_DIR, 'snagc_sysrrd_client_queue.dat');
@@ -175,25 +169,25 @@ if (($now - $stat->mtime()) >= 300) {
   openlog('snagw', 'ndelay', 'user');
   syslog('notice', 'queue file error: file older than 300 seconds ' . HOST_NAME);
   closelog();
-  print "$file_to_check is older than 300 seconds, wrote to syslog\n" if $debug;
+  print "$file_to_check is older than 300 seconds, wrote to syslog\n" if $SNAG::flags{debug};
 }
-print "Checks complete.\n" if $debug;
+print "Checks complete.\n" if $SNAG::flags{debug};
 
-# start snagc unless it's already running...
+#start snagc unless it's already running...
 unless ($pids{snagc}) {
   if (-x $script) {
-    print "Starting $script ... " if $debug;
+    print "Starting $script ... " if $SNAG::flags{debug};
     system $script;
-    print "Done!\n" if $debug;
+    print "Done!\n" if $SNAG::flags{debug};
   }
 }
 
 # start snagx unless it's aready running...
 unless ($pids{snagx}) {
    if (-x $script_x) {
-    print "Starting $script_x ... " if $debug;
+    print "Starting $script_x ... " if $SNAG::flags{debug};
     system $script_x;
-    print "Done!\n" if $debug;
+    print "Done!\n" if $SNAG::flags{debug};
   }
 }
 
@@ -207,9 +201,9 @@ if($conf->{server})
     my $script_bin = $server . '_snags';
     my $script_path = BASE_DIR . "/bin/" . $script_bin;
 
-    print "Starting $script_path ... " if $debug;
+    print "Starting $script_path ... " if $SNAG::flags{debug};
     system $script_path;
-    print "Done!\n" if $debug;
+    print "Done!\n" if $SNAG::flags{debug};
   }
 }
 
@@ -221,19 +215,19 @@ if($conf->{poller})
     my $alternate_bin = BASE_DIR . "/bin/" . $poller . '_snagp.pl';
     for my $script_path ($default_bin, $alternate_bin) {
       if (-e $script_path) {
-        print "Starting $script_path ..." if $debug;
+        print "Starting $script_path ..." if $SNAG::flags{debug};
         system $script_path;
-        print "Done!\n" if $debug;
+        print "Done!\n" if $SNAG::flags{debug};
         last;
       }
     }
   }
 }
 
-exit 0 if $nosyslog;
+exit 0 if $SNAG::flags{nosyslog};
 
-print "Sending syslog heartbeat ... " if $debug;
+print "Sending syslog heartbeat ... " if $SNAG::flags{debug};
 openlog('snagw', 'ndelay', 'user');
 syslog('notice', 'syslog heartbeat from ' . HOST_NAME);
 closelog();
-print "Done!\n" if $debug;
+print "Done!\n" if $SNAG::flags{debug};

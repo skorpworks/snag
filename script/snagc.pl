@@ -10,12 +10,7 @@ use SNAG::Dispatch;
 use POE;
 
 use Getopt::Long;
-#TODO actually *use* Getopt::Long;
-foreach my $arg (@ARGV)
-{
-  $arg =~ s/^\-{1,2}//;
-  $SNAG::flags{$arg} = 1;
-}
+
 
 if($SNAG::flags{install})
 {
@@ -79,8 +74,6 @@ elsif($SNAG::flags{compile})
 }
 
 ### Get rid of this once all sources are converted to dispatching
-our %options;
-GetOptions(\%options, 'debug', 'verbose', 'startatend', 'noclient', 'source=s');
 
 my $debug = $SNAG::flags{debug};
 
@@ -117,7 +110,7 @@ if($confin->{source})
 {
   foreach my $source (@{$confin->{source}})
   {
-    next if ($options{source} && $options{source} ne $source->{name} && $source->{name} ne 'sysrrd');
+    next if ($SNAG::flags{source} && $SNAG::flags{source} ne $source->{name} && $source->{name} ne 'sysrrd');
 
     if ($SNAG::flags{"no$source->{name}"})
     {
@@ -136,7 +129,7 @@ if($confin->{source})
     (
       Alias	=> $source->{name},
       Source	=> $source->{ds}, 
-      Options	=> \%options,
+      Options	=> $SNAG::flags,
     );
   }
 }

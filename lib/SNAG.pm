@@ -17,6 +17,10 @@ use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
 use Config::General qw/ParseConfig/;
 
 our %flags;
+GetOptions( \%flags, 'debug+', 'verbose+', 'init', 'compile', 'install', 'uninstall', 'version',
+                     'nosysinfo', 'nosysstats', 'noalerts',
+                     'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
+          );
 
 our $VERSION = '4.42';
 sub VERSION { $VERSION };

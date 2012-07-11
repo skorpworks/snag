@@ -148,7 +148,7 @@ sub new
         return if $name eq '_child';
         return if $name eq '_stop';
 
-        $kernel->post('logger' => 'log' => "client: recieved unhandled request to communicate with the $name server");
+        $kernel->post('logger' => 'log' => "Client: recieved unhandled request to communicate with the $name server");
 
         my ($function, $data) = @$args;
 
@@ -171,7 +171,7 @@ sub new
       run_init => sub
       {
         my ($kernel, $heap, $session,$default_connections) = @_[KERNEL, HEAP, SESSION, ARG0];
-	$kernel->post('logger' => 'log' => "Initializing (running snag init)...!") if $SNAG::flags{debug};
+        $kernel->post('logger' => 'log' => "Initializing (running snag init)...!") if $SNAG::flags{debug};
         $kernel->post('logger' => 'log' => "Running init even though a client config exists.  Overwriting.") if $SNAG::flags{debug} && (-r $client_conf);
 
         # Assume that master is the first ref of default connections
@@ -327,7 +327,6 @@ sub create_connection
 {
   my $args = shift;
 
-  $args->{override} = 0;
   my $missing;
 
   foreach my $key ('name', 'host', 'port', 'key', 'client_queue')
@@ -338,8 +337,10 @@ sub create_connection
       push @$missing, $key;
       next;
     }
-    $args->{$key} = $SNAG::flags{"$args->{name}$key"} if (defined ($SNAG::flags{"$args->{name}$key"});
-    $args->{override}++ if (defined ($SNAG::flags{"$args->{name}$key"});
+    $args->{$key} = $SNAG::flags{"$args->{name}$key"} if defined $SNAG::flags{"$args->{name}$key"};
+    #FIXME
+    #sooo does not work right now. Need to do some getopt spec work
+    $args->{override} .= "$key:$args->{name}$key " if defined $SNAG::flags{"$args->{name}$key"};
   }
 
   return if $missing;
@@ -372,8 +373,10 @@ sub create_connection
                           }
                         );
 
-                        $args->{override} .= " overrides" if $args->{override} > 0;
-                        $kernel->post("logger" => "log" => "Client: Started: $args->{name}" );
+                        #FIXME
+                        #sooo does not work right now. Need to do some getopt spec work
+                        $args->{override} = " ( override: $args->{override})" if defined $args->{override};
+                        $kernel->post("logger" => "log" => "Client: Started: $args->{name}$args->{override}" );
                       },
 
     Connected      => sub

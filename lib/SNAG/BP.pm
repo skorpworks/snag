@@ -203,10 +203,10 @@ sub new
         $kernel->alarm( $_[STATE] => $epoch + 60 );
 
         $uptime = $epoch - $heap->{start};
-        $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~uptime", '1g', $epoch, $uptime ) ) unless $config->{stats} = 0;
+        $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~uptime", '1g', $epoch, $uptime ) ) unless $config->{stats} == 0;
         while ( my ( $key, $value ) = each %{ $heap->{snagstat} } )
         {
-          $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~$key", '1g', $epoch, $value ) ) unless $config->{stats} = 0;
+          $kernel->post( 'client' => 'sysrrd' => 'load' => join RRD_SEP, ( HOST_NAME, "bp_$alias~$key", '1g', $epoch, $value ) ) unless $config->{stats} == 0;
           $heap->{snagstat}->{$key} = 0;
         }
       },
