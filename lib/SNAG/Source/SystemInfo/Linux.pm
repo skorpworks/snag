@@ -36,7 +36,7 @@ our $config =
 
   'bonding'             => { 'period' => 300 },
 
-  'smartctl'            => { 'period' => 900, data => $SNAG::Dispatch::shared_data },
+  'smartctl'            => { 'period' => 3600, data => $SNAG::Dispatch::shared_data },
 
   'vmware_host'		=> { 'period' => 1800, if_tag => 'virtual.vmware.host' },
 
