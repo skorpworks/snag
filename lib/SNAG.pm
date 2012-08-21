@@ -14,15 +14,17 @@ use FileHandle;
 use Date::Format;
 use Mail::Sendmail;
 use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
+use Data::Dumper::Concise;
 use Config::General qw/ParseConfig/;
 
 our %flags;
+Getopt::Long::Configure("pass_through");
 GetOptions( \%flags, 'debug+', 'verbose+', 'init', 'compile', 'install', 'uninstall', 'version',
                      'nosysinfo', 'nosysstats', 'noalerts',
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
 
-our $VERSION = '4.42';
+our $VERSION = '4.43';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);

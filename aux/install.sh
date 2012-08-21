@@ -4,6 +4,9 @@ pkill snagc
 pkill snagc.pl
 pkill snagx
 
+ps -ef |grep 'snag[cx]$' |awk '{print $2}' | xargs kill 2>/dev/null
+ps -ef |grep 'snag[cx].pl$' |awk '{print $2}' | xargs kill 2>/dev/null
+
 echo "Creating /opt/snag base dir"
 mkdir -p /opt/snag   2>/dev/null
 mkdir /opt/snag/log  2>/dev/null

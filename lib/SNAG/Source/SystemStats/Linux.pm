@@ -203,7 +203,6 @@ sub supp_mpstat_child_stdio
     {
       $mp_fields->{"$fields[$i]"}->{idx} = $i;
     }
-    print Dumper $mp_fields;
   }
 
   if ($output =~ s/^\d+:\d+:\d+\s+all\s+//)

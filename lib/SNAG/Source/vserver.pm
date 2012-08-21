@@ -66,7 +66,7 @@ sub new
 							{
 								$name = $1;
 							}
-							next unless $name =~ /.*0$/; # we want en0 or eth0 or whatever our primary is
+							next unless defined $name && $name =~ /.*0$/; # we want en0 or eth0 or whatever our primary is
 							
 							if(/inet addr:\s+([\d.]+)/)
 							{
