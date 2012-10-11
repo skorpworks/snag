@@ -29,8 +29,8 @@ $io_fields->{'r/s'}->{ds}        = 'iors';
 $io_fields->{'w/s'}->{ds}        = 'iows';
 $io_fields->{'rsec/s'}->{ds}     = 'iorss';
 $io_fields->{'wsec/s'}->{ds}     = 'iowss';
-$io_fields->{'rkB/s'}->{ds}      = 'iorkb';
-$io_fields->{'wkB/s'}->{ds}      = 'iowkb';
+$io_fields->{'rkB/s'}->{ds}      = 'iorkbs';
+$io_fields->{'wkB/s'}->{ds}      = 'iowkbs';
 $io_fields->{'avgrq-sz'}->{ds}   = 'avgrqsz';
 $io_fields->{'avgqu-sz'}->{ds}   = 'avgqusz';
 $io_fields->{'await'}->{ds}      = 'await';
@@ -242,7 +242,7 @@ sub run_iostat_io
 
   $heap->{iostat_io_wheel} = POE::Wheel::Run->new 
   (  
-    Program      => [ "iostat", "-x", $stat_quanta, $stat_loops ],
+    Program      => [ "iostat", "-xk", $stat_quanta, $stat_loops ],
     StdioFilter  => POE::Filter::Line->new(),    
     StderrFilter => POE::Filter::Line->new(),    
     StdoutEvent  => 'supp_iostat_io_child_stdio',       
