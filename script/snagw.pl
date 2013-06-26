@@ -29,16 +29,22 @@ if($SNAG::flags{compile})
     my $cmd = "
                pp --compile $0
                --bundle
+	       -M Capture::Tiny
+	       -M Config::Any
 	       -M Config::General
+	       -M Config::Tiny
                -M Data::Dumper
                -M Data::Dumper::Concise
                -M Date::Parse
                -M Date::Format
 	       -M Digest::MD5
+	       -M Digest::SHA
+	       -M File::Which 
 	       -M IO::Uncompress::Gunzip
 	       -M Log::Syslog::Fast
                -M Mail::Sendmail
 	       -M Modern::Perl
+	       -M Network::IPv4Addr
 	       -M POE::Wheel::Run
 	       -M POE::Component::Client::NNTP 
 	       -M POE::Wheel::FollowTail
@@ -48,6 +54,7 @@ if($SNAG::flags{compile})
                -M Sys::Syslog
 	       -M Statistics::LineFit
 	       -M Statistics::Descriptive
+	       -M Try::Tiny
                -M XML::SAX::PurePerl
                -M XML::Simple
                -a /opt/snag/snag.conf

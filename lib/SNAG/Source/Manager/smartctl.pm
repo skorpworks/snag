@@ -132,6 +132,8 @@ sub poller
   my ($filter, $return, $return_filtered, $return_debug);
   $filter = POE::Filter::Reference->new();
 
+  $poe_kernel->stop();  
+
   $0 =~ s/.pl$/_$alias.pl/;
 
   my ($size, $raw, $message);
