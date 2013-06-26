@@ -24,7 +24,7 @@ GetOptions( \%flags, 'debug+', 'verbose+', 'init', 'compile', 'install', 'uninst
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
 
-our $VERSION = '4.43';
+our $VERSION = '4.44';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver);
