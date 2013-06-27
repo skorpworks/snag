@@ -297,7 +297,8 @@ sub service_monitor
       my $pct = sprintf('%.0f', $old_ratio * 100);
       my $seen = time2str("%Y-%m-%d %T", time);
 
-      print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'service_state', 'service state change', "proc $proc is not running.  usual run rate is $pct%", '', $seen);  print STDERR "\n";
+      #TODO need to whitelist this.  its far too noisy as it
+      #print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'service_state', 'service state change', "proc $proc is not running.  usual run rate is $pct%", '', $seen);  print STDERR "\n";
     }
 
     my $new_ratio = ( ( $old_ratio * $samples ) + $running_flag ) / ( $samples + 1 );

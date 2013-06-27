@@ -299,12 +299,14 @@ sub new
 
         my $multi_flag = scalar @server_uris > 1 ? 1 : 0;
 
+        #WIP - need a much cleaner way to do this
+	#ASSERT - check_process_table has been called
         foreach my $alias (@server_uris)
         {
-					unless(OS eq 'Windows')
-					{
+	  unless(OS eq 'Windows' || ! defined $shared_data->{tags}->{service}->{web}->{apache} )
+	  {
             $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-					}
+	  }
         }
 
       },
