@@ -508,7 +508,7 @@ sub static_routes
 {
   my $info;
 
-  $info->{conf}->{static_routes} = { contents => `/bin/netstat -rn` };
+  $info->{conf}->{static_routes} = { contents => `$SNAG::Dispatch::shared_data->{binaries}->{netstat} -rn` };
 
   return $info;
 }
@@ -558,12 +558,15 @@ sub smartctl
   my $info;
 
   my $args = shift;
-  my $lsscsi = dclone $args->{data}->{lsscsi} if defined $args->{data}->{lsscsi};
+
+  return unless (defined $SNAG::Dispatch::shared_data->{binaries}->{smartctl});
+
+  #my $lsscsi = dclone $args->{data}->{lsscsi} if defined $args->{data}->{lsscsi};
   #perl -e 'if (-d "/sys/class/scsi_generic") {foreach $d (</sys/class/scsi_generic/sg*>) { print "$d\n"; }} elsif (-d "/sys/block") {foreach $d (</sys/block/[hs]d*>) { print "$d\n"; }}'
   
   {
     local $/ = "\n";
-    foreach my $out (`lsscsi -g`)
+    foreach my $out (`$SNAG::Dispatch::shared_data->{binaries}->{lsscsi} -g`)
     {
       chomp $out;
       push @{$info->{lsscsi}}, $out;
@@ -583,7 +586,7 @@ sub smartctl
         ($disk, $device, $version, $serial, $capacity, $transport) = '';  
         $smart = 0;
 
-        foreach (`smartctl -i $sg 2>&1`)
+        foreach (`$SNAG::Dispatch::shared_data->{binaries}->{smartctl} -i $sg 2>&1`)
         {                                                                                 
           chomp;                                                                          
                                                                                           
@@ -700,7 +703,7 @@ sub arp
   { 
     local $/ = "\n";
 
-    foreach my $line (`/sbin/arp -n`)
+    foreach my $line (`$SNAG::Dispatch::shared_data->{binaries}->{arp} -n`)
     { 
       next if $line =~ /^Address/;
       next if $line =~ /incomplete/;
@@ -710,18 +713,6 @@ sub arp
   }
 
   return $info;
-}
-
-my ($bins, $missing_bins);
-foreach my $bin (qw (ip ifconfig ethtool))
-{
-  $bins->{$bin} = which("$bin");
-  $missing_bins .= "$bin" unless defined $bins->{$bin};
-}
-
-unless(defined $bins->{ethtool})
-{
-  #$poe_kernel->post('logger' => 'alert' => { Subject => 'SNAG::Source::SystemInfo, ' . HOST_NAME . ', Could not find ethtool on this box!' } );
 }
 
 sub system 
@@ -761,19 +752,9 @@ sub system
     $info->{device}->{vendor} = 'Xen';
   }
 
-  # prefer system dmidecode over any one we've tried to include
-  my $dmi_bin;
-  if(-e '/usr/sbin/dmidecode')
-  {
-    $dmi_bin = '/usr/sbin/dmidecode';
-  }
-  else
-  {
-    $dmi_bin = BASE_DIR . '/sbin/dmidecode';
-  }
   my $dmi_section;
   my @mem_tot;
-  foreach(`$dmi_bin`)
+  foreach(`$SNAG::Dispatch::shared_data->{binaries}->{dmidecode}`)
   {
     undef $dmi_section if /^Handle/;
     if(/^\s*(\w+)\s+Information\s*$/)
@@ -990,10 +971,10 @@ sub system
   }
 
   my ($iface, $name);
-  if (defined $bins->{ip})
+  if (defined $SNAG::Dispatch::shared_data->{binaries}->{ip})
   {
     my $int;
-    foreach (`$bins->{ip} addr`)
+    foreach (`$SNAG::Dispatch::shared_data->{binaries}->{ip} addr`)
     {
  
       #1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN
@@ -1046,9 +1027,9 @@ sub system
     }
 
   }
-  elsif (defined $bins->{ifconfig})
+  elsif (defined $SNAG::Dispatch::shared_data->{binaries}->{ifconfig})
   {
-    foreach(`$bins->{ifconfig} -a`)
+    foreach(`$SNAG::Dispatch::shared_data->{binaries}->{ifconfig} -a`)
     {
       ###eth0      Link encap:Ethernet  HWaddr 00:09:6B:A3:C9:17  
       ###          inet addr:129.219.13.115  Bcast:129.219.13.127  Mask:255.255.255.192
@@ -1080,7 +1061,7 @@ sub system
     }
   }
 
-  if($bins->{ethtool})
+  if($SNAG::Dispatch::shared_data->{binaries}->{ethtool})
   {
     foreach my $ifname (sort keys %$iface)
     {
@@ -1104,7 +1085,7 @@ sub system
       #        Current message level: 0x000000ff (255)
       #        Link detected: yes
       
-      foreach my $line (`$bins->{ethtool} $ifname 2>&1`)
+      foreach my $line (`$SNAG::Dispatch::shared_data->{binaries}->{ethtool} $ifname 2>&1`)
       {
         next if $name =~ m/^lo/;
 
@@ -1174,16 +1155,7 @@ sub system
     close MDSTAT;
   }
 
-  my $lspci_bin;
-  if (-e '/usr/sbin/lspci')
-  {
-    $lspci_bin = '/usr/sbin/lspci';
-  }
-  else
-  {
-    $lspci_bin = BASE_DIR . '/sbin/lspci';
-  }
-  foreach my $line (sort `$lspci_bin`)
+  foreach my $line (sort `$SNAG::Dispatch::shared_data->{binaries}->{lspci}`)
   {
     chomp $line;
     push @{$info->{pci}}, { description => $line };
@@ -1322,7 +1294,7 @@ sub mounts
   }
   close IN;
 
-  foreach (`/bin/mount -lv`)
+  foreach (`$SNAG::Dispatch::shared_data->{binaries}->{mount} -lv`)
   {
     next if /^none/;
     next if /^\s*$/;
@@ -1405,12 +1377,11 @@ sub iscsi
 
   my $seen = time2str("%Y-%m-%d %T", time);
 
-  my $iscsi_ls_bin = '/sbin/iscsi-ls';
   my $iscsi_initiator = '/etc/initiatorname.iscsi';
 
-  unless(-e $iscsi_ls_bin)
+  unless(-e $SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'})
   {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_ls_bin", '', $seen);
+    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", '', $seen);
     print STDERR "\n";
 
     return;
@@ -1443,7 +1414,7 @@ sub iscsi
   }
 
   my ($lun, $status);
-  foreach my $line (`$iscsi_ls_bin -l 2>/dev/null`)
+  foreach my $line (`$SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'} -l 2>/dev/null`)
   {
     ##DEVICE DETAILS:
     ##---------------

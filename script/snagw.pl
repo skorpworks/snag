@@ -165,18 +165,22 @@ for my $filefound (grep /queue/, readdir($logdir)) {
 closedir($logdir);
 
 # check that snagc is updating the queue file...
-print "Checking mtime of queue file in " . LOG_DIR . "...\n" if $SNAG::flags{debug};
+print "Checking mtime of files in " . LOG_DIR . "...\n" if $SNAG::flags{debug};
 # not doing the queue file mtime check for snagx queue files because it's possible for a product
 # to be purposely down and thus *_snagx will not run and thus not update queue files...
-my $file_to_check = File::Spec->catfile(LOG_DIR, 'snagc_sysrrd_client_queue.dat');
-my $now  = time();
-my $stat = stat($file_to_check);
-# we're concerned if the file has not been modified in 300 seconds
-if (($now - $stat->mtime()) >= 300) {
-  openlog('snagw', 'ndelay', 'user');
-  syslog('notice', 'queue file error: file older than 300 seconds ' . HOST_NAME);
-  closelog();
-  print "$file_to_check is older than 300 seconds, wrote to syslog\n" if $SNAG::flags{debug};
+my @files_to_check = qw (snagc_sysrrd_client_queue.dat service_monitor.state);
+foreach my $file (@files_to_check)
+{
+  my $file_to_check = File::Spec->catfile(LOG_DIR, $file);
+  my $now  = time();
+  my $stat = stat($file_to_check);
+  # we're concerned if the file has not been modified in 300 seconds
+  if (($now - $stat->mtime()) >= 600) {
+    openlog('snagw', 'ndelay', 'user');
+    syslog('notice', "snag: $file_to_check older than 600 seconds " . HOST_NAME);
+    closelog();
+    print "$file_to_check is older than 300 seconds, wrote to syslog\n" if $SNAG::flags{debug};
+  }
 }
 print "Checks complete.\n" if $SNAG::flags{debug};
 

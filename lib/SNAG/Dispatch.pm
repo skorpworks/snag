@@ -6,6 +6,7 @@ use Data::Dumper;
 use Carp qw(carp croak);
 use SNAG;
 use File::Spec::Functions qw/catfile/;
+use File::Which;
 
 our $shared_data = {};
 
@@ -114,11 +115,11 @@ sub new
 
           require Proc::ProcessTable;
 
+          $kernel->yield('check_bins');
           $kernel->yield('check_process_table');
           $kernel->yield('check_mounts');
           $kernel->yield('check_virtual');
           $kernel->yield('check_checkpoint');
-          $kernel->yield('check_bins');
 
           $kernel->delay('check_listening_ports' => 60); ### Give SystemStats enough time to start running
         }
@@ -177,6 +178,19 @@ sub new
       check_bins => sub
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
+        $kernel->delay($_[STATE] => 3600);
+
+        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl))
+        {
+          $shared_data->{binaries}->{$bin} = which("$bin");
+          $shared_data->{binaries}->{missing} .= "$bin " unless defined $shared_data->{binaries};
+        }
+
+        my $found;
+        map { if ($_ eq 'missing') {  } else { $found .= " $shared_data->{binaries}->{$_}" } } %{$shared_data->{binaries}} if $SNAG::flags{debug};
+        $kernel->post('logger' => 'log' => "Dispatch: check_bins: have: $found"  ) if $SNAG::flags{debug};
+        $kernel->post('logger' => 'log' => "Dispatch: check_bins: missing: $shared_data->{binaries}->{missing}" ) if $SNAG::flags{debug};
+
         #if(HOST_NAME =~ m/^s05-/)
         #{
         #  if ( -e '/usr/sbin/smartctl')
