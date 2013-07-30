@@ -91,7 +91,7 @@ sub new
         my ($kernel, $host, $multi, $ds, $epoch) = @_[KERNEL, ARG0, ARG1, ARG2, ARG3 ];
         $multi = '' unless $multi;
 
-        $kernel->post("logger" => "log" => "SCAN:uq: Updating db: $host_name, $host, $multi, $ds, $epoch\n") if $debug;
+        $kernel->call('logger' => "log" => "SCAN:uq: Updating db: $host_name, $host, $multi, $ds, $epoch\n") if $debug;
         $kernel->post
         (
           'dbi',
@@ -116,7 +116,7 @@ sub new
         if($res->{error})
         {
           my $rrd_tuple = join ':', @{$res->{placeholders}};
-          $kernel->post("logger" => "log" => "SCAN:uqh: Error: $res->{error} on $rrd_tuple\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN:uqh: Error: $res->{error} on $rrd_tuple\n") if $debug;
         }
         else
         {
@@ -132,7 +132,7 @@ sub new
         my ($kernel, $rrd_host, $host, $multi, $ds, $epoch) = @_[KERNEL, ARG1, ARG2, ARG3, ARG4, ARG0];
         $multi = '' unless $multi;
 
-        $kernel->post("logger" => "log" => "SCAN:iq: Inserting db: $rrd_host, $host, $multi, $ds, $epoch\n") if $debug;
+        $kernel->call('logger' => "log" => "SCAN:iq: Inserting db: $rrd_host, $host, $multi, $ds, $epoch\n") if $debug;
         $kernel->post
         (
           'dbi',
@@ -155,7 +155,7 @@ sub new
         if($res->{error})
         {
           my $rrd_tuple = join ':', @{$res->{placeholders}};
-          $kernel->post("logger" => "log" => "SCAN:iqh: Error: $res->{error} on $rrd_tuple\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN:iqh: Error: $res->{error} on $rrd_tuple\n") if $debug;
         }
         else
         {
@@ -163,7 +163,7 @@ sub new
           unless($res->{rows} > 0)
           {
             ###DELETE THIS LATER
-            $kernel->post("logger" => "log" => "SCAN:easydbi: Error Insert/Update db: $rrd_tuple\n") if $debug;
+            $kernel->call('logger' => "log" => "SCAN:easydbi: Error Insert/Update db: $rrd_tuple\n") if $debug;
           }
         }
       },
@@ -174,12 +174,12 @@ sub new
         $heap->{connected} = 1;
         if (defined($heap->{disconnect_time}))
         {
-          $kernel->post("logger" => "log" => "EASYDBI: Connected to db - was down for " . (time() - $heap->{disconnect_time})); 
+          $kernel->call('logger' => "log" => "EASYDBI: Connected to db - was down for " . (time() - $heap->{disconnect_time})); 
          delete $heap->{disconnect_time};
         }
         else
         {
-          $kernel->post("logger" => "log" => "EASYDBI: Connected to db"); 
+          $kernel->call('logger' => "log" => "EASYDBI: Connected to db"); 
         }
       },
 
@@ -188,7 +188,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $heap->{connected} = 0;
         $heap->{disconnect_time} = time() unless defined($heap->{disconnect_time});
-        $kernel->post("logger" => "log" => "EASYDBI: Could not connect to db\n"); 
+        $kernel->call('logger' => "log" => "EASYDBI: Could not connect to db\n"); 
       },
     }
   );
@@ -205,7 +205,7 @@ sub new
 
         unless(-d $rrd_base_dir)
         {
-          mkdir $rrd_base_dir, 0770 and $kernel->post("logger" => "log" => "START: Creating $rrd_base_dir");
+          mkdir $rrd_base_dir, 0770 and $kernel->call('logger' => "log" => "START: Creating $rrd_base_dir");
           system "chgrp nobody $rrd_base_dir";
         }
 
@@ -233,7 +233,7 @@ sub new
         my ($base_dir, $xs, $ref);
 
         $base_dir = BASE_DIR;
-        $kernel->post("logger" => "log" => "DASHBOARD: build_threshholds: loading $base_dir/RULES.xml\n");
+        $kernel->call('logger' => "log" => "DASHBOARD: build_threshholds: loading $base_dir/RULES.xml\n");
 
         eval
         {
@@ -242,14 +242,14 @@ sub new
         };
         if ($@)
         {
-          $kernel->post("logger" => "log" => "DASHBOARD: build_threshholds: failed loading $base_dir/RULES.xml : $@\n");
+          $kernel->call('logger' => "log" => "DASHBOARD: build_threshholds: failed loading $base_dir/RULES.xml : $@\n");
         }
         else
         {
           $heap->{threshholds} = $ref;
           my ($xmlstring) = $xs->XMLout($heap->{threshholds});
           my (@xml) = split /\n/, $xmlstring;
-          foreach my $line (@xml) { $kernel->post("logger" => "log" => "DASHBOARD: build_threshholds: $line"); }
+          foreach my $line (@xml) { $kernel->call('logger' => "log" => "DASHBOARD: build_threshholds: $line"); }
         }
       },
 
@@ -258,7 +258,7 @@ sub new
         my ($heap, $kernel) = @_[HEAP, KERNEL];
    
         (@scan_queue) = sort keys %{$rrd};
-        $kernel->post("logger" => "log" => "SCANINIT: " . scalar @scan_queue . " objects\n");
+        $kernel->call('logger' => "log" => "SCANINIT: " . scalar @scan_queue . " objects\n");
         #$kernel->delay('scan_init' => 86400);
       },
 
@@ -268,17 +268,17 @@ sub new
 
         if ($#scan_queue < 0)
         {
-          $kernel->post("logger" => "log" => "SCAN: empty queue\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN: empty queue\n") if $debug;
           $kernel->delay($_[STATE] => 60);
           return 
         }
 
-        $kernel->post("logger" => "log" => "SCAN: starting on " . scalar @scan_queue . " objects\n");
+        $kernel->call('logger' => "log" => "SCAN: starting on " . scalar @scan_queue . " objects\n");
 
         my ($host_multi, $host, $multi, $val, $i);
         TOP:    for ($i = 0; $i <= 10; $i++)
         {
-          $kernel->post("logger" => "log" => "SCAN: processing $scan_queue[0]\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN: processing $scan_queue[0]\n") if $debug;
           $host_multi = $scan_queue[0];
           $val = $rrd->{$scan_queue[0]};
 
@@ -301,18 +301,18 @@ sub new
             $stats->{easydbi}->{scan}++; 
           } ### end while loop
           shift @scan_queue;
-          $kernel->post("logger" => "log" => "SCAN: " . scalar @scan_queue . " objects in scan_queue\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN: " . scalar @scan_queue . " objects in scan_queue\n") if $debug;
           last TOP if $#scan_queue < 0;
         } ### end for loop
 
         if ($#scan_queue >= 0)
         {
-          $kernel->post("logger" => "log" => "SCAN: delay\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN: delay\n") if $debug;
           $kernel->delay($_[STATE] => 10);
         }
         else
         {
-          $kernel->post("logger" => "log" => "SCAN: sleep\n") if $debug;
+          $kernel->call('logger' => "log" => "SCAN: sleep\n") if $debug;
           $kernel->delay($_[STATE] => 60);
         }
       },
@@ -413,7 +413,7 @@ sub new
 
         if ($heap->{threshholds}->{$ds}) ## THRESHOLDS
         {
-          $kernel->post("logger" => "log" => "DASHBOARD: $hostkey:$ds entered") if $debug;
+          $kernel->call('logger' => "log" => "DASHBOARD: $hostkey:$ds entered") if $debug;
           if ($type =~ /\d[c|d]/i)
           {
             eval
@@ -434,7 +434,7 @@ sub new
           {
             $dbevent->{message} = '';
             $dbevent->{full} = '';
-            $kernel->post("logger" => "log" => "DASHBOARD: $hostkey:$ds ($threshhold->{'type'}:$threshhold->{'limit'}) $dbevent->{'value'}") if $debug;
+            $kernel->call('logger' => "log" => "DASHBOARD: $hostkey:$ds ($threshhold->{'type'}:$threshhold->{'limit'}) $dbevent->{'value'}") if $debug;
             if ($threshhold->{type} eq 'range' && $dbevent->{'value'} <= $threshhold->{high} &&  $dbevent->{'value'} >= $threshhold->{low})
             {
               $dbevent->{full} = "$threshhold->{alert} ($threshhold->{low} < $dbevent->{'value'} <  $threshhold->{high})"; 
@@ -476,7 +476,7 @@ sub new
               $dbevent->{full} = uri_unescape($multi) . " $dbevent->{full}"; 
               $dbevent->{'time'} = scalar(localtime($time));
               $dbevent->{message} = join $rec_sep, ('events', $host, 'sysrrd', $threshhold->{type}, $threshhold->{alert}, $dbevent->{full}, $dbevent->{param}, $dbevent->{'time'});
-              $kernel->post("logger" => "log" => "DASHBOARD: $dbevent->{message}") if $debug;
+              $kernel->call('logger' => "log" => "DASHBOARD: $dbevent->{message}") if $debug;
               $kernel->post('client' => 'dashboard' => 'load' => $dbevent->{message});
             }
           } ### foreach
@@ -579,9 +579,9 @@ sub loader
               my $dir = dirname $rrd_dir;
               unless(-d $dir)
               {
-                mkdir $dir, 0750 and $kernel->post("logger" => "log" => "LOAD: Creating $dir");
+                mkdir $dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $dir");
               }
-              mkdir $rrd_dir, 0750 and $kernel->post("logger" => "log" => "LOAD: Creating $rrd_dir");
+              mkdir $rrd_dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $rrd_dir");
             }
   
             eval
@@ -598,10 +598,10 @@ sub loader
                 $t = 'COUNTER' if $t =~ /^c/;
                 $t = 'GAUGE'   if $t =~ /^g/;
                 $t = 'DERIVE'  if $t =~ /^d/;
-                $kernel->post("logger" => "log" => "LOAD: Creating $rrd_file");
+                $kernel->call('logger' => "log" => "LOAD: Creating $rrd_file");
                 $rrd->{$hostkey}->{$ds}->create(@{&get_template($ds, $n, $t, $a, $time)});
-                chmod 0740, $rrd_file || $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
-                  #system "/bin/chgrp nobody $rrd_file" && $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
+                chmod 0740, $rrd_file || $kernel->call('logger' => "log" => "Error chmoding: $rrd_file");
+                  #system "/bin/chgrp nobody $rrd_file" && $kernel->call('logger' => "log" => "Error chmoding: $rrd_file");
                 $stats->{stats}->{create}++;
                 #push @scan_queue, $hostkey;
               }
@@ -612,7 +612,7 @@ sub loader
             };
             if($@)
             {
-              $kernel->post('logger' => 'log' => "LOAD: Failed creating RRD \'$row\', $@");
+              $kernel->call('logger' => 'log' => "LOAD: Failed creating RRD \'$row\', $@");
             }
           } ### CREATE
         }

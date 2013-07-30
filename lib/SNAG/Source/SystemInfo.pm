@@ -74,7 +74,7 @@ sub new
     }
   }
 
-  $poe_kernel->post('logger' => 'log' => "Sysinfo: processed config") if $debug;
+  $poe_kernel->call('logger' => 'log' => "Sysinfo: processed config") if $debug;
 
   POE::Session->create
   (
@@ -181,7 +181,7 @@ sub new
 
           unless($symbol_table{$sub})
           {
-            $kernel->post('logger' => 'log' => "Sysinfo: Subroutine $sub does not exist in SNAG::Source::SystemInfo's symbol table, skipping" );
+            $kernel->call('logger' => 'log' => "Sysinfo: Subroutine $sub does not exist in SNAG::Source::SystemInfo's symbol table, skipping" );
             next;
           }
 
@@ -199,20 +199,20 @@ sub new
             my $count = scalar(keys %{$heap->{wheels}} );
     
 	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'Too many forked processes', "$count processes already running", '', time2str("%Y-%m-%d %T", time())));
-            $kernel->post('logger' => 'log' => "Sysinfo: $count forked processes were already running when I wanted to start a new one" );
+            $kernel->call('logger' => 'log' => "Sysinfo: $count forked processes were already running when I wanted to start a new one" );
           }
           else
           {
             if(OS eq 'Windows')
             {
-	      $kernel->post('logger' => 'log' => 'Sysinfo: Running (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
+	      $kernel->call('logger' => 'log' => 'Sysinfo: Running (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
   
               my $sysinfo = info($subs_to_run);
               $kernel->yield('info_stdio' => $sysinfo);
             }
             else
             {
-	      $kernel->post('logger' => 'log' => 'Sysinfo: Starting a new wheel to run (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
+	      $kernel->call('logger' => 'log' => 'Sysinfo: Starting a new wheel to run (' . (join ", ", keys %$subs_to_run) . ")\n") if $debug;
     
 	      my $wheel = POE::Wheel::Run->new
 	      (
@@ -236,7 +236,7 @@ sub new
       {
         my ($kernel, $heap, $id) = @_[KERNEL, HEAP, ARG0];
 
-        $kernel->post('logger' => 'log' => "Sysinfo: PWR exceeded its timeout and killed after $timeout seconds:  $heap->{sysinfo_debug}"); 
+        $kernel->call('logger' => 'log' => "Sysinfo: PWR exceeded its timeout and killed after $timeout seconds:  $heap->{sysinfo_debug}"); 
 
         $kernel->alarm_remove($id);
         delete $heap->{timeouts}->{$id};
@@ -300,7 +300,7 @@ sub new
         }
         elsif($output =~ s/^\s*sysinfo_debug://)
         {
-          $kernel->post('logger' => 'log' => "Sysinfo: $output") if $debug; 
+          $kernel->call('logger' => 'log' => "Sysinfo: $output") if $debug; 
           $heap->{sysinfo_debug} = $output;
         }
         else
@@ -313,7 +313,7 @@ sub new
              || $output =~ /(lspci|pcilib)/) ### annoying messages from broken lspci on xenU
           {
     	    $kernel->post('client' => 'dashboard' => 'load' => join REC_SEP, ('events', HOST_NAME, 'snagc', 'sysinfo', 'Error getting sysinfo', "$output", '', time2str("%Y-%m-%d %T", time())));
-          #$kernel->post('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
+          #$kernel->call('logger' => 'log' => "Sysinfo: Error getting sysinfo: $output"); 
           }
         }
       },

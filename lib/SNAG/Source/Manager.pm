@@ -136,7 +136,7 @@ sub new
         $heap->{start} = $heap->{next_time};
         $kernel->alarm('job_maker' => $heap->{next_time});
         $kernel->alarm('stats_update' => $heap->{next_time} + 58);
-        $kernel->post("logger" => "log" =>  "$alias: DEBUG: Polling in " . ($heap->{next_time} - $epoch) . " seconds.\n") if $debug;
+        $kernel->call('logger' => "log" =>  "$alias: DEBUG: Polling in " . ($heap->{next_time} - $epoch) . " seconds.\n") if $debug;
       },
 
       stats_update => sub
@@ -171,14 +171,14 @@ sub new
         $heap->{snagstat}->{wheels} = int scalar keys %{$heap->{job_wheels}} || 0;
         $heap->{snagstat}->{runningwheels} = int scalar keys %{$heap->{job_running_jobs}} || 0;
 
-        $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n") if $debug;
+        $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n") if $debug;
         while (
                (! defined $heap->{job_wheels})
                || ( (scalar keys %{$heap->{job_wheels}}) < $heap->{timings}->{min_wheels} )
                || ( ($heap->{snagstat}->{jobs} > $heap->{snagstat}->{wheels} - $heap->{snagstat}->{runningwheels}) && ($heap->{snagstat}->{wheels} < $heap->{timings}->{max_wheels}) )
               )
         { 
-          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: currently " . (scalar keys %{$heap->{job_wheels}}) . " wheels... starting job wheel\n") if $debug;
+          $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: currently " . (scalar keys %{$heap->{job_wheels}}) . " wheels... starting job wheel\n") if $debug;
           my $wheel;
           $wheel = POE::Wheel::Run->new
           (  
@@ -196,19 +196,19 @@ sub new
           $heap->{snagstat}->{jobs} = int scalar @{$heap->{jobs}} || 0;
           $heap->{snagstat}->{wheels} = int scalar keys %{$heap->{job_wheels}} || 0;
           $heap->{snagstat}->{runningwheels} = int scalar keys %{$heap->{job_running_jobs}} || 0;
-          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n") if $debug;
+          $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n") if $debug;
         }
 
         foreach my $wheel_id (keys %{$heap->{job_wheels}})
         { 
           if ($heap->{job_busy}->{$wheel_id} == 1)
           { 
-            $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: job_wheel($wheel_id) busy (" . ($heap->{epoch} - $heap->{job_busy_time}->{$wheel_id}) ." seconds) with $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
+            $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: job_wheel($wheel_id) busy (" . ($heap->{epoch} - $heap->{job_busy_time}->{$wheel_id}) ." seconds) with $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
 
             if ($heap->{job_busy_time}->{$wheel_id} <= ($heap->{epoch} - $heap->{timings}->{poll_expire}))
             { 
               $heap->{snagstat}->{killedwheels}++;
-              $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: kill busy wheel[$wheel_id]:processing $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
+              $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: kill busy wheel[$wheel_id]:processing $heap->{job_running_jobs}->{$wheel_id}->{text}\n") if $debug;
               $heap->{job_wheels}->{$wheel_id}->kill() || $heap->{job_wheels}->{$wheel_id}->kill(9);
               delete $heap->{job_busy}->{$wheel_id};
               delete $heap->{job_busy_time}->{$wheel_id};
@@ -222,7 +222,7 @@ sub new
           $heap->{job_busy}->{$wheel_id} = 1;
           $heap->{job_busy_time}->{$wheel_id} = $heap->{epoch};
           $heap->{job_running_jobs}->{$wheel_id} = $job;
-          $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: sending ". $job->{text} ." to poller($wheel_id)\n") if $debug;
+          $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: sending ". $job->{text} ." to poller($wheel_id)\n") if $debug;
           $heap->{job_wheels}->{$wheel_id}->put($job);
         }
         $kernel->delay($_[STATE] => 10);
@@ -232,7 +232,7 @@ sub new
       {
         my ($kernel, $heap, $wheel_id) = @_[KERNEL, HEAP, ARG0];
 
-        $kernel->post("logger" => "log" => "Child $wheel_id has closed.");
+        $kernel->call('logger' => "log" => "Child $wheel_id has closed.");
         $heap->{snagstat}->{closedwheels}++;
         delete $heap->{job_wheels}->{$wheel_id};
         delete $heap->{job_busy}->{$wheel_id};
@@ -255,13 +255,13 @@ sub new
           {
             $heap->{snagstat}->{finishedwheels}++ if $output->{status} eq 'JOBFINISHED';
             $heap->{snagstat}->{erroredwheels}++ if $output->{status} eq 'ERROR';
-            $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_stdouterr: JOBFINISHED:$output->{status}:$heap->{job_running_jobs}->{$wheel_id}->{text}:$output->{message}\n") if $debug;
+            $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_stdouterr: JOBFINISHED:$output->{status}:$heap->{job_running_jobs}->{$wheel_id}->{text}:$output->{message}\n") if $debug;
             if (my $job =  shift @{$heap->{jobs}})
             {
               $heap->{job_busy}->{$wheel_id} = 1;
               $heap->{job_busy_time}->{$wheel_id} = $heap->{epoch};
               $heap->{job_running_jobs}->{$wheel_id} = $job;
-              $kernel->post("logger" => "log" =>  "$alias: DEBUG: job_manager: sending ". $job->{text} ." to poller($wheel_id)\n") if $debug;
+              $kernel->call('logger' => "log" =>  "$alias: DEBUG: job_manager: sending ". $job->{text} ." to poller($wheel_id)\n") if $debug;
               $heap->{job_wheels}->{$wheel_id}->put($job);
             }
             else
@@ -276,7 +276,7 @@ sub new
             foreach my $statistic (@{$output->{message}})
             {
               $kernel->post('client' => 'sysrrd' => 'load' => $statistic);
-              $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+              $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
             }
           }
           #rrd it
@@ -293,7 +293,7 @@ sub new
                 if ($tuple[2] !~ /\d[cdCD]$/) ## always send gauges (not counter/derive)
                 {
                   $kernel->post('client' => $output->{server} => 'load' => $statistic);
-                  $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+                  $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
                 }
 
                 elsif ( defined $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"data"} )
@@ -302,7 +302,7 @@ sub new
                   $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"sent"}  = $tuple[3];
                   $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"data"}  = $tuple[4];
                   $kernel->post('client' => $output->{server} => 'load' => $statistic);
-                  $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+                  $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
                 }
   
                 elsif ($tuple[4] == $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"data"})
@@ -320,17 +320,17 @@ sub new
                     $stall_tuple  = "$tuple[0]:$tuple[1]:$tuple[2]:";
                     $stall_tuple .= $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"sent"} . ":";
                     $stall_tuple .= $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"data"};
-                    $kernel->post("logger" => "log" => "stall: send $stall_tuple");
+                    $kernel->call('logger' => "log" => "stall: send $stall_tuple");
                     $kernel->post('client' => $output->{server} => 'load' => $stall_tuple);
                     $kernel->post('client' => $output->{server} => 'load' => $statistic);
-                    $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+                    $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
                   }
                   else
                   {
                     $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"sent"}  = $tuple[3];
                     $delta_check->{$output->{status}}->{"$tuple[0]$tuple[1]"}->{"data"}  = $tuple[4];
                     $kernel->post('client' => $output->{server} => 'load' => $statistic);
-                    $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+                    $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
                   }
                 }
               }
@@ -354,12 +354,12 @@ sub new
           #sysinfo it
           when('DEBUG')
           {
-            $kernel->post("logger" => "log" =>  "$alias: DEBUG: $output->{message}\n") if $debug;
+            $kernel->call('logger' => "log" =>  "$alias: DEBUG: $output->{message}\n") if $debug;
           }
           #log it
           when('STATUS')
           {
-            $kernel->post("logger" => "log" =>  "$alias: DEBUG: host finished: $output->{host}:$output->{hostname}\n") if $debug;
+            $kernel->call('logger' => "log" =>  "$alias: DEBUG: host finished: $output->{host}:$output->{hostname}\n") if $debug;
             $kernel->post('client' => 'master' => 'heartbeat' => { source  => SCRIPT_NAME, host => $output->{hostname}, queue_mode => 'replace', 
                seen => time2str('%Y-%m-%d %T', time) } );
             $heap->{job_running_jobs}->{$wheel_id}->{text} =~ s/$output->{host}//;
@@ -377,7 +377,7 @@ sub new
             foreach my $statistic (@{$output->{message}})
             {
               $kernel->post('client' => 'sysrrd' => 'load' => $statistic);
-              $kernel->post('logger' => 'log' => "DEBUG: $statistic") if $verbose;
+              $kernel->call('logger' => 'log' => "DEBUG: $statistic") if $verbose;
             }
           }
           when('PROCESS')
@@ -389,7 +389,7 @@ sub new
             foreach my $statistic (@{$output->{message}})
             {
               $kernel->post('client' => 'master' => 'heartbeat' => { source => SCRIPT_NAME, queue_mode => 'replace', host => HOST_NAME, seen => time2str('%Y-%m-%d %T', time) } );
-              $kernel->post('logger' => 'log' => "DEBUG: heartbeat") if $verbose;
+              $kernel->call('logger' => 'log' => "DEBUG: heartbeat") if $verbose;
             }
           }
           #dashboard it
@@ -406,14 +406,14 @@ sub new
             foreach my $insert (@{$output->{message}})
             {
               $kernel->post('client' => 'spazd' => 'load' => $insert);
-              $kernel->post('logger' => 'log' => "DEBUG: $insert") if $verbose;
+              $kernel->call('logger' => 'log' => "DEBUG: $insert") if $verbose;
             }
           }
           when('DB')
           {
             foreach my $tuple (@{$output->{message}})
             {
-              $kernel->post('logger' => 'log' => "INSERT[$output->{post}]: $tuple") if $verbose;
+              $kernel->call('logger' => 'log' => "INSERT[$output->{post}]: $tuple") if $verbose;
               $kernel->post('client' => "$output->{post}" => 'load' => $tuple);
             }
           }

@@ -85,7 +85,7 @@ sub new
 
         if($heap->{server_stats_wheel})
         {
-          $kernel->post("logger" => "log" =>  "SNAG::Source::apache: server_stats is still running, skipping");
+          $kernel->call('logger' => "log" =>  "SNAG::Source::apache: server_stats is still running, skipping");
         }
         else
         {
@@ -167,7 +167,7 @@ sub new
       {
         my ($kernel, $heap, $input) = @_[KERNEL, HEAP, ARG0];
 
-        $kernel->post("logger" => "log" =>  "SNAG::Source::apache: $input");
+        $kernel->call('logger' => "log" =>  "SNAG::Source::apache: $input");
       },
 
       server_stats_close => sub
@@ -184,7 +184,7 @@ sub new
 
         if($heap->{server_info_wheel})
         {
-          $kernel->post("logger" => "log" =>  "SNAG::Source::apache: server_info is still running, skipping");
+          $kernel->call('logger' => "log" =>  "SNAG::Source::apache: server_info is still running, skipping");
         }
         else
         {

@@ -75,7 +75,7 @@ sub new
 
         if($heap->{run_monitor_wheel})
         {
-          $kernel->post("logger" => "log" =>  "SNAG::Source::monitor: run_monitor_wheel is still running, skipping");
+          $kernel->call('logger' => "log" =>  "SNAG::Source::monitor: run_monitor_wheel is still running, skipping");
         }
         else
         {
@@ -148,7 +148,7 @@ sub new
       {
         my ($kernel, $heap, $input) = @_[KERNEL, HEAP, ARG0];
 
-        $kernel->post("logger" => "log" =>  "SNAG::Source::monitor: $input");
+        $kernel->call('logger' => "log" =>  "SNAG::Source::monitor: $input");
       },
 
       wheel_close => sub

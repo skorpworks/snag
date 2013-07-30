@@ -34,11 +34,11 @@ sub new
         $kernel->alias_set($heap->{stat_source});
 
         $kernel->alias_set('source_' . $package);
-        $kernel->post('logger' => 'log' => "Source starting: $package - $alias}") if $debug;
+        $kernel->call('logger' => 'log' => "Source starting: $package - $alias}") if $debug;
 
         unless ($package =~ m/Source\:\:(DailyFile|File|Manager)\:\:/)
         { 
-          $kernel->post('logger' => 'log' => "Starting stats for $heap->{stat_source}") if $debug;
+          $kernel->call('logger' => 'log' => "Starting stats for $heap->{stat_source}") if $debug;
           $heap->{start} = time();
           $kernel->yield('stats_update');
         }

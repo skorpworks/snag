@@ -76,7 +76,7 @@ sub new
 
         unless(-d $rrd_base_dir)
         {
-          mkdir $rrd_base_dir, 0770 and $kernel->post("logger" => "log" => "START: Creating $rrd_base_dir");
+          mkdir $rrd_base_dir, 0770 and $kernel->call('logger' => "log" => "START: Creating $rrd_base_dir");
           system "chgrp nobody $rrd_base_dir";
         }
 
@@ -103,7 +103,7 @@ sub new
         my ($heap, $kernel) = @_[HEAP, KERNEL];
 
         $heap->{state}->{run}++;
-        $kernel->post("logger" => "log" => "Tuning to spec #$heap->{state}->{run} in 30 seconds\n");
+        $kernel->call('logger' => "log" => "Tuning to spec #$heap->{state}->{run} in 30 seconds\n");
 
         $heap->{sleepy_time} = 900;
         
@@ -218,12 +218,12 @@ sub new
           system('sysctl  -w vm.vfs_cache_pressure=60');
         }
 
-        $kernel->post("logger" => "log" => "TUNE: Removing all existing data rrds\n");
+        $kernel->call('logger' => "log" => "TUNE: Removing all existing data rrds\n");
         #system('find /var/rrd/ -type f -name "*.rrd" ! -path "*spork*" -exec /bin/rm {} \;');
         system('find /var/rrd/ -type f -name "*.rrd" ! -path "*`hostname -s`*" -exec /bin/rm {} \;');
-        $kernel->post("logger" => "log" => "TUNE: Syncing\n");
+        $kernel->call('logger' => "log" => "TUNE: Syncing\n");
         system('/bin/sync');
-        $kernel->post("logger" => "log" => "TUNE: Tuned to $heap->{state}->{run}\n");
+        $kernel->call('logger' => "log" => "TUNE: Tuned to $heap->{state}->{run}\n");
 
         if ($heap->{state}->{run} >= 19)
         {
@@ -260,12 +260,12 @@ sub new
 
         $stat_ref = ();
    
-        $kernel->post("logger" => "log" => "============== STATS ==============\n");
-        $kernel->post("logger" => "log" => "STATS: run         = $heap->{state}->{run}\n");
-        $kernel->post("logger" => "log" => "STATS: loop        = $heap->{state}->{loop}\n");
-        $kernel->post("logger" => "log" => "STATS: sleepy_time = $heap->{sleepy_time}\n");
-        $kernel->post("logger" => "log" => "STATS: tuned       = $heap->{tuned}\n");
-        $kernel->post("logger" => "log" => "STATS: run_started = $heap->{run_started}\n");
+        $kernel->call('logger' => "log" => "============== STATS ==============\n");
+        $kernel->call('logger' => "log" => "STATS: run         = $heap->{state}->{run}\n");
+        $kernel->call('logger' => "log" => "STATS: loop        = $heap->{state}->{loop}\n");
+        $kernel->call('logger' => "log" => "STATS: sleepy_time = $heap->{sleepy_time}\n");
+        $kernel->call('logger' => "log" => "STATS: tuned       = $heap->{tuned}\n");
+        $kernel->call('logger' => "log" => "STATS: run_started = $heap->{run_started}\n");
 
         my $stat_prefix = HOST_NAME . "[$alias]";
         my $time = time();
@@ -300,7 +300,7 @@ sub new
       {
         my ($heap, $kernel) = @_[HEAP, KERNEL];
 
-        $kernel->post("logger" => "log" => "sleepy_time: ($heap->{sleepy_time})\n");
+        $kernel->call('logger' => "log" => "sleepy_time: ($heap->{sleepy_time})\n");
         if($heap->{sleepy_time} > 0)
         {
           return {sleepy_time => $heap->{sleepy_time}};
@@ -356,19 +356,19 @@ sub new
               ### VALIDATE
               unless($hostkey && $ds && $type && $time && defined $value)
               {
-                $kernel->post("logger" => "log" => "LOAD: Bogus line: $row");
+                $kernel->call('logger' => "log" => "LOAD: Bogus line: $row");
               }
               elsif($hostkey !~ /^([\w\%\~\-\[\]]+\.?)+$/)
               {
-                $kernel->post("logger" => "log" => "LOAD: Bogus line: $row, invalid host: $hostkey");
+                $kernel->call('logger' => "log" => "LOAD: Bogus line: $row, invalid host: $hostkey");
               }
               elsif($ds !~ /^([\w\%\~\-\[\]]+\.?)+$/)
               {
-                $kernel->post("logger" => "log" => "LOAD: Bogus line: $row, invalid ds: $ds");
+                $kernel->call('logger' => "log" => "LOAD: Bogus line: $row, invalid ds: $ds");
               }
               elsif(!$valid_types{$type})
               {
-                $kernel->post("logger" => "log" => "LOAD: Bogus line: $row, invalid type: $type");
+                $kernel->call('logger' => "log" => "LOAD: Bogus line: $row, invalid type: $type");
               }
               else
               {
@@ -383,9 +383,9 @@ sub new
                   my $dir = dirname $rrd_dir; 
                   unless(-d $dir)
                   {
-                    mkdir $dir, 0750 and $kernel->post("logger" => "log" => "LOAD: Creating $dir");
+                    mkdir $dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $dir");
                   }
-                  mkdir $rrd_dir, 0750 and $kernel->post("logger" => "log" => "LOAD: Creating $rrd_dir");
+                  mkdir $rrd_dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $rrd_dir");
                 }
 
                 eval
@@ -398,10 +398,10 @@ sub new
                     $t = 'COUNTER' if $t eq 'c';
                     $t = 'GAUGE'   if $t eq 'g';
                     $t = 'DERIVE'  if $t eq 'd';
-                    #$kernel->post("logger" => "log" => "LOAD: Creating $rrd_file");
+                    #$kernel->call('logger' => "log" => "LOAD: Creating $rrd_file");
                     $rrd->create(@{&get_template($ds, $n, $t, $time)});
-                    chmod 0740, $rrd_file || $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
-                    #system "/bin/chgrp nobody $rrd_file" && $kernel->post("logger" => "log" => "Error chmoding: $rrd_file");
+                    chmod 0740, $rrd_file || $kernel->call('logger' => "log" => "Error chmoding: $rrd_file");
+                    #system "/bin/chgrp nobody $rrd_file" && $kernel->call('logger' => "log" => "Error chmoding: $rrd_file");
                     $stats->{stats}->{create}++;
                   }
                   else
@@ -412,7 +412,7 @@ sub new
                 };
                 if($@)
                 {
-                  $kernel->post('logger' => 'log' => "LOAD: Failed creating RRD \'$row\', $@");
+                  $kernel->call('logger' => 'log' => "LOAD: Failed creating RRD \'$row\', $@");
                 }
                 else
                 {
@@ -425,7 +425,7 @@ sub new
             }
             else
             {
-              $kernel->post('logger' => 'log' => "LOAD: Failed loading \'$row\', $@") unless $@ =~ m/failed: illegal attempt/;
+              $kernel->call('logger' => 'log' => "LOAD: Failed loading \'$row\', $@") unless $@ =~ m/failed: illegal attempt/;
               $stats->{stats}->{fail}++;
             }
           }

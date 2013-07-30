@@ -63,7 +63,7 @@ sub new
       _start => sub
       { 
         my ($kernel, $heap) = @_[KERNEL, HEAP];
-        $kernel->post("logger" => "log" =>  "$snagalias: DEBUG: starting.\n") if $debug;
+        $kernel->call('logger' => "log" =>  "$snagalias: DEBUG: starting.\n") if $debug;
 
         $kernel->delay('build_pickables' => 5);
       },

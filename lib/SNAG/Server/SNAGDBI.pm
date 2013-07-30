@@ -67,12 +67,12 @@ sub new
         };
         if($@)
         {
-          $kernel->post('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
+          $kernel->call('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
           $kernel->delay($_[STATE] => 10 );
         }
         else
         {
-          $kernel->post('logger' => 'log' => "$type: connected to $args->{dsn}");
+          $kernel->call('logger' => 'log' => "$type: connected to $args->{dsn}");
           $heap->{connected} = 1;
         }
       },
@@ -152,7 +152,7 @@ LOAD:
   };
   if($@ =~ /MySQL server has gone away/ || $@ =~ /Lost connection to MySQL server during query/)
   {
-    $kernel->post('logger' => 'log' => $@);
+    $kernel->call('logger' => 'log' => $@);
     delete $heap->{connected};
     $kernel->delay("connect" => 10);
     return "Lost DB Connection"; 
@@ -182,8 +182,8 @@ LOAD:
   }
   elsif($@)
   {
-    $kernel->post('logger' => 'alert' => { To => 'rjstrong@asu.edu', Message => $@ } );
-    $kernel->post('logger' => 'log' => $@);
+    $kernel->call('logger' => 'alert' => { To => 'rjstrong@asu.edu', Message => $@ } );
+    $kernel->call('logger' => 'log' => $@);
     return "Uncaught Error"; ## This needs to stay
   }
 

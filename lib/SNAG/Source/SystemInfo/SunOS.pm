@@ -331,7 +331,7 @@ foreach (@ethtool_paths)
 
 unless($ethtool_bin)
 {
-  #$poe_kernel->post('logger' => 'alert' => { Subject => 'SNAG::Source::SystemInfo, ' . HOST_NAME . ', Could not find ethtool on this box!' } );
+  #$poe_kernel->call('logger' => 'alert' => { Subject => 'SNAG::Source::SystemInfo, ' . HOST_NAME . ', Could not find ethtool on this box!' } );
 }
 
 sub startup

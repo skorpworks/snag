@@ -58,12 +58,12 @@ sub new
         };
         if($@)
         {
-          $kernel->post('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
+          $kernel->call('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
           $kernel->delay($_[STATE] => 10 );
         }
         else
         {
-          $kernel->post('logger' => 'log' => "$type: connected to $args->{dsn}");
+          $kernel->call('logger' => 'log' => "$type: connected to $args->{dsn}");
           $heap->{connected} = 1;
         }
       },
@@ -105,15 +105,15 @@ sub load_mysql
   };
   if($@ =~ /MySQL server has gone away/ || $@ =~ /Lost connection to MySQL server during query/)
   {
-    $kernel->post('logger' => 'log' => $@);
+    $kernel->call('logger' => 'log' => $@);
     delete $heap->{connected};
     $kernel->delay("connect" => 10);
     return "Lost DB Connection"; 
   }
   elsif($@)
   {
-    #$kernel->post('logger' => 'alert' => { To => 'jlavold@asu.edu', Message => $@ } );
-    $kernel->post('logger' => 'log' => $@);
+    #$kernel->call('logger' => 'alert' => { To => 'jlavold@asu.edu', Message => $@ } );
+    $kernel->call('logger' => 'log' => $@);
     return "Uncaught Error"; ## This needs to stay
   }
 
@@ -150,7 +150,7 @@ sub load_pg
   };
   if($@ =~ /terminating connection due to administrator command/) ## What other 'server died' messages are there?
   {
-    $kernel->post('logger' => 'log' => $@);
+    $kernel->call('logger' => 'log' => $@);
     delete $heap->{connected};
     $kernel->delay("connect" => 10);
     return "Lost DB Connection";
@@ -172,7 +172,7 @@ sub load_pg
   {
     $heap->{dbh}->rollback;
     print "$@\n" if $debug;
-    $kernel->post('logger' => 'log' => $@);
+    $kernel->call('logger' => 'log' => $@);
     return "Uncaught Error";
   }
 

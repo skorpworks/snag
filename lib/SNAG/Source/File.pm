@@ -96,12 +96,12 @@ sub new
           if(!($file_state{index} && $file_state{size} && $file_state{check}) 
                || $new_size < $file_state{size} || $new_check ne $file_state{check})
           {
-            $kernel->post("logger" => "log" => "Starting at beginning of file");
+            $kernel->call('logger' => "log" => "Starting at beginning of file");
           }
           else
           {
             $index = $file_state{index};;
-            $kernel->post("logger" => "log" => "Starting at byte index: $index");
+            $kernel->call('logger' => "log" => "Starting at byte index: $index");
           }
 
           $heap->{tailer} = POE::Wheel::FollowTail->new
@@ -134,13 +134,13 @@ sub new
       error => sub
       {
         my ($kernel, $operation, $errnum, $errstr) = @_[KERNEL, ARG0 .. ARG2];
-        $kernel->post("logger" => "log" => "FollowTail Error: $operation, $errnum, $errstr");
+        $kernel->call('logger' => "log" => "FollowTail Error: $operation, $errnum, $errstr");
       },
 
       reset => sub
       {
         my ($kernel, $heap) = @_[ KERNEL, HEAP ];
-        $kernel->post("logger" => "log" => "$alias log file was reset");
+        $kernel->call('logger' => "log" => "$alias log file was reset");
       }, 
 
       sync => sub

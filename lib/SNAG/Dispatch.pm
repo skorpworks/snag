@@ -49,7 +49,7 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-        $kernel->post("logger" => "log" => "Dispatch: starting") if $debug;
+        $kernel->call('logger' => "log" => "Dispatch: starting") if $debug;
         $heap->{epoch} = time() + 5; #trying to  avoid a race condition when epoch %60 would be a time just passed
         $shared_data->{timer_60} = $heap->{epoch};
         $shared_data->{timer_300} = $heap->{epoch};  
@@ -163,7 +163,7 @@ sub new
 
         unless($heap->{running_sources}->{$source_key})
         {
-          $kernel->post('logger' => 'log' => "Dispatch: loading: $source_key") if $SNAG::flags{debug};
+          $kernel->call('logger' => 'log' => "Dispatch: loading: $source_key") if $SNAG::flags{debug};
 
           (my $module_file = $module) =~ s/::/\//g;
           $module_file .= ".pm";
@@ -180,7 +180,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl))
+        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool))
         {
           $shared_data->{binaries}->{$bin} = which("$bin");
           $shared_data->{binaries}->{missing} .= "$bin " unless defined $shared_data->{binaries};
@@ -188,8 +188,8 @@ sub new
 
         my $found;
         map { if ($_ eq 'missing') {  } else { $found .= " $shared_data->{binaries}->{$_}" } } %{$shared_data->{binaries}} if $SNAG::flags{debug};
-        $kernel->post('logger' => 'log' => "Dispatch: check_bins: have: $found"  ) if $SNAG::flags{debug};
-        $kernel->post('logger' => 'log' => "Dispatch: check_bins: missing: $shared_data->{binaries}->{missing}" ) if $SNAG::flags{debug};
+        $kernel->call('logger' => 'log' => "Dispatch: check_bins: have: $found"  ) if $SNAG::flags{debug};
+        $kernel->call('logger' => 'log' => "Dispatch: check_bins: missing: $shared_data->{binaries}->{missing}" ) if $SNAG::flags{debug};
 
         #if(HOST_NAME =~ m/^s05-/)
         #{

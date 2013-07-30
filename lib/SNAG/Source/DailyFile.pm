@@ -112,13 +112,13 @@ sub new
             }
             else
             {
-              $kernel->post("logger" => "log" => "Dailyfile: Could not find $heap->{file_state}->{$dir}->{name}");
+              $kernel->call('logger' => "log" => "Dailyfile: Could not find $heap->{file_state}->{$dir}->{name}");
             }
           }
         }
         else
         {
-          $kernel->post("logger" => "log" => "DailyFile: starting at end");
+          $kernel->call('logger' => "log" => "DailyFile: starting at end");
         }
 
         $kernel->yield('stats_update');
@@ -147,7 +147,7 @@ sub new
       {
         my ($kernel, $heap) = @_[ KERNEL, HEAP ];
 
-        $kernel->post("logger" => "log" => "DailyFile:dir_scan processing base_dir: $base_dir") if $debug;
+        $kernel->call('logger' => "log" => "DailyFile:dir_scan processing base_dir: $base_dir") if $debug;
 
         $heap->{find_wheel} = POE::Wheel::Run->new
         (
@@ -163,7 +163,7 @@ sub new
                               }
                               else
                               {
-                                #$kernel->post("logger" => "log" => "DailyFile:find: Skipping $_") if $debug;
+                                #$kernel->call('logger' => "log" => "DailyFile:find: Skipping $_") if $debug;
                                 print STDERR "DailyFile:dir_scan: Skipping $File::Find::name\n" if $debug && $verbose;
                               }
                             }, $base_dir);
@@ -179,20 +179,20 @@ sub new
       throw_err => sub
       {
         my ($kernel, $heap, $out) = @_[ KERNEL, HEAP, ARG0 ];
-        $kernel->post("logger" => "log" => "DailyFile:throw_err: $out") if $debug;
+        $kernel->call('logger' => "log" => "DailyFile:throw_err: $out") if $debug;
       },
 
       add_dir => sub
       {
         my ($kernel, $heap, $dir) = @_[ KERNEL, HEAP, ARG0 ];
-        $kernel->post('logger' => 'log' => "DailyFile:add_dir: $dir") if $debug;
+        $kernel->call('logger' => 'log' => "DailyFile:add_dir: $dir") if $debug;
         $heap->{dirs}->{$dir} = 1;
       },
 
       done_dir => sub
       {
         my ($kernel, $heap) = @_[ KERNEL, HEAP ];
-        $kernel->post('logger' => 'log' => "DailyFile:dir_scan: done.") if $debug;
+        $kernel->call('logger' => 'log' => "DailyFile:dir_scan: done.") if $debug;
         delete $heap->{find_wheel};
       },
 
@@ -200,17 +200,17 @@ sub new
       {
         my ($kernel, $heap) = @_[ KERNEL, HEAP ];
 
-        $kernel->post('logger' => 'log' => "DailyFile:file_check: starting") if $debug;
+        $kernel->call('logger' => 'log' => "DailyFile:file_check: starting") if $debug;
         foreach my $dir (keys %{$heap->{dirs}})
         {
           unless(-d $dir) 
           {
-            $kernel->post('logger' => 'log' => "DailyFile:file_check: $dir no longer exists, removing") if $debug;
+            $kernel->call('logger' => 'log' => "DailyFile:file_check: $dir no longer exists, removing") if $debug;
             delete $heap->{dirs}->{$dir};
             delete $heap->{tailer}->{$dir};
           }
 
-          $kernel->post('logger' => 'log' => "DailyFile:file_check: processing $dir") if $debug;
+          $kernel->call('logger' => 'log' => "DailyFile:file_check: processing $dir") if $debug;
 
           if($startatend)
           {
@@ -232,7 +232,7 @@ sub new
 
             if($next)
             {
-              $kernel->post('logger' => 'log' => "DailyFile:file_check: found next") if $debug;
+              $kernel->call('logger' => 'log' => "DailyFile:file_check: found next") if $debug;
               unless($heap->{file_state}->{$dir}->{name})
               {
                 $kernel->yield('open_file' => $dir, $next, 0);
@@ -243,14 +243,14 @@ sub new
                 if($file_size == $heap->{file_state}->{$dir}->{index})
                 {
                   ### CURRENT FILE IS INACTIVE AND THERES A NEW ONE, OPEN THE NEW ONE
-                  $kernel->post('logger' => 'log' => "DailyFile:file_check: current inactive") if $debug;
+                  $kernel->call('logger' => 'log' => "DailyFile:file_check: current inactive") if $debug;
                   $kernel->yield('open_file' => $dir, $next, 0);
                 }
               }
             }
             else
             {
-              $kernel->post('logger' => 'log' => "DailyFile:file_check: done") if $debug;
+              $kernel->call('logger' => 'log' => "DailyFile:file_check: done") if $debug;
             }
           }
         }
@@ -265,7 +265,7 @@ sub new
 
         delete $heap->{tailer}->{$dir};
 
-        $kernel->post('logger' => 'log' => "DailyFile:open_file: called with file $file") if $debug;
+        $kernel->call('logger' => 'log' => "DailyFile:open_file: called with file $file") if $debug;
 
         if($index == -1)
         {
@@ -311,7 +311,7 @@ sub new
           };
           if ($@)
           {
-            $kernel->post("logger" => "log" => "sync error for file $dir, is the file open?  check file permissions: $@");
+            $kernel->call('logger' => "log" => "sync error for file $dir, is the file open?  check file permissions: $@");
           }
         }
 
@@ -321,7 +321,7 @@ sub new
       error => sub
       {
         my ($kernel, $operation, $errnum, $errstr) = @_[KERNEL, ARG0 .. ARG2];
-        $kernel->post("logger" => "log" => "FollowTail Error: $operation, $errnum, $errstr");
+        $kernel->call('logger' => "log" => "FollowTail Error: $operation, $errnum, $errstr");
       },
     }
   );

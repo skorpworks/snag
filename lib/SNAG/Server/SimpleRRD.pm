@@ -43,7 +43,7 @@ sub new
 
         unless(-d $rrd_base_dir)
         {
-          mkdir $rrd_base_dir, 0770 and $kernel->post("logger" => "log" => "START: Creating $rrd_base_dir");
+          mkdir $rrd_base_dir, 0770 and $kernel->call('logger' => "log" => "START: Creating $rrd_base_dir");
           system "chgrp nobody $rrd_base_dir";
         }
 
@@ -80,11 +80,11 @@ sub new
           {
             if($@ =~ /Can\'t call method \"update\" on an undefined value/ || $@ =~ /No such file or directory at/) 
             {
-              $kernel->post('logger' => 'log' => "LOAD: RRD does not exist, skipping \'$row\' :: $rrd_dir/$ds.rrd");
+              $kernel->call('logger' => 'log' => "LOAD: RRD does not exist, skipping \'$row\' :: $rrd_dir/$ds.rrd");
             }
             else
             {
-              $kernel->post('logger' => 'log' => "LOAD: Failed loading \'$row\', $@");
+              $kernel->call('logger' => 'log' => "LOAD: Failed loading \'$row\', $@");
             }
           }
         }

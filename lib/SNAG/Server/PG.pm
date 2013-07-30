@@ -107,8 +107,8 @@ sub new
         {
           delete $heap->{connected};
           $heap->{failed_connect}++;
-          $kernel->post('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
-          $kernel->post('logger' => 'alert' => { From => 'SNAGcnb@example.com', 
+          $kernel->call('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
+          $kernel->call('logger' => 'alert' => { From => 'SNAGcnb@example.com', 
                                                  To => 'foo@example.com', 
                                                  Subject => "Error on " . HOST_NAME . "::$SNAGalias" . "::connect", 
                                                  Message => $@ ,
@@ -117,7 +117,7 @@ sub new
         }
         else
         {
-          $kernel->post('logger' => 'log' => "$type: connected to $args->{dsn}");
+          $kernel->call('logger' => 'log' => "$type: connected to $args->{dsn}");
           $heap->{connected} = 1;
           $heap->{failed_connect} = 0;
         }
@@ -202,8 +202,8 @@ sub load_pg
      || $@ =~ /failed to connect to/
     )
   {
-    $kernel->post('logger' => 'log' => $@);
-    $kernel->post('logger' => 'alert' => { From=> 'SNAGcnb@example.com',
+    $kernel->call('logger' => 'log' => $@);
+    $kernel->call('logger' => 'alert' => { From=> 'SNAGcnb@example.com',
                                            To => 'foo@example.com', 
                                            Subject => "Error - " . HOST_NAME . "::$SNAGalias" . "::load", 
                                            Message => $@ ,
@@ -230,7 +230,7 @@ sub load_pg
   elsif($@ =~ /will create implicit index/)
   {
     print "$@\n" if $debug;
-    $kernel->post('logger' => 'log' => "caught index: $@");
+    $kernel->call('logger' => 'log' => "caught index: $@");
    
     # since the db handle is misbehaving, let's try killing it
     delete $heap->{connected};
@@ -243,11 +243,11 @@ sub load_pg
   {
     #$heap->{dbh}->rollback;
     print "$@\n" if $debug;
-    $kernel->post('logger' => 'alert' => { To => 'SNAGdev@example.com', 
+    $kernel->call('logger' => 'alert' => { To => 'SNAGdev@example.com', 
                                            Subject => "Uncaught error - " . HOST_NAME . "::$SNAGalias" . "::load",
                                            Message => $@ 
                                          } );
-    $kernel->post('logger' => 'log' => "Uncaught Error: $@");
+    $kernel->call('logger' => 'log' => "Uncaught Error: $@");
     return -1;
   }
   return 0; ## SUCCESS

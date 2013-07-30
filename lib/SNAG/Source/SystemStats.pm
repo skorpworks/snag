@@ -66,7 +66,7 @@ sub new
   {
     if($@ =~ /Can\'t locate/)  
    {
-      $poe_kernel->post('logger' => 'log' => "SysStats: Could not find $module") if $debug;
+      $poe_kernel->call('logger' => 'log' => "SysStats: Could not find $module") if $debug;
       $module =~ s/\/[^\/]+$//;
 
       eval
@@ -78,17 +78,17 @@ sub new
       {
         if($@ =~ /Can\'t locate/)  
         {
-          $poe_kernel->post('logger' => 'log' => "SysStats: Could not find $module") if $debug;
+          $poe_kernel->call('logger' => 'log' => "SysStats: Could not find $module") if $debug;
         }
         else
         {
-          $poe_kernel->post('logger' => 'log' => "SysStats: Uncaught error loading $module: $@") if $debug;
+          $poe_kernel->call('logger' => 'log' => "SysStats: Uncaught error loading $module: $@") if $debug;
         }
         return;
       }
       else
       {
-        $poe_kernel->post('logger' => 'log' => "SysStats: Loaded $module") if $debug;
+        $poe_kernel->call('logger' => 'log' => "SysStats: Loaded $module") if $debug;
       }
     }
     else
@@ -98,7 +98,7 @@ sub new
   }
   else
   {
-    $poe_kernel->post('logger' => 'log' => "SysStats: Loaded $module") if $debug;
+    $poe_kernel->call('logger' => 'log' => "SysStats: Loaded $module") if $debug;
   }
 
   POE::Session->create
@@ -147,7 +147,7 @@ sub new
           {
             if(++$heap->{running_states}->{$state}->{stuck} > 3)
             {
-              $kernel->post('logger' => 'alert' => { Subject => "SNAG::Source::SystemStats => $state stuck on " . HOST_NAME, Message => "$state has been stuck the last $heap->{running_states}->{$state}->{stuck} times.  This could be a problem!" } );
+              $kernel->call('logger' => 'alert' => { Subject => "SNAG::Source::SystemStats => $state stuck on " . HOST_NAME, Message => "$state has been stuck the last $heap->{running_states}->{$state}->{stuck} times.  This could be a problem!" } );
             }
           }
         }
@@ -192,7 +192,7 @@ sub _scan_namespace
 
     if($key =~ /^run_/)
     {
-      $kernel->post('logger' => 'log' => "SysStats: Found run state: $key") if $debug;
+      $kernel->call('logger' => 'log' => "SysStats: Found run state: $key") if $debug;
       $run_states->{$key} = {};
     }
 

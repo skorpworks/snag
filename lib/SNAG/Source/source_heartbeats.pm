@@ -76,7 +76,7 @@ sub new
                   && $ref->{mode} =~ /^(ExclusiveLock|AccessExclusiveLock|ShareUpdateExclusiveLock|ShareLock|RowShareLock)$/
                 )
               {
-                $kernel->post('logger' => 'log' =>  "Relation $ref->{relation} has a $ref->{mode} lock, skipping heartbeat alerts this round");
+                $kernel->call('logger' => 'log' =>  "Relation $ref->{relation} has a $ref->{mode} lock, skipping heartbeat alerts this round");
                 $locked = 1;
               }
             }
@@ -133,12 +133,12 @@ sub new
           }
           else
           {
-            $kernel->post('logger' => 'log' =>  'No server connections to sysinfo, or connecting timing has not yet reached threshhold');
+            $kernel->call('logger' => 'log' =>  'No server connections to sysinfo, or connecting timing has not yet reached threshhold');
           }
         };
         if($@)
         {
-          $kernel->post("logger" => "log" =>  "Error: $@");
+          $kernel->call('logger' => "log" =>  "Error: $@");
         }
   
         print "DONE send_alerts:\n" if $debug;

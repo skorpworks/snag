@@ -140,11 +140,11 @@ sub new
 
         if ( $heap->{child} )
         {
-          $kernel->post( "logger" => "log" => "SNAG::Source::mysql: my_server_stats is still running, skipping" );
+          $kernel->call('logger' => "log" => "SNAG::Source::mysql: my_server_stats is still running, skipping" );
         }
         else
         {
-          $kernel->post( "logger" => "log" => "SNAG::Source::mysql: my_server_stats is starting" ) if $debug;
+          $kernel->call('logger' => "log" => "SNAG::Source::mysql: my_server_stats is starting" ) if $debug;
           $heap->{this_time} = $heap->{next_time} - 60;
           $heap->{child} = POE::Wheel::Run->new(
                                                  Program      => ['mysql -u snag --password=snag -e "show status"; mysql -u snag --password=snag -e "status"'],
@@ -154,7 +154,7 @@ sub new
                                                  StderrEvent  => 'my_server_stats_stderr',
                                                  CloseEvent   => "my_server_stats_close",
                                                );
-          $kernel->post( "logger" => "log" => "SNAG::Source::mysql: my_server_stats is started" ) if $debug;
+          $kernel->call('logger' => "log" => "SNAG::Source::mysql: my_server_stats is started" ) if $debug;
           $kernel->sig_child( $heap->{child}->PID, "catch_sigchld" );
         }
       },
@@ -166,7 +166,7 @@ sub new
         if ( $input =~ /^([\w\_]+)\s+(\d+)$/ )
         {
           my ($stat) = lc($1);
-          #$kernel->post( "logger" => "log" => "SNAG::Source::mysql: $stat: " . uri_escape($input)) if $debug;
+          #$kernel->call('logger' => "log" => "SNAG::Source::mysql: $stat: " . uri_escape($input)) if $debug;
           $kernel->post( "client" => "sysrrd" => "load" => join ':', ( HOST_NAME, 'my_' . $stat, '1' . $mapping->{$stat}, $heap->{this_time}, $2) ) if ($mapping->{$stat}) && $2 > 0;
         }
         elsif ($input =~ m/^Threads:/)
@@ -188,21 +188,21 @@ sub new
       my_server_stats_stderr => sub
       {
         my ( $kernel, $heap, $input ) = @_[ KERNEL, HEAP, ARG0 ];
-        $kernel->post( "logger" => "log" => "SNAG::Source::mysql: $input" ) if $debug;
+        $kernel->call('logger' => "log" => "SNAG::Source::mysql: $input" ) if $debug;
       },
 
       my_server_stats_close => sub
       {
         my ( $kernel, $heap, $wid ) = @_[ KERNEL, HEAP, ARG0 ];
         my $child = delete $heap->{child};
-        $kernel->post( "logger" => "log" => "SNAG::Source::mysql: completed" ) if $debug;
+        $kernel->call('logger' => "log" => "SNAG::Source::mysql: completed" ) if $debug;
       },
 
       catch_sigchld => sub
       {
         my ( $kernel, $heap, $wid ) = @_[ KERNEL, HEAP, ARG0 ];
         my $child = delete $heap->{child};
-        $kernel->post( "logger" => "log" => "SNAG::Source::mysql: completed" ) if $debug;
+        $kernel->call('logger' => "log" => "SNAG::Source::mysql: completed" ) if $debug;
       },
 
     }

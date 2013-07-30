@@ -161,8 +161,8 @@ sub new
       _start => sub {
         my ( $kernel, $heap ) = @_[ KERNEL, HEAP ];
         $kernel->alias_set($alias);
-        $kernel->post( "logger" => "log" => "$alias: DEBUG: starting.\n" ) if $debug;
-        $kernel->post( "logger" => "log" => "$alias: DEBUG: debug is $opt{debug}.\n" ) if $debug;
+        $kernel->call('logger' => "log" => "$alias: DEBUG: starting.\n" ) if $debug;
+        $kernel->call('logger' => "log" => "$alias: DEBUG: debug is $opt{debug}.\n" ) if $debug;
 
         $kernel->sig_child( CHLD => "job_close" );
 
@@ -185,11 +185,11 @@ sub new
         unless ( $config->{poll_period} == 0 )
         {
           $kernel->alarm( 'job_maker' => $heap->{next_time} );
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_maker firing off in " . ( $heap->{next_time} - $epoch ) . " seconds.\n" ) if $debug;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_maker firing off in " . ( $heap->{next_time} - $epoch ) . " seconds.\n" ) if $debug;
         }
         else
         {
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_maker firing off now seconds.\n" ) if $debug;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_maker firing off now seconds.\n" ) if $debug;
           $kernel->delay( 'job_maker' => 1 );
         }
 
@@ -225,16 +225,16 @@ sub new
         $heap->{snagstat}->{wheels}        = int scalar keys %{ $heap->{job_wheels} }       || 0;
         $heap->{snagstat}->{runningwheels} = int scalar keys %{ $heap->{job_running_jobs} } || 0;
 
-        $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n" ) if $debug;
+        $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{jobs} jobs, $heap->{snagstat}->{wheels} wheels, $heap->{snagstat}->{runningwheels} running\n" ) if $debug;
 
         ## If we have no jobs queued, and no running jobs for greater than 60 seconds, close yourself
         if ( $heap->{snagstat}->{jobs} == 0 && $heap->{snagstat}->{runningwheels} == 0 && $config->{exitonempty})
         {
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: No jobs queued or running.  Goodbye!" ) if $debug;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: No jobs queued or running.  Goodbye!" ) if $debug;
           foreach my $wheel_id ( keys %{ $heap->{job_wheels} } )
           {
             $heap->{job_wheels}->{$wheel_id}->kill() || $heap->{job_wheels}->{$wheel_id}->kill(9);
-            $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) killed\n" ) if $debug;
+            $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) killed\n" ) if $debug;
           }
           $kernel->delay( cya => 5 );
         }
@@ -242,7 +242,7 @@ sub new
                 || ( $heap->{snagstat}->{wheels} < $config->{min_wheels} )
                 || ( ( $heap->{snagstat}->{jobs} > $heap->{snagstat}->{wheels} - $heap->{snagstat}->{runningwheels} ) && ( $heap->{snagstat}->{wheels} < $config->{max_wheels} ) ) )
         {
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{wheels} wheels... starting job wheel\n" ) if $debug;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: currently $heap->{snagstat}->{wheels} wheels... starting job wheel\n" ) if $debug;
           my $wheel;
           $wheel = POE::Wheel::Run->new(
                                          Program     => \&$poller,
@@ -265,12 +265,12 @@ sub new
         {
           if ( $heap->{job_busy}->{$wheel_id} == 1 )
           {
-            $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) busy (" . ( $heap->{epoch} - $heap->{job_busy_time}->{$wheel_id} ) . " seconds) with $heap->{job_running_jobs}->{$wheel_id}->{text}\n" ) if $opt{debug} > 1;
+            $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id) busy (" . ( $heap->{epoch} - $heap->{job_busy_time}->{$wheel_id} ) . " seconds) with $heap->{job_running_jobs}->{$wheel_id}->{text}\n" ) if $opt{debug} > 1;
 
             if ( $config->{poll_expire} > 0 && $heap->{job_busy_time}->{$wheel_id} <= ( $heap->{epoch} - $config->{poll_expire} ) )
             {
               $heap->{snagstat}->{killedwheels}++;
-              $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id): kill busy wheel: $heap->{job_running_jobs}->{$wheel_id}->{text}\n" ) if $debug;
+              $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id): kill busy wheel: $heap->{job_running_jobs}->{$wheel_id}->{text}\n" ) if $debug;
               $heap->{job_wheels}->{$wheel_id}->kill() || $heap->{job_wheels}->{$wheel_id}->kill(9);
               delete $heap->{job_busy}->{$wheel_id};
               delete $heap->{job_busy_time}->{$wheel_id};
@@ -284,7 +284,7 @@ sub new
           $heap->{job_busy}->{$wheel_id}         = 1;
           $heap->{job_busy_time}->{$wheel_id}    = $heap->{epoch};
           $heap->{job_running_jobs}->{$wheel_id} = $job;
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id): sending " . $job->{text} . "\n" ) if $opt{debug} > 1;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_manager: wheel($wheel_id): sending " . $job->{text} . "\n" ) if $opt{debug} > 1;
           $heap->{job_wheels}->{$wheel_id}->put($job);
         }
         $kernel->delay( $_[STATE] => $config->{manage} );
@@ -292,7 +292,7 @@ sub new
       job_close => sub {
         my ( $heap, $wheel_id ) = @_[ HEAP, ARG0 ];
 
-        $kernel->post( "logger" => "log" => "$alias: DEBUG: Child ", $wheel_id, " has finished.\n" ) if $debug;
+        $kernel->call('logger' => "log" => "$alias: DEBUG: Child ", $wheel_id, " has finished.\n" ) if $debug;
         $heap->{snagstat}->{closedwheels}++;
         delete $heap->{job_wheels}->{$wheel_id};
         delete $heap->{job_busy}->{$wheel_id};
@@ -308,8 +308,8 @@ sub new
         {
           $heap->{snagstat}->{finishedwheels}++ if $output->{status} eq 'JOBFINISHED';
           $heap->{snagstat}->{erroredwheels}++  if $output->{status} eq 'ERROR';
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): $output->{status}: $output->{message}\n" ) if $opt{debug} > 1;
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_stdouterr: $output->{status}: $heap->{job_running_jobs}->{$wheel_id}->{text}: $output->{message}\n" ) if $verbose;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): $output->{status}: $output->{message}\n" ) if $opt{debug} > 1;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_stdouterr: $output->{status}: $heap->{job_running_jobs}->{$wheel_id}->{text}: $output->{message}\n" ) if $verbose;
           if ( defined $output->{stats} )
           {
             while ( my ( $key, $value ) = each( %{ $output->{stats} } ) )
@@ -325,7 +325,7 @@ sub new
             $heap->{job_busy}->{$wheel_id}         = 1;
             $heap->{job_busy_time}->{$wheel_id}    = $heap->{epoch};
             $heap->{job_running_jobs}->{$wheel_id} = $job;
-            $kernel->post( "logger" => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): sending " . $job->{text} . "\n" ) if $opt{debug} > 1;
+            $kernel->call('logger' => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): sending " . $job->{text} . "\n" ) if $opt{debug} > 1;
             $heap->{job_wheels}->{$wheel_id}->put($job);
           }
           else
@@ -345,7 +345,7 @@ sub new
         }
         elsif ( $output->{status} eq 'DEBUG' )
         {
-          $kernel->post( "logger" => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): $output->{message}\n" ) if $opt{debug} > 1;
+          $kernel->call('logger' => "log" => "$alias: DEBUG: job_stdouterr: wheel($wheel_id): $output->{message}\n" ) if $opt{debug} > 1;
         }
         else
         {

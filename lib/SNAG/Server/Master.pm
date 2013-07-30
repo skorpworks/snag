@@ -81,7 +81,7 @@ sub new
         };
         if($@ =~ /$error_regex/) 
         {
-          $kernel->post('logger' => 'alert' => { To => 'example@foobar.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } );
+          $kernel->call('logger' => 'alert' => { To => 'example@foobar.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } );
           delete $heap->{connected};
           $kernel->yield('connect' => 60);
         }
@@ -138,13 +138,13 @@ sub new
               {
                 if($@ =~ /$error_regex/) 
                 {
-                  $kernel->post('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } ); #TODO
+                  $kernel->call('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } ); #TODO
                   delete $heap->{connected};
                   $kernel->yield('connect' => 60);
                 }
                 else
                 {
-                  $kernel->post('logger' => 'log' => "error inserting server mapping for $input->{client_host}, $info->{name}: $@");
+                  $kernel->call('logger' => 'log' => "error inserting server mapping for $input->{client_host}, $info->{name}: $@");
                 }
               }
               else
@@ -154,14 +154,14 @@ sub new
             }
             else
             {
-              $kernel->post('logger' => 'log' => "$input->{client_host} requested info for nonexistant '$info->{name}' server");
+              $kernel->call('logger' => 'log' => "$input->{client_host} requested info for nonexistant '$info->{name}' server");
             }
           }
         }
        else
         {
           #die "remote_hosts data is not currently populated, try again later";
-          $kernel->post('logger' => 'log' => "remote_hosts data is not currently populated, try again later");
+          $kernel->call('logger' => 'log' => "remote_hosts data is not currently populated, try again later");
         }
       },
 
@@ -186,7 +186,7 @@ sub new
 	};
 	if($@)
 	{
-          $kernel->post('logger' => 'log' => "ERROR: " . $@);
+          $kernel->call('logger' => 'log' => "ERROR: " . $@);
 	}
       },
 
@@ -261,7 +261,7 @@ sub new
         };
         if($@ =~ /$error_regex/) 
         {
-          $kernel->post('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } );
+          $kernel->call('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . ' SNAG::Server::Master', Message => $@ } );
           delete $heap->{connected};
           $kernel->yield('connect' => 60);
         }
@@ -301,14 +301,14 @@ sub new
           $kernel->yield('build_domain_map');
           $kernel->delay('build_update_queue' => '5');
 
-          $kernel->post('logger' => 'log' => "SystemInfo DB: connected to $args->{dsn}");
+          $kernel->call('logger' => 'log' => "SystemInfo DB: connected to $args->{dsn}");
           $heap->{connected} = 1;
 
           $heap->{sth}->{insert_server_mapping} = $heap->{dbh}->prepare('insert into SNAG_server_mappings(server_id, host, name) values(?, ?, ?)');
         };
         if($@)
         {
-          $kernel->post('logger' => 'log' => "SystemInfo DB: failed to connect to $args->{dsn}: $@");
+          $kernel->call('logger' => 'log' => "SystemInfo DB: failed to connect to $args->{dsn}: $@");
           $kernel->delay($_[STATE] => 10 );
         }
       },

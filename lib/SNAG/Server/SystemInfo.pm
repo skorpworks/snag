@@ -96,8 +96,8 @@ sub new
                  || $@ =~ /could not connect to server/
                  || $@ =~ /server closed the connection unexpectedly/ )
             {
-              $kernel->post( 'logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . "::sysinfo::sysinfo_query::$sender", Message => $@ } );
-              $kernel->post( 'logger' => 'log' => "$sender via sysinfo_query failed: $@" );
+              $kernel->call('logger' => 'alert' => { To => 'SNAGalerts@example.com', Subject => "Error on " . HOST_NAME . "::sysinfo::sysinfo_query::$sender", Message => $@ } );
+              $kernel->call('logger' => 'log' => "$sender via sysinfo_query failed: $@" );
               delete $heap->{connected};
               $kernel->yield( 'connect' => 60 );
             }
@@ -105,7 +105,7 @@ sub new
         }
         else
         {
-          $kernel->post( 'logger' => 'log' => "Could not run $sender via $_[STATE], not connected to server" );
+          $kernel->call('logger' => 'log' => "Could not run $sender via $_[STATE], not connected to server" );
         }
       },
 
@@ -218,7 +218,7 @@ sub new
 
           $heap->{sth}->{passwd_login}->execute( $input->{seen}, $input->{dns}, $input->{uid} ) or die $heap->{dbh}->errstr;
 
-          $kernel->post( 'logger' => 'log' => "host_passwd_login: $input->{uid} to $input->{dns} at $input->{seen}" );
+          $kernel->call('logger' => 'log' => "host_passwd_login: $input->{uid} to $input->{dns} at $input->{seen}" );
 
           print "DONE!\n" if $debug;
         };
@@ -233,7 +233,7 @@ sub new
         {
 
           #die "remote_hosts data is not currently populated, try again later";
-          $kernel->post( 'logger' => 'log' => "remote_hosts data is not currently populated, try again later" );
+          $kernel->call('logger' => 'log' => "remote_hosts data is not currently populated, try again later" );
         }
 
         return $heap->{remote_hosts};
@@ -244,7 +244,7 @@ sub new
 
         unless ( $heap->{xen_uuids} )
         {
-          $kernel->post( 'logger' => 'log' => "xen_uuids data is not currently populated, try again later" );
+          $kernel->call('logger' => 'log' => "xen_uuids data is not currently populated, try again later" );
         }
 
         return $heap->{xen_uuids};
@@ -313,13 +313,13 @@ sub new
             {
               unless ( $heap->{cols}->{$table} )
               {
-                $kernel->post( 'logger' => 'log' => "No table: $table" );
+                $kernel->call('logger' => 'log' => "No table: $table" );
                 next;
               }
 	      
               if ( ref $instructions->{$table}->{ignore} ne 'ARRAY' && $instructions->{$table}->{ignore} == 1 )
 	      {
-                $kernel->post( 'logger' => 'log' => "Ignoring table: $table" );
+                $kernel->call('logger' => 'log' => "Ignoring table: $table" );
 		next;
 	      }
 
@@ -433,7 +433,7 @@ sub new
                       {
                         unless ( $passwd->{new_contents}->{$uid} )
                         {
-                          $kernel->post( 'logger' => 'log' => "host_passwd: removed $uid from $host" );
+                          $kernel->call('logger' => 'log' => "host_passwd: removed $uid from $host" );
                           $heap->{sth}->{passwd_remove}->execute( $seen, $host, $uid ) or die $heap->{dbh}->errstr;
                         }
                       }
@@ -446,12 +446,12 @@ sub new
 
                           if ( defined $passwd->{old_contents}->{$uid} )
                           {
-                            $kernel->post( 'logger' => 'log' => "host_passwd: changed $uid on $host" );
+                            $kernel->call('logger' => 'log' => "host_passwd: changed $uid on $host" );
                             $heap->{sth}->{passwd_change}->execute( @args[ 0 .. 5 ], $host, $uid ) or die $heap->{dbh}->errstr;
                           }
                           else
                           {
-                            $kernel->post( 'logger' => 'log' => "host_passwd: added $uid to $host" );
+                            $kernel->call('logger' => 'log' => "host_passwd: added $uid to $host" );
                             $heap->{sth}->{passwd_add}->execute( $host, $uid, @args[ 0 .. 5 ], $seen ) or die $heap->{dbh}->errstr;
                           }
                         }
@@ -511,7 +511,7 @@ sub new
                       }
                       else
                       {
-                        $kernel->post( 'logger' => 'log' => "ignore key for $table needs to be an arrayref" );
+                        $kernel->call('logger' => 'log' => "ignore key for $table needs to be an arrayref" );
                       }
                     }
                   }
@@ -606,22 +606,22 @@ sub new
                || $@ =~ /could not connect to server/
                || $@ =~ /server closed the connection unexpectedly/ )
           {
-            $kernel->post( 'logger' => 'alert' => { From => 'SNAGcnb@asu.edu', To => 'sporkworks@asu.edu', Subject => "Error on " . HOST_NAME . "::sysinfo", Message => $@ } );
-            $kernel->post( 'logger' => 'log' => $@ );
+            $kernel->call('logger' => 'alert' => { From => 'SNAGcnb@asu.edu', To => 'sporkworks@asu.edu', Subject => "Error on " . HOST_NAME . "::sysinfo", Message => $@ } );
+            $kernel->call('logger' => 'log' => $@ );
             delete $heap->{connected};
             $kernel->yield( 'connect' => 60 );
             return "Lost DB Connection";
           }
           elsif ( $@ =~ /Do not know how to thaw data with code/ )
           {
-            $kernel->post( 'logger' => 'log' => "Problem thawing, skipping this one: $@" );
+            $kernel->call('logger' => 'log' => "Problem thawing, skipping this one: $@" );
           }
           else
           {
             my $msg = "DB Load Error: $@: ";
             $kernel->post( 'client' => 'dashboard' => 'load' => join $rec_sep, ( 'events', $heap->{host}, 'sysinfo', 'database error', 'DB load error', $@, '', $heap->{seen} ) );
             print "$msg\n" if $debug;
-            $kernel->post( 'logger' => 'log' => $msg );
+            $kernel->call('logger' => 'log' => $msg );
           }
         }
         return 0;
@@ -677,12 +677,12 @@ sub new
         };
         if ($@)
         {
-          $kernel->post( 'logger' => 'log' => "SystemInfo DB: failed to connect to $db_args->{dsn}: $@" );
+          $kernel->call('logger' => 'log' => "SystemInfo DB: failed to connect to $db_args->{dsn}: $@" );
           $kernel->delay( $_[STATE] => 10 );
         }
         else
         {
-          $kernel->post( 'logger' => 'log' => "SystemInfo DB: connected to $db_args->{dsn}" );
+          $kernel->call('logger' => 'log' => "SystemInfo DB: connected to $db_args->{dsn}" );
           $heap->{connected} = 1;
 
           $kernel->delay( 'build_remote_hosts' => 5 );

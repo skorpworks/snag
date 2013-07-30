@@ -139,12 +139,12 @@ sub new
         };
         if($@)
         {
-          $kernel->post('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
+          $kernel->call('logger' => 'log' => "$type: failed to connect to $args->{dsn}: $@");
           $kernel->delay($_[STATE] => 10 );
         }
         else
         {
-          $kernel->post('logger' => 'log' => "$type: connected to $args->{dsn}");
+          $kernel->call('logger' => 'log' => "$type: connected to $args->{dsn}");
           $heap->{connected} = 1;
         }
       },
@@ -162,7 +162,7 @@ sub new
 
         my $seen = time2str("%Y-%m-%d %T\n", time() - 3600 * 2);
 
-        $kernel->post('logger' => 'log' => "DEBUG: Alerts: query_alert_state: Query State") if $debug;
+        $kernel->call('logger' => 'log' => "DEBUG: Alerts: query_alert_state: Query State") if $debug;
 
         my $sql = "SELECT aid, host, source, category, alert, count, first_seen, last_seen from alerts where last_seen > (SELECT first_seen from alerts where first_seen IS NOT NULL order by last_seen desc limit 1)  - interval '2 hour' order by last_seen desc";
         print "Executing: $sql\n" if $debug;
@@ -206,7 +206,7 @@ sub new
               $state->{alerts}->{"$alert_string"}->{first_seen} = $fs;
               $state->{alerts}->{"$alert_string"}->{last_seen}  = $ls;
               $state->{alerts}->{"$alert_string"}->{aid} = $row->{aid};
-              $kernel->post('logger' => 'log' => "DEBUG: Alerts: alert_state: setting state for aid $row->{aid} to fs:$fs ls:$ls c:$row->{count}") if $debug;
+              $kernel->call('logger' => 'log' => "DEBUG: Alerts: alert_state: setting state for aid $row->{aid} to fs:$fs ls:$ls c:$row->{count}") if $debug;
             };
             if ($@)
             {
@@ -237,12 +237,12 @@ sub new
           if ($value >= (60 * 60))
           {
             $alert = $heap->{a_ids}->{alert}->{$key};
-            $kernel->post('logger' => 'log' => "DEBUGGING: aid: $key  hseen: $heap->{a_ids}->{seen}->{$key}  fseen: $state->{alerts}->{$alert}->{first_seen}  lseen: $state->{alerts}->{$alert}->{last_seen} alert: $alert\n") if $debug;
+            $kernel->call('logger' => 'log' => "DEBUGGING: aid: $key  hseen: $heap->{a_ids}->{seen}->{$key}  fseen: $state->{alerts}->{$alert}->{first_seen}  lseen: $state->{alerts}->{$alert}->{last_seen} alert: $alert\n") if $debug;
             delete $heap->{a_ids}->{seen}->{$key};
             delete $heap->{a_ids}->{alert}->{$key};
             if ($state->{alerts}->{"$alert"}->{aid} == $key)
             {
-              $kernel->post('logger' => 'log' => "DEBUGGING: deleting state for $key : $alert\n") if  $debug;
+              $kernel->call('logger' => 'log' => "DEBUGGING: deleting state for $key : $alert\n") if  $debug;
               delete $state->{alerts}->{"$alert"}->{count};
               delete $state->{alerts}->{"$alert"}->{first_seen};
               delete $state->{alerts}->{"$alert"}->{last_seen};
@@ -301,7 +301,7 @@ sub new
           foreach $row (@{$dbires->{result}})
           {
             $alert_string = "$row->{source}.$row->{category}.$row->{alert}";
-            $kernel->post('logger' => 'log' => "NOTIFY: alert_settings ($alert_string) with sev:$row->{'severity'} and email: $row->{'email'}\n") if $debug;
+            $kernel->call('logger' => 'log' => "NOTIFY: alert_settings ($alert_string) with sev:$row->{'severity'} and email: $row->{'email'}\n") if $debug;
             eval
             {
               $state->{'alert_settings'}->{'sev'}->{"$alert_string"} = $row->{'severity'};
@@ -399,13 +399,13 @@ END_OF_BODY
       notify_stdio => sub
       {
         my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
-        $kernel->post('logger' => 'log' => "DEBUG: Notfiy: $error");
+        $kernel->call('logger' => 'log' => "DEBUG: Notfiy: $error");
       },
 
       notify_stderr => sub
       {
         my ($kernel, $heap, $error) = @_[ KERNEL, HEAP, ARG0 ];
-        $kernel->post('logger' => 'log' => "Could not send alert because of an error.  Error: $error, Subject: $heap->{mail_args}->{Subject}, Message: $heap->{mail_args}->{Message}");
+        $kernel->call('logger' => 'log' => "Could not send alert because of an error.  Error: $error, Subject: $heap->{mail_args}->{Subject}, Message: $heap->{mail_args}->{Message}");
       },
 
       notify_close => sub
@@ -478,14 +478,14 @@ sub load_pg
         next;
       }
 			$heap->{row} = $row;
-      $kernel->post('logger' => 'log' => "DEBUG: Alerts: received row: $row") if $debug;
+      $kernel->call('logger' => 'log' => "DEBUG: Alerts: received row: $row") if $debug;
 
       if ($row =~ m/^heartbeat_syslog/)
       {
         my ($p_table, $p_host, $p_fqdn, $p_loghost, $p_seen) = split /$rec_sep/, $row, -1;
 				unless ($p_seen =~ m/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/) 
 				{ 
-					$kernel->post('logger' => 'log' => "heartbeat_syslog: $p_host.$p_fqdn.$p_loghost: ERRROR: improper format for timestamp $p_seen ") if $debug; 
+					$kernel->call('logger' => 'log' => "heartbeat_syslog: $p_host.$p_fqdn.$p_loghost: ERRROR: improper format for timestamp $p_seen ") if $debug; 
 					next; 
 				} 
         unless (defined $heap->{hbs_s_sth})
@@ -493,28 +493,28 @@ sub load_pg
           $heap->{hbs_s_sth} = $heap->{dbh}->prepare('SELECT count(*) from heartbeat_syslog where host= ? and fqdn = ? and loghost= ?');
           $heap->{hbs_i_sth} = $heap->{dbh}->prepare('INSERT INTO heartbeat_syslog values (?, ?, ?, ?)');
           $heap->{hbs_u_sth} = $heap->{dbh}->prepare('UPDATE heartbeat_syslog set seen = ? where host= ? and fqdn = ? and loghost= ?');
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: preparing hbs_*_sth") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: preparing hbs_*_sth") if $debug;
         }
         unless (defined $heap->{hbs_ids}->{"$p_host.$p_fqdn.$p_loghost"})
         {
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: inserting to hbs_i_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: inserting to hbs_i_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
           $heap->{hbs_s_sth}->execute($p_host, $p_fqdn, $p_loghost) or die "hbs_s_sth failed: " . $heap->{dbh}->errstr;
           my $ary_ref = $heap->{hbs_s_sth}->fetchall_arrayref() or die "hbs_s_sth failed: ";
           if (defined $ary_ref && ${$ary_ref}[0][0] > 0)
           {
-            $kernel->post('logger' => 'log' => "DEBUG: Alerts: updating to hbs_u_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
+            $kernel->call('logger' => 'log' => "DEBUG: Alerts: updating to hbs_u_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
             $heap->{hbs_u_sth}->execute($p_seen, $p_host, $p_fqdn, $p_loghost) or die "hbs_u_sth 1 failed: " . $heap->{dbh}->errstr;
           }
           else
           {
-            $kernel->post('logger' => 'log' => "DEBUG: Alerts: inserting to hbs_i_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
+            $kernel->call('logger' => 'log' => "DEBUG: Alerts: inserting to hbs_i_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
             $heap->{hbs_i_sth}->execute($p_host, $p_fqdn, $p_loghost, $p_seen) or die "hbs_i_sth failed: " . $heap->{dbh}->errstr;
           }
           $heap->{hbs_ids}->{"$p_host.$p_fqdn.$p_loghost"} = "${$ary_ref}[0][0]";
         }
         else
         {
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: updating to hbs_u_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: updating to hbs_u_sth: $p_host.$p_fqdn.$p_loghost") if $debug;
           $heap->{hbs_u_sth}->execute($p_seen, $p_host, $p_fqdn, $p_loghost) or die "hbs_u_sth 2 failed: " . $heap->{dbh}->errstr;
         }
       }
@@ -526,17 +526,17 @@ sub load_pg
         unless (defined $heap->{evt_sth})
         {
           $heap->{evt_sth} = $heap->{dbh}->prepare('INSERT INTO events values (?, ?, ?, ?)');
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: preparing evt_sth") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: preparing evt_sth") if $debug;
         }
         unless (defined $heap->{create_alrt_sth})
         {
           $heap->{create_alrt_sth} = $heap->{dbh}->prepare("INSERT INTO alerts (host, source, category, alert, count, first_seen, last_seen) values (?, ?, ?, ?, '1', ?, ?)");
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: preparing create_alrt_sth") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: preparing create_alrt_sth") if $debug;
         }
         unless (defined $heap->{update_alrt_sth})
         {
           $heap->{update_alrt_sth} = $heap->{dbh}->prepare('UPDATE alerts set count = ?, last_seen = ? where aid = ?');
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: preparing update_alrt_sth") if $debug;
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: preparing update_alrt_sth") if $debug;
         }
 
         my ($p_table, $p_host, $p_source, $p_category, $p_alert, $p_full, $p_param, $p_seen) = split /$rec_sep/, $row, -1;
@@ -597,7 +597,7 @@ sub load_pg
           $heap->{create_alrt_sth}->execute($p_host, $p_source, $p_category, $p_alert, $p_seen, $p_seen) or die "create_alrt_sth failed: " . $heap->{dbh}->errstr;
           my $aid = $heap->{dbh}->last_insert_id(undef,undef,'alerts',undef);
 
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: creating new alert $aid for #$alert_string# #cs:$curr_seen# #fs:$state->{alerts}->{$alert_string}->{first_seen}# #ls:$state->{alerts}->{$alert_string}->{last_seen}# #aid:$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#");
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: creating new alert $aid for #$alert_string# #cs:$curr_seen# #fs:$state->{alerts}->{$alert_string}->{first_seen}# #ls:$state->{alerts}->{$alert_string}->{last_seen}# #aid:$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#");
           $state->{alerts}->{"$alert_string"}->{count} = 1;
           $state->{alerts}->{"$alert_string"}->{first_seen} = $curr_seen;
           $state->{alerts}->{"$alert_string"}->{last_seen}  = $curr_seen;
@@ -607,7 +607,7 @@ sub load_pg
         }
         else
         {
-          $kernel->post('logger' => 'log' => "DEBUG: Alerts: reusing alert $state->{alerts}->{$alert_string}->{aid} for #$alert_string#  #$state->{alerts}->{$alert_string}->{first_seen}# $state->{alerts}->{$alert_string}->{last_seen}# #$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#: $p_seen");
+          $kernel->call('logger' => 'log' => "DEBUG: Alerts: reusing alert $state->{alerts}->{$alert_string}->{aid} for #$alert_string#  #$state->{alerts}->{$alert_string}->{first_seen}# $state->{alerts}->{$alert_string}->{last_seen}# #$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#: $p_seen");
           $state->{alerts}->{"$alert_string"}->{count}++;
           $state->{alerts}->{"$alert_string"}->{last_seen}  = $curr_seen;
           $heap->{a_ids}->{seen}->{$state->{alerts}->{"$alert_string"}->{aid}} = 0;
@@ -630,8 +630,8 @@ sub load_pg
      || $@ =~ /server closed the connection unexpectedly/
     )
   {
-		$kernel->post('logger' => 'log' => "Caught db error: row ----> $heap->{row}");
-		$kernel->post('logger' => 'log' => "Caught db error: error --> $@");
+		$kernel->call('logger' => 'log' => "Caught db error: row ----> $heap->{row}");
+		$kernel->call('logger' => 'log' => "Caught db error: error --> $@");
     delete $heap->{connected};
     delete $heap->{hbs_s_sth};
     delete $heap->{evt_sth};
@@ -643,21 +643,21 @@ sub load_pg
   }
 	elsif($@ =~ /DBD::Pg::st execute failed: .*? invalid byte sequence for encoding/) 
 	{ 
-		$kernel->post('logger' => 'log' => "Caught db encoding error: row ----> $heap->{row}"); 
-		$kernel->post('logger' => 'log' => "Caught db encoding error: error --> $@"); 
+		$kernel->call('logger' => 'log' => "Caught db encoding error: row ----> $heap->{row}"); 
+		$kernel->call('logger' => 'log' => "Caught db encoding error: error --> $@"); 
 		$heap->{dbh}->rollback(); 
 	} 
 	elsif($@ =~ /DBD::Pg::db begin_work failed: Already in a transaction/ || $@ =~ /DBD::Pg::st execute failed: /) 
 	{ 
-		$kernel->post('logger' => 'log' => "Caught db trans error: row ----> $heap->{row}"); 
-		$kernel->post('logger' => 'log' => "Caught db trans error: error --> $@"); 
+		$kernel->call('logger' => 'log' => "Caught db trans error: row ----> $heap->{row}"); 
+		$kernel->call('logger' => 'log' => "Caught db trans error: error --> $@"); 
 		$heap->{dbh}->rollback(); 
 		return -1; 
 	} 
   elsif($@ =~ /key violates unique constraint/)
   {
-		$kernel->post('logger' => 'log' => "Caught primary key violation: row ----> $heap->{row}"); 
-	 	$kernel->post('logger' => 'log' => "Caught primary key violation: error --> $@");
+		$kernel->call('logger' => 'log' => "Caught primary key violation: row ----> $heap->{row}"); 
+	 	$kernel->call('logger' => 'log' => "Caught primary key violation: error --> $@");
     $heap->{dbh}->rollback;
     if($commit_after_insert)
     {
@@ -672,8 +672,8 @@ sub load_pg
   elsif($@)
   {
     #$heap->{dbh}->rollback;
-    $kernel->post('logger' => 'log' => "Uncaught Error: error --> $@");
-    $kernel->post('logger' => 'log' => "Uncaught Error: row ----> $heap->{row}");
+    $kernel->call('logger' => 'log' => "Uncaught Error: error --> $@");
+    $kernel->call('logger' => 'log' => "Uncaught Error: row ----> $heap->{row}");
     #return "Uncaught Error";
     #return -1;
   }

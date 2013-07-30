@@ -1,6 +1,7 @@
 package SNAG::Client;
 
 use strict;
+use Time::HiRes;
 use SNAG; #FOR CONSTANTS
 use SNAG::Queue;
 use POE;
@@ -69,7 +70,7 @@ sub new
 #        {
 #          my ($kernel, $heap, $session, $name, $args) = @_[KERNEL, HEAP, SESSION, ARG0, ARG1];
 #          my $msg = "Illegal attempt to communicate with server: $heap->{alias}, method: $session, args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
-#          $kernel->post('logger' => 'log' => "_default: $msg");
+#          $kernel->call('logger' => 'log' => "_default: $msg");
 #        }
 #      }
 #    );
@@ -87,6 +88,9 @@ sub new
         $kernel->alias_set('client');
 
         my $master_info_exists;
+
+        $heap->{timekeeper} =  Time::HiRes::time();
+        $kernel->alarm(timekeeper => $heap->{timekeeper} + 5);
         
 	# want this inline so it blocks and runs before anything is established
 	#
@@ -125,7 +129,7 @@ sub new
 
             if($queue->peek(1))
             {
-              $kernel->post('logger' => 'log' => "queue $queue_name is non-empty, requesting a connection to $server_name") if $SNAG::flags{debug};
+              $kernel->call('logger' => 'log' => "queue $queue_name is non-empty, requesting a connection to $server_name") if $SNAG::flags{debug};
               $kernel->state($server_name => \&handle_input);
 
               $heap->{client_queue}->{$server_name}->{has_data} = 1;
@@ -135,7 +139,7 @@ sub new
             }
             else
             {
-              $kernel->post('logger' => 'log' => "queue $queue_name is empty, deleting\n") if $SNAG::flags{debug};
+              $kernel->call('logger' => 'log' => "queue $queue_name is empty, deleting\n") if $SNAG::flags{debug};
               $queue->delete();
             }
           }
@@ -148,7 +152,7 @@ sub new
         return if $name eq '_child';
         return if $name eq '_stop';
 
-        $kernel->post('logger' => 'log' => "Client: recieved unhandled request to communicate with the $name server");
+        $kernel->call('logger' => 'log' => "Client: recieved unhandled request to communicate with the $name server");
 
         my ($function, $data) = @$args;
 
@@ -159,20 +163,32 @@ sub new
         $kernel->yield('query_server_info' => $name);
       },
 
+      timekeeper => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+        my $diff = Time::HiRes::time() - ($heap->{timekeeper} + 5);
+        $heap->{timekeeper} = Time::HiRes::time();
+        $kernel->alarm(timekeeper => $heap->{timekeeper} + 5);
+
+        $kernel->call('logger' => 'log' => "timekeeper: diff: $diff  next: $heap->{timekeeper}") if $SNAG::flags{debug};
+        $kernel->call('logger' => 'log' => "timekeeper delayed: diff: $diff  next: $heap->{timekeeper}") if $diff > 10;
+      },
+
       add => sub
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
         my $msg = "Calling depricated state 'add' with args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
 
-        $kernel->post('logger' => 'log' => $msg);
+        $kernel->call('logger' => 'log' => $msg);
       },
 
       run_init => sub
       {
         my ($kernel, $heap, $session,$default_connections) = @_[KERNEL, HEAP, SESSION, ARG0];
-        $kernel->post('logger' => 'log' => "Initializing (running snag init)...!") if $SNAG::flags{debug};
-        $kernel->post('logger' => 'log' => "Running init even though a client config exists.  Overwriting.") if $SNAG::flags{debug} && (-r $client_conf);
+        $kernel->call('logger' => 'log' => "Initializing (running snag init)...!") if $SNAG::flags{debug};
+        $kernel->call('logger' => 'log' => "Running init even though a client config exists.  Overwriting.") if $SNAG::flags{debug} && (-r $client_conf);
 
         # Assume that master is the first ref of default connections
         my $master = $default_connections->[0];          
@@ -185,7 +201,7 @@ sub new
         };
 	if($@)
 	{
-          $kernel->post('logger' => 'log' => "Error getting raw socket to master: $@");
+          $kernel->call('logger' => 'log' => "Error getting raw socket to master: $@");
 	}
         my $ip = $socket->sockhost();
         close($socket);
@@ -205,7 +221,7 @@ sub new
         my ($kernel, $heap, $session, $passed_through, $passed_back) = @_[ KERNEL, HEAP, SESSION, ARG0, ARG1 ];
 	foreach my $ref (@$passed_back)
 	{
-          $kernel->post('logger' => 'log' => "Received proper hostname from master: $ref->{hostname}");
+          $kernel->call('logger' => 'log' => "Received proper hostname from master: $ref->{hostname}");
 	  $kernel->call($session, 'create_conf', $ref->{hostname});
 	}
 
@@ -222,7 +238,7 @@ sub new
 	my $ug = new Data::UUID;
 	$config->{uuid} = $ug->create_str();
 
-        $kernel->post("logger" => 'log' => "saving config file: " . $client_conf) if $SNAG::flags{debug};
+        $kernel->call('logger' => 'log' => "saving config file: " . $client_conf) if $SNAG::flags{debug};
 	use Config::General;
 	my $cg = new Config::General();
 	$cg->save_file($client_conf, $config);
@@ -238,13 +254,13 @@ sub new
 	  use Config::General;
 	  my $cg = Config::General->new(-ConfigFile => $client_conf);
 	  my %conf = $cg->getall();
-	  $kernel->post("logger" => "log" => "Loaded $client_conf") if $SNAG::flags{debug};
+	  $kernel->call('logger' => "log" => "Loaded $client_conf") if $SNAG::flags{debug};
 	  SET_HOST_NAME($conf{hostname});
 	  SET_UUID($conf{uuid});
 	}
 	else
 	{
-          $kernel->post("logger" => "log" => "WARNING: running load_conf but I can't find $client_conf.  I should've called init, but something must've happend");
+          $kernel->call('logger' => "log" => "WARNING: running load_conf but I can't find $client_conf.  I should've called init, but something must've happend");
 	}
       },
 
@@ -276,7 +292,7 @@ sub new
           }
           else
           {
-            $kernel->post("logger" => "log" => "Invalid data in get_server_info_response for $passed_through->[0]:" . Dumper $ref);
+            $kernel->call('logger' => "log" => "Invalid data in get_server_info_response for $passed_through->[0]:" . Dumper $ref);
           }
         }
 
@@ -302,8 +318,8 @@ sub handle_input
       $heap->{client_queue}->{$name}->{functions}->{load} = new SNAG::Queue ( File => $queue_file, Seperator => PARCEL_SEP );
     }
 
-    $kernel->post('logger' => 'log' => "Enqueue: $name($function): " . substr($data, 0, 130) . "....") if $SNAG::flags{debug} && ! $SNAG::flags{verbose};
-    $kernel->post('logger' => 'log' => "Enqueue: $name($function): $data") if $SNAG::flags{verbose};
+    $kernel->call('logger' => 'log' => "Enqueue: $name($function): " . substr($data, 0, 130) . "....") if $SNAG::flags{debug} && ! $SNAG::flags{verbose};
+    $kernel->call('logger' => 'log' => "Enqueue: $name($function): $data") if $SNAG::flags{verbose};
 
     $heap->{client_queue}->{$name}->{functions}->{load}->enq($data);
   }
@@ -312,12 +328,12 @@ sub handle_input
     my $queue_mode = delete $data->{queue_mode};
     if($queue_mode eq 'replace')
     {
-      $kernel->post('logger' => 'log' => "Enqueue: $name($function), replacing") if $SNAG::flags{debug};
+      $kernel->call('logger' => 'log' => "Enqueue: $name($function), replacing") if $SNAG::flags{debug};
       $heap->{client_queue}->{$name}->{functions}->{$function} = [ $data ];
     }
     else
     {
-      $kernel->post('logger' => 'log' => "Enqueue: $name($function)") if $SNAG::flags{debug};
+      $kernel->call('logger' => 'log' => "Enqueue: $name($function)") if $SNAG::flags{debug};
       push @{$heap->{client_queue}->{$name}->{functions}->{$function}}, $data;
     }
   }
@@ -333,7 +349,7 @@ sub create_connection
   {
     unless(defined $args->{$key})
     {
-      $poe_kernel->post('logger' => 'log' => "Missing required argument '$key'") if $SNAG::flags{debug};
+      $poe_kernel->call('logger' => 'log' => "Missing required argument '$key'") if $SNAG::flags{debug};
       push @$missing, $key;
       next;
     }
@@ -376,7 +392,7 @@ sub create_connection
                         #FIXME
                         #sooo does not work right now. Need to do some getopt spec work
                         $args->{override} = " ( override: $args->{override})" if defined $args->{override};
-                        $kernel->post("logger" => "log" => "Client: Started: $args->{name}$args->{override}" );
+                        $kernel->call('logger' => "log" => "Client: Started: $args->{name}$args->{override}" );
                       },
 
     Connected      => sub
@@ -385,7 +401,7 @@ sub create_connection
         
                         delete $heap->{connect_attempts};
 
-                        $kernel->post("logger" => "log" => "Client: Connected: $args->{name} to $heap->{host} on $args->{port}");
+                        $kernel->call('logger' => "log" => "Client: Connected: $args->{name} to $heap->{host} on $args->{port}");
 
                         ### Send handshake
                         $kernel->state('got_server_input' => \&receive_handshake);
@@ -426,7 +442,7 @@ sub create_connection
                           $kernel->post('client' => 'query_server_info' => $args->{name});
                         }
 
-                        $kernel->post('logger' => 'log' => $error_msg);
+                        $kernel->call('logger' => 'log' => $error_msg);
                       },
 
     Disconnected   => sub
@@ -438,7 +454,7 @@ sub create_connection
 
                         my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
 
-                        $kernel->post("logger" => "log" => "Client:: Disconnected: $args->{name} to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
+                        $kernel->call('logger' => "log" => "Client:: Disconnected: $args->{name} to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
 
                         $kernel->delay('reconnect' =>  $reconnect_time);
                       },
@@ -449,7 +465,7 @@ sub create_connection
                       {
                         my ($kernel, $heap, $syscall, $num, $error) = @_[ KERNEL, HEAP, ARG0, ARG1, ARG2 ];
 
-                        $kernel->post("logger" => "log" => "Client ServerError: $args->{name} to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
+                        $kernel->call('logger' => "log" => "Client ServerError: $args->{name} to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
                       },
 
     InlineStates   => { 
@@ -467,7 +483,7 @@ sub create_connection
 
                           if($heap->{pending_data})
                           {
-			    $kernel->post('logger' => 'log' => 'Client: SendParcel.  This client already has pending data, this should never happen');
+			    $kernel->call('logger' => 'log' => 'Client: SendParcel.  This client already has pending data, this should never happen');
                           }
 
                           return unless $heap->{initiated_connection};
@@ -500,7 +516,7 @@ sub create_connection
                               if($SNAG::flags{debug})
                               {
                                 my $args_str = join ', ', map { "$_ => $parcel->{data}->{$_}" } keys %{$parcel->{data}}; 
-                                $kernel->post('logger' => 'log' => "Sending: $args->{name}($function): args($args_str)");
+                                $kernel->call('logger' => 'log' => "Sending: $args->{name}($function): args($args_str)");
                               }
                             }
                             elsif(my $chunk = $data->peek($max_chunk_size))
@@ -519,7 +535,7 @@ sub create_connection
                                 chunk_size => $chunk_size,
                               };
 
-                              $kernel->post('logger' => 'log' => "Sending: $args->{name}($function): $chunk_size items\n") if $SNAG::flags{debug};
+                              $kernel->call('logger' => 'log' => "Sending: $args->{name}($function): $chunk_size items\n") if $SNAG::flags{debug};
                             }
 
                             last;
@@ -538,7 +554,7 @@ sub create_connection
                             };
                             if($@)
                             {
-			                        $kernel->post("logger" => "log" => "Caught error while sending data: $@");
+			                        $kernel->call('logger' => "log" => "Caught error while sending data: $@");
                               $kernel->yield('force_disconnect'); 
                             }
                             else
@@ -557,17 +573,17 @@ sub create_connection
                         {
                           my ($kernel, $heap) = @_[KERNEL, HEAP];
                          
-                          $kernel->post('logger' => 'log' => "check_queue for $heap->{name}") if $SNAG::flags{verbose};
+                          $kernel->call('logger' => 'log' => "check_queue for $heap->{name}") if $SNAG::flags{verbose};
 
                           if($heap->{client_queue}->{has_data})
                           {
-                            $kernel->post('logger' => 'log' => "check_queue: sending parcel") if $SNAG::flags{verbose};
+                            $kernel->call('logger' => 'log' => "check_queue: sending parcel") if $SNAG::flags{verbose};
                             $kernel->yield('send_parcel');
                           }
                           else
                           {
                             $kernel->delay($_[STATE] => 2);
-                            $kernel->post('logger' => 'log' => "check_queue: no parcels to send") if $SNAG::flags{verbose};
+                            $kernel->call('logger' => 'log' => "check_queue: no parcels to send") if $SNAG::flags{verbose};
                           }
                         },
 
@@ -578,7 +594,7 @@ sub create_connection
                           $msg = 'Unknown reason' unless $msg;
 
                           my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
-                          $kernel->post("logger" => "log" => "FORCED DISCONNECT: $args->{name} to $heap->{host} on $args->{port}: $msg, reconnecting in $reconnect_time seconds");
+                          $kernel->call('logger' => "log" => "FORCED DISCONNECT: $args->{name} to $heap->{host} on $args->{port}: $msg, reconnecting in $reconnect_time seconds");
 
                           delete $heap->{initiated_connection};
                           delete $heap->{pending_data};
@@ -611,7 +627,7 @@ sub receive_handshake
   if($parcel->{handshake} eq 'To crush your enemies, to see them driven before you, and to hear the lamentations of their women.')
   {
     ## SUCCESS! Back to default ServerInput
-    $kernel->post("logger" => "log" => "Client: Handshake: $heap->{name} to $heap->{host} on $heap->{port}");
+    $kernel->call('logger' => "log" => "Client: Handshake: $heap->{name} to $heap->{host} on $heap->{port}");
 
     $heap->{initiated_connection} = 1;
     $kernel->state('got_server_input' => \&receive);
@@ -624,11 +640,11 @@ sub receive_handshake
   {
     if($parcel->{error})
     {
-      $kernel->post("logger" => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: $parcel->{error}");
+      $kernel->call('logger' => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: $parcel->{error}");
     }
     else
     {
-      $kernel->post("logger" => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: Invalid handshake response");
+      $kernel->call('logger' => "log" => "Client: Handshake: Error: $heap->{name} to $heap->{host} on $heap->{port}: Invalid handshake response");
     }
 
     $kernel->yield('force_disconnect');
@@ -653,7 +669,7 @@ sub receive
     {
       my $chunk_size = $pending_data->{chunk_size} or die "Function '$function' requires 'chunk_size' in 'pending_data'";
 
-      $kernel->post('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status} $chunk_size items") if $SNAG::flags{debug};
+      $kernel->call('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status} $chunk_size items") if $SNAG::flags{debug};
 
       unless($parcel->{action} eq 'hold')
       {
@@ -662,18 +678,18 @@ sub receive
     }
     else
     {
-      $kernel->post('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status}") if $SNAG::flags{debug};
+      $kernel->call('logger' => 'log' => "Receiving: $heap->{name}($function): status=$parcel->{status}") if $SNAG::flags{debug};
 
       if(my $postback = $pending_data->{postback})
       {
         if($parcel->{status} eq 'success')
         {
-          $kernel->post('logger' => 'log' =>  "Recieve: calling postback") if $SNAG::flags{debug};
+          $kernel->call('logger' => 'log' =>  "Recieve: calling postback") if $SNAG::flags{debug};
           $postback->( $parcel->{result} );
         }
         else
         {
-          $kernel->post('logger' => 'log' => "Recieve: NOT calling postback") if $SNAG::flags{debug};
+          $kernel->call('logger' => 'log' => "Recieve: NOT calling postback") if $SNAG::flags{debug};
         }
       }
 
@@ -690,12 +706,12 @@ sub receive
   }
   else
   {
-    $kernel->post("logger" => "log" => "SERVER ERROR: $heap->{name} received response yet has no pending data");
+    $kernel->call('logger' => "log" => "SERVER ERROR: $heap->{name} received response yet has no pending data");
   }
 
   if($parcel->{status} eq 'error')
   {
-    $kernel->post("logger" => "log" => "SERVER ERROR: $heap->{name} to $heap->{host} on $heap->{port}: action = $parcel->{action}, details = $parcel->{details}");
+    $kernel->call('logger' => "log" => "SERVER ERROR: $heap->{name} to $heap->{host} on $heap->{port}: action = $parcel->{action}, details = $parcel->{details}");
   }
 
   if($parcel->{action} eq 'hold')
