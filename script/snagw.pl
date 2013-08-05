@@ -46,6 +46,7 @@ if($SNAG::flags{compile})
 	       -M Modern::Perl
 	       -M Network::IPv4Addr
 	       -M POE::Wheel::Run
+	       -M POE::Quickie    
 	       -M POE::Component::Client::NNTP 
 	       -M POE::Wheel::FollowTail
                -M SNAG

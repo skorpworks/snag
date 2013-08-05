@@ -2,6 +2,7 @@ XML::SAX::PurePerl
 Crypt::Blowfish
 POE::Filter::Reference
 POE::Wheel::Run
+POE::Quickie
 Date::Parse
 Data::Dumper
 Net::Ping
