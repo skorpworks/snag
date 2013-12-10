@@ -136,6 +136,7 @@ my %default_config_dirs =
   "/etc/local.d/"                   => '.', # use . for wildcard for entire directory
   "/etc/logrotate.d/"               => '.',
   "/etc/rsyslog.d/"                 => '.',
+  "/etc/portage/"                   => '.',
   "/etc/ssh/"                       => '.',
   "/etc/sysconfig/"                 => '.', # use . for wildcard for entire directory
   "/etc/sysconfig/network-scripts/" => 'ifcfg-',
@@ -991,7 +992,7 @@ sub system
       #    inet 69.16.128.183/27 brd 69.16.128.191 scope global secondary eth0
       #    inet6 fe80::230:48ff:fe34:b2fa/64 scope link
       #2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 100
-      if (m/^(\d+):\s(lo|eth\d+|em\d+|bond\d+|tunl\d|tun\d|tap\d):\s(.*)$/ )
+      if (m/^(\d+):\s(enp\d+s\d+f\d+|lo|eth\d+|em\d+|bond\d+|tunl\d|tun\d|tap\d):\s(.*)$/ || /^(\d+):\s(vlan\d+)@\w+:\s(.*)$/)
       {
         $name = $2;
         $iface->{$name}->{port} = $3;

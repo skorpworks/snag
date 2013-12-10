@@ -7,11 +7,12 @@ use POE::Filter::Reference;
 use Carp qw(carp croak);
 use Data::Dumper;
 use FreezeThaw qw/freeze/;
-use DBM::Deep;
-use DBM::Deep::Engine::File;                                                                                                                                                                                                                                                   
-use DBM::Deep::Iterator::File;      
+use Try::Tiny;
 use Date::Parse;
 use Date::Format;
+use DBM::Deep;
+use DBM::Deep::Engine::File; 
+use DBM::Deep::Iterator::File;      
 
 if(OS ne 'Windows')
 {
@@ -90,6 +91,36 @@ sub new
         #$kernel->delay('get_client_functions' => 7) unless OS eq 'Windows';
 
         $kernel->delay('get_info' => 2);
+
+      },
+
+      check_state_file => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+        my ($state_file, $state_dbm, $reset);
+
+        $state_file = catfile(LOG_DIR, 'sysinfo_conf_files.state');
+
+        #hope to catch 
+	#config_files_check aborted: DBM::Deep: Wrong file version found - 4 - expected 3 at /opt/snag/bin/snagc line 384
+        try
+        {
+          $state_dbm = DBM::Deep->new
+          (
+            file => $state_file,
+            autoflush => 1,
+          ) or die $!;
+        } 
+        catch
+        {
+	  $reset = 1;
+          $kernel->call('logger' => 'log' => "Sysinfo: unable to open state file: $state_file: $_" );
+        }
+	try
+	{
+	  unlink $state_file if ( -w $state_file && $reset );
+	}
       },
 
       sync_remote_hosts => sub
