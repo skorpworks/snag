@@ -17,6 +17,7 @@ use Date::Format;
 use Time::Local;
 use DBM::Deep;
 use File::Spec::Functions qw/catfile/;
+use Statistics::Descriptive;
 use Data::Dumper;
 
 my $max_chunk_size = 100;
@@ -89,8 +90,12 @@ sub new
 
         my $master_info_exists;
 
+        $heap->{start} = time();
+        $heap->{epoch} = time();
         $heap->{timekeeper} =  Time::HiRes::time();
-        $kernel->alarm(timekeeper => $heap->{timekeeper} + 5);
+
+        $kernel->alarm(timekeeper => $heap->{timekeeper} + 2);
+        $kernel->delay(stats_update => 60);
         
 	# want this inline so it blocks and runs before anything is established
 	#
@@ -167,12 +172,37 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-        my $diff = Time::HiRes::time() - ($heap->{timekeeper} + 5);
-        $heap->{timekeeper} = Time::HiRes::time();
-        $kernel->alarm(timekeeper => $heap->{timekeeper} + 5);
+        $heap->{timekeeper} += 2;
 
-        $kernel->call('logger' => 'log' => "timekeeper: diff: $diff  next: $heap->{timekeeper}") if $SNAG::flags{debug};
+        my $diff = Time::HiRes::time() - ($heap->{timekeeper});
+
+
+        push @{$heap->{timekeeper_samples}}, $diff;
+        shift @{$heap->{timekeeper_samples}} if scalar(@{$heap->{timekeeper_samples}}) > 200;
+
+        $heap->{timekeeper} = Time::HiRes::time();
+        $kernel->alarm(timekeeper => $heap->{timekeeper} + 2);
+
+        $kernel->call('logger' => 'log' => "timekeeper: diff: $diff  next: $heap->{timekeeper}") if $SNAG::flags{verbose};
         $kernel->call('logger' => 'log' => "timekeeper delayed: diff: $diff  next: $heap->{timekeeper}") if $diff > 10;
+      },
+
+      stats_update => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+        $heap->{epoch} = time();
+        $kernel->alarm($_[STATE] => $heap->{epoch} + 60);
+
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_uptime', '1g', $heap->{epoch}, ($heap->{epoch} - $heap->{start}) ) );
+
+        my $statistics = Statistics::Descriptive::Full->new();
+        $statistics->add_data(@{$heap->{timekeeper_samples}});
+
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_min', '1g', $heap->{epoch}, $statistics->min() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_max', '1g', $heap->{epoch}, $statistics->max() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_mean', '1g', $heap->{epoch}, $statistics->mean() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_pct95', '1g', $heap->{epoch}, ($statistics->percentile(95))[0] ) );
       },
 
       add => sub
@@ -535,7 +565,7 @@ sub create_connection
                                 chunk_size => $chunk_size,
                               };
 
-                              $kernel->call('logger' => 'log' => "Sending: $args->{name}($function): $chunk_size items\n") if $SNAG::flags{debug};
+                              $kernel->call('logger' => 'log' => "Sending: $args->{name}($function): $chunk_size items") if $SNAG::flags{debug};
                             }
 
                             last;
@@ -633,8 +663,11 @@ sub receive_handshake
     $kernel->state('got_server_input' => \&receive);
 
     $kernel->yield('check_queue');
-
-    $kernel->yield('heartbeat') unless $heap->{name} =~ /rrd$/;
+ 
+    # our hw can handle this now.  
+    # TODO: I need to make this a conf item
+    #$kernel->yield('heartbeat') unless $heap->{name} =~ /rrd$/;
+    $kernel->yield('heartbeat');
   }
   else
   {
