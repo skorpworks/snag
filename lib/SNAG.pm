@@ -228,7 +228,7 @@ sub OSVER { $ver };
 sub OSLONG { $long };
 
 # Try and guess where our conf file is
-my @path = qw(/opt/snag /etc/ ./..);
+my @path = qw(/opt/snag);
 my $conf;
 eval
 {

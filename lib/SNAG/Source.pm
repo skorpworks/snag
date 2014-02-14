@@ -12,6 +12,8 @@ use POE::Session;
 
 my $del = ':';
 
+our $stats;
+
 sub new
 {
   my $package = shift;
