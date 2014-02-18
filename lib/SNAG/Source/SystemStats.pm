@@ -56,6 +56,7 @@ sub new
   }
 
   my $module = "SNAG/Source/SystemStats/" . OS . '/' . OSDIST . OSVER;
+  $module =~ s/\/$//;
 
   eval
   {
