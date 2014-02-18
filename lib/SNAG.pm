@@ -46,16 +46,30 @@ if($^O =~ /linux/i)
     $long = $release;
     chomp $long;
 
+    #CentOS release 6.5 (Final)
+    #CentOS Linux release 6.0 (Final)
+    if($release =~ /CentOS release ([\d\.]+) ([\w]+)/)
+    {
+      ($ver = $1) =~ s/\.//g;
+      $dist = 'CentOS';
+      print "$dist\n";
+    }
+    elsif($release =~ /CentOS Linux release ([\d\.]+) ([\w]+)/)
+    {
+      ($ver = $1) =~ s/\.//g;
+      $dist = 'CentOS';
+      print "$dist\n";
+    }
     ###Red Hat Enterprise Linux AS release 3 (Taroon Update 5)
     ###Red Hat Enterprise Linux AS release 4 (Nahant Update 1)
     ###Red Hat Enterprise Linux WS release 3 (Taroon Update 5)
-    if($release =~ /Red Hat Enterprise Linux \w+ release ([\.\d]+)/)
+    elsif($release =~ /Red Hat Enterprise Linux \w+ release ([\.\d]+)/)
     {
       ($ver = $1) =~ s/\.//g;
       $dist = 'RHEL';
     }
     ###Red Hat Linux release 7.2 (Enigma)
-    elsif($release =~  /Red Hat Linux release ([\d\.]+)/)
+    elsif($release =~ /Red Hat Linux release ([\d\.]+)/)
     {
       ($ver = $1) =~ s/\.//g;
       $dist = 'RH';
