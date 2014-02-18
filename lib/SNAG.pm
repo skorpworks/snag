@@ -8,7 +8,7 @@ use Exporter;
 
 use File::Basename;
 use Sys::Hostname;
-use Getopt::Long;
+use Getopt::Long qw(GetOptionsFromArray);
 use POE;
 use FileHandle;
 use Date::Format;
@@ -17,9 +17,12 @@ use File::Spec::Functions qw/rootdir catpath catfile devnull catdir/;
 use Data::Dumper::Concise;
 use Config::General qw/ParseConfig/;
 
+my @argv_cp;
+push @argv_cp, @ARGV;
+
 our %flags;
 Getopt::Long::Configure("pass_through");
-GetOptions( \%flags, 'debug+', 'verbose+', 'init', 'compile', 'install', 'uninstall', 'version',
+GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile', 'install', 'uninstall', 'version',
                      'nosysinfo', 'nosysstats', 'noalerts',
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
@@ -239,7 +242,7 @@ sub OSVER { $ver };
 sub OSLONG { $long };
 
 # Try and guess where our conf file is
-my @path = qw(/opt/snag /etc/ ./..);
+my @path = qw(/opt/snag);
 my $conf;
 eval
 {

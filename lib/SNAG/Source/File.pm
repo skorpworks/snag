@@ -50,7 +50,7 @@ sub new
       {
         my ($heap, $kernel) = @_[ HEAP, KERNEL ];
 
-        $heap->{source} = $source;
+        $heap->{source} = $source->{file} || $source;
         $heap->{stat_source} = $package;
         $heap->{stat_source} =~ s/\:\:/-/g;
         $heap->{stat_source} =~ s/\:\:/-/g;
