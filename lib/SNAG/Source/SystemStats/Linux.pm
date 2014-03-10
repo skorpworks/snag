@@ -51,7 +51,7 @@ $mp_fields->{'%irq'}->{ds} = 'irq';
 $mp_fields->{'%soft'}->{ds} = 'soft';
 $mp_fields->{'%steal'}->{ds} = 'steal';
 $mp_fields->{'%idle'}->{ds} = 'idle';
-$mp_fields->{'%guest'}->{ds} = 'quest';
+$mp_fields->{'%guest'}->{ds} = 'guest';
 $mp_fields->{'intr/s'}->{ds} = 'intrs';
 
 
@@ -196,7 +196,13 @@ sub supp_mpstat_child_stdio
   #17:42:24     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
   #17:42:29     all    0.57    0.00    1.79   12.90    0.00    1.39    0.00    0.00   83.34
 
-  if ($output =~ s/^\d+:\d+:\d+\s+CPU\s+//)
+
+  #Linux 2.6.38-13-server (XXXXXXXXXXXXXXXXXXXXX)  03/10/2014      _x86_64_        (2 CPU)
+  #06:15:41 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
+  #06:15:51 PM  all    2.90    0.00    9.65   53.95    0.00    5.80    0.00    0.00   27.70
+  #Average:     all    2.90    0.00    9.65   53.95    0.00    5.80    0.00    0.00   27.70
+
+  if ($output =~ s/^\d+:\d+:\d+\s+[APM]{0,2}\s+CPU\s+//)
   {
     my @fields = split /\s+/, $output;
     for (my $i = 0; $i <= $#fields; $i++)
@@ -205,7 +211,7 @@ sub supp_mpstat_child_stdio
     }
   }
 
-  if ($output =~ s/^\d+:\d+:\d+\s+all\s+//)
+  if ($output =~ s/^\d+:\d+:\d+\s+[APM]{0,2}\s+all\s+//)
   {
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
