@@ -23,6 +23,8 @@ my $del = ':';
 
 our $server_data;
 
+our $heartbeat_batch = 20;
+
 #################################
 sub new
 #################################
@@ -98,6 +100,10 @@ sub new
         $SNAG::Server::server_data->{parcels} = 0;
         $kernel->post('client' => 'sysrrd' => 'load' => join $del, ($stat_prefix, 'SNAGs_cons', '1g', $epoch,  ($server_data->{conn}+0) ) );
         $SNAG::Server::server_data->{conn} = 0;
+        $kernel->post('client' => 'sysrrd' => 'load' => join $del, ($stat_prefix, 'SNAGs_cons', '1g', $epoch,  ($server_data->{disconn}+0) ) );
+        $SNAG::Server::server_data->{disconn} = 0;
+        $kernel->post('client' => 'sysrrd' => 'load' => join $del, ($stat_prefix, 'SNAGs_cons', '1g', $epoch,  ($server_data->{timeout}+0) ) );
+        $SNAG::Server::server_data->{timeout} = 0;
         $kernel->call('logger' => 'log' => "done server_stats");
       },
     }
@@ -169,6 +175,7 @@ sub new
       }
 
       
+      $server_data->{disconn}++;
       $kernel->call('logger' => 'log' => "ClientDisconnected: Closed connection from $ip ($heap->{hostname})");
     },
   
@@ -213,6 +220,7 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         my $now = time;
+        $server_data->{timeout}++;
         $kernel->call('logger' => 'log' => "Handshake Error:  Client sent nothing within time allowed ($now)");
         $kernel->yield('disconnect');
       },
@@ -267,6 +275,8 @@ sub new
               my $hb_insert_sth = $sysinfo_dbh->prepare("insert into server_heartbeats(host, server, source, seen, server_seen) values(?, ?, ?, ?, now() )");
               my $hb_update_sth = $sysinfo_dbh->prepare("update server_heartbeats set seen = ?, server_seen = now() where host = ? and server = ? and source = ?");
 
+	      my $processed = 0;
+
               while( my ($host, $ref) = each %$heartbeat_spool)
               {
                 while( my ($source, $seen) = each %$ref)
@@ -282,6 +292,9 @@ sub new
                     $hb_insert_sth->execute($host, $alias, $source, $seen) or die "Unable to update server_heartbeats: " . $sysinfo_dbh->errstr;
                   }
                 }
+
+		delete $heartbeat_spool->{$host};
+		last if $processed > $heartbeat_batch;
               }
             }
           }
@@ -295,9 +308,17 @@ sub new
           $kernel->call('logger' => 'log' => "Error in heartbeat_update: $@");
         }
 
-        $heartbeat_spool = undef;
-
-        print "DONE heartbeat_update!\n" if $SNAG::flags{debug};
+        if (  scalar keys %$heartbeat_spool > 0 )
+        {
+          $kernel->yield('heartbeat_update');
+          print "REMAIN: $rem_hb heartbeat_updates\n" if $ASL::flags{debug};
+        }
+        else
+        {
+          print "DONE heartbeat_update!\n" if $ASL::flags{debug};
+          #redundant but gives me warm fuzzies
+          $heartbeat_spool = undef;
+        }
       },
     }
   );

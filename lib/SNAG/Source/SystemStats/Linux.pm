@@ -324,8 +324,14 @@ sub supp_iostat_io_child_stdio
     push @mps, uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount}) if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]});
     foreach my $mp (@mps)
     {
-      foreach my $key (keys %{$io_fields})
+      FIELD: foreach my $key (keys %{$io_fields})
       {
+        #kludge until i can find out where spikes are coming from
+        if ($key eq '%util' && $stats[$io_fields->{"$key"}->{idx}] > 100)
+        {
+          $poe_kernel->call('logger' => 'log' => "SysStats::Linux::iostat_io bogus line $output");
+          next FIELD;
+        }
         $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", $io_fields->{"$key"}->{ds}, "1g", $time, $stats[$io_fields->{"$key"}->{idx}])) if defined $io_fields->{"$key"}->{idx};
       }
     }
