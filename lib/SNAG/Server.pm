@@ -308,14 +308,15 @@ sub new
           $kernel->call('logger' => 'log' => "Error in heartbeat_update: $@");
         }
 
-        if (  scalar keys %$heartbeat_spool > 0 )
+        my $remaining_hb = scalar keys %$heartbeat_spool > 0 
+        if ( $remaining_hb > 0 )
         {
           $kernel->yield('heartbeat_update');
-          print "REMAIN: $rem_hb heartbeat_updates\n" if $ASL::flags{debug};
+          print "REMAIN: $remaining_hb heartbeat_updates\n" if $SNAG::flags{debug};
         }
         else
         {
-          print "DONE heartbeat_update!\n" if $ASL::flags{debug};
+          print "DONE heartbeat_update!\n" if $SNAG::flags{debug};
           #redundant but gives me warm fuzzies
           $heartbeat_spool = undef;
         }
