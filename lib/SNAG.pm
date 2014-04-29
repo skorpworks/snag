@@ -131,7 +131,36 @@ if($^O =~ /linux/i)
     ($dist) = ($release =~ m/DISTRIB_ID=(?=(.*))\b/);
     ($ver)  = ($release =~ m/DISTRIB_RELEASE=(?=(.*))\b/);
     ($long) = ($release =~ m/DISTRIB_DESCRIPTION=\"(.*)\"/);
+    ($name) = ($release =~ m/DISTRIB_CODENAME=(?=(.*))\b/);
+
+    $long .= " $name";
     $ver =~ s/\./-/g;
+  }
+  elsif(-e '/etc/os-release')
+  {
+    {
+      local $/;
+
+      open FILE, '/etc/os-release';
+      $release = <FILE>;
+      close FILE;
+    }
+    #PRETTY_NAME="Debian GNU/Linux 7 (wheezy)"
+    #NAME="Debian GNU/Linux"
+    #VERSION_ID="7"
+    #VERSION="7 (wheezy)"
+    #ID=debian
+    #ANSI_COLOR="1;31"
+    #HOME_URL="http://www.debian.org/"
+    #SUPPORT_URL="http://www.debian.org/support/"
+    #BUG_REPORT_URL="http://bugs.debian.org/"
+    ($dist) = ($release =~ m/NAME=(?=(.*))\b/);
+    ($ver) =  ($release =~ m/VERSION_ID=(?=(.*))\b/);
+    ($long) = ($release =~ m/PRETTY_NAME=\"(?=(.*))\"/);
+
+    $dist =~ s/"//g;
+    $ver  =~ s/"//g;
+    $long =~ s/"//g;
   }
 
   elsif(-e '/etc/issue')

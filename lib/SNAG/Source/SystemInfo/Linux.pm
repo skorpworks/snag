@@ -85,6 +85,7 @@ my %default_config_files =
   '/etc/passwd' => 1,
   '/etc/shadow' => 1,
   '/etc/profile' => 1,
+  '/etc/network/interfaces' => 1,
   '/etc/resolv.conf' => 1,
   '/etc/selinux/config' => 1,
   '/etc/services' => 1,

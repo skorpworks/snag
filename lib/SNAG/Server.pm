@@ -308,7 +308,7 @@ sub new
           $kernel->call('logger' => 'log' => "Error in heartbeat_update: $@");
         }
 
-        my $remaining_hb = scalar keys %$heartbeat_spool > 0 
+        my $remaining_hb = scalar keys %$heartbeat_spool > 0;
         if ( $remaining_hb > 0 )
         {
           $kernel->yield('heartbeat_update');

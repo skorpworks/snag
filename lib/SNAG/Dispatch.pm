@@ -407,8 +407,7 @@ sub new
           if($proc->fname eq 'java' && $proc->cmndline =~ /tomcat/)
           {
             $shared_data->{tags}->{service}->{web}->{tomcat} = 1;
-
-            $kernel->yield('dispatcher' => 'SNAG::Source::tomcat' );
+            #$kernel->yield('dispatcher' => 'SNAG::Source::tomcat' );
           }
 
           if($proc->fname eq 'java' && $proc->cmndline =~ /EDNAServer/)
