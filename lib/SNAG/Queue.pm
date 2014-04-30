@@ -18,8 +18,9 @@ sub new
   my %params = @_;
 
   # convert to lower case
-  while( my($key, $val) = each %params)
+  foreach my $key (keys %params)
   {
+    my $val = $params{$key};
     delete $params{$key};
     $params{ lc($key) } = $val;
   } 
