@@ -1,1 +1,2 @@
 SNAG::Source::mysql
+POE::XS::Loop::EPoll

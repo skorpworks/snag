@@ -1,9 +1,13 @@
-XML::SAX::PurePerl
+common::sense
 Crypt::Blowfish
+Date::Parse
+Data::Dumper
+POE::XS::Loop::EPoll
+POE::XS::Loop::Poll
+POE::XS::Queue::Array
 POE::Filter::Reference
 POE::Wheel::Run
 POE::Quickie
-Date::Parse
-Data::Dumper
 Net::Ping
 Sys::Syslog
+XML::SAX::PurePerl

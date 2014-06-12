@@ -25,47 +25,27 @@ if($SNAG::flags{compile})
     my $dest_bin = 'snagw';
     my $src_script = catfile( $Bin, $Script );
 
+    my $includes;
+    for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGW_INCLUDES}) {
+        unless ( -r $include_file ) {
+            warn "$include_file does not exist - skipping\n";
+            next;
+        }
+        open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
+        while (<$fh>) {
+            chomp;
+            next unless (/\w+/);
+            $includes .= " -M $_";
+        }
+        close($fh);
+    }
+
+    my $cmd = "pp $0 --compile --cachedeps=/var/tmp/snag.pp --execute --bundle";
+    $cmd .= " $includes";
+    $cmd .= " -a /opt/snag/snag.conf --reusable -o snagw";
+    #-a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini"
+
     print "Compiling $src_script to $dest_bin ... ";
-    my $cmd = "
-               pp --compile $0
-               --bundle
-	       -M Capture::Tiny
-	       -M Config::Any
-	       -M Config::General
-	       -M Config::Tiny
-               -M Data::Dumper
-               -M Data::Dumper::Concise
-               -M Date::Parse
-               -M Date::Format
-	       -M Digest::MD5
-	       -M Digest::SHA
-	       -M File::Which 
-	       -M IO::Uncompress::Gunzip
-	       -M Log::Syslog::Fast
-               -M Mail::Sendmail
-	       -M Modern::Perl
-	       -M Network::IPv4Addr
-	       -M POE::Wheel::Run
-	       -M POE::Quickie    
-	       -M POE::Component::Client::NNTP 
-	       -M POE::Wheel::FollowTail
-               -M SNAG
-               -M SNAG::BP
-               -M Sys::Hostname
-               -M Sys::Syslog
-	       -M Statistics::LineFit
-	       -M Statistics::Descriptive
-	       -M Try::Tiny
-               -M XML::SAX::PurePerl
-               -M XML::Simple
-               -a /opt/snag/snag.conf
-	       --reusable
-               -o snagw 
-              ";
-               #-a "/opt/snag/lib/perl5/site_perl/5.12.1/XML/SAX/ParserDetails.ini;ParserDetails.ini"
-
-    $cmd =~ s/([\n\r\l])+/ /g;
-
     print "with cmd $cmd\n";
     my $out;
     open LOG, "$cmd |" || die "DIED: $!\n";
