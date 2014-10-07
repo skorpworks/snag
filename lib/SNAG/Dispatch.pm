@@ -303,26 +303,9 @@ sub new
         {
           if($port =~ /^(80)$/) ### Known web ports
           {
-            foreach my $address (sort keys %{$shared_data->{listening_ports}->{$port}})
-            {
-              my $key = ($address eq '*' ? 'localhost' : $address) . ':' . $port;
-              push @server_uris, $key;
-            }
+            #now handled by SNAGx::Dispatch
           }
         }
-
-        my $multi_flag = scalar @server_uris > 1 ? 1 : 0;
-
-        #WIP - need a much cleaner way to do this
-	#ASSERT - check_process_table has been called
-        foreach my $alias (@server_uris)
-        {
-	  unless(OS eq 'Windows' || ! defined $shared_data->{tags}->{service}->{web}->{apache} )
-	  {
-            $kernel->yield('dispatcher' => 'SNAG::Source::apache', { Alias => $alias, Multiple => $multi_flag } );
-	  }
-        }
-
       },
 
       check_process_table => sub
@@ -339,7 +322,6 @@ sub new
         {
           if($proc->fname eq 'mysqld')
           {
-            $kernel->yield('dispatcher' => 'SNAG::Source::mysql', {Alias => 'mysql'} );
             $shared_data->{tags}->{service}->{database}->{mysql} = 1;
           }
 
@@ -458,7 +440,7 @@ sub new
           if($proc->fname eq 'httpd' || $proc->fname eq 'masond' || $proc->fname eq 'apache' || $proc->fname eq 'apache2' || $proc->fname eq 'libhttpd.ep')
           {
              $shared_data->{tags}->{service}->{web}->{apache} = 1;
-            #$kernel->yield('dispatcher' => 'SNAG::Source::apache_logs' );
+             #$kernel->yield('dispatcher' => 'SNAG::Source::apache_logs' );
           }
 
           if($proc->fname eq 'webservd' && $proc->cmndline =~ /iplanet/)

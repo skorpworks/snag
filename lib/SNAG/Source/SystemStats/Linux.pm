@@ -330,7 +330,7 @@ sub supp_iostat_io_child_stdio
         if ($key eq '%util' && $stats[$io_fields->{"$key"}->{idx}] > 100)
         {
           $poe_kernel->call('logger' => 'log' => "SysStats::Linux::iostat_io bogus line $output");
-          next FIELD;
+          next FIELD unless ($stats[$io_fields->{"$key"}->{idx}] < 1000)
         }
         $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", $io_fields->{"$key"}->{ds}, "1g", $time, $stats[$io_fields->{"$key"}->{idx}])) if defined $io_fields->{"$key"}->{idx};
       }
