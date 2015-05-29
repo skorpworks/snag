@@ -1,7 +1,7 @@
 package SNAG::Dispatch;
 
 use strict;
-use POE qw/Session/;
+use POE qw/Session Wheel::Run/;
 use Data::Dumper;
 use Carp qw(carp croak);
 use SNAG;
@@ -115,13 +115,10 @@ sub new
 
           require Proc::ProcessTable;
 
+          $kernel->yield('check_control');
           $kernel->yield('check_bins');
           $kernel->yield('check_process_table');
           $kernel->yield('check_mounts');
-          $kernel->yield('check_virtual');
-          $kernel->yield('check_checkpoint');
-
-          $kernel->delay('check_listening_ports' => 60); ### Give SystemStats enough time to start running
         }
 
         unless($SNAG::flags{nosysinfo})
@@ -133,12 +130,6 @@ sub new
         {
           $kernel->yield( 'dispatcher' => 'SNAG::Source::SystemStats' );
         }
-
-        #if(HOST_NAME eq 'troz')
-        #{
-          #$kernel->yield( 'dispatcher' => 'SNAG::Source::update');
-        #}
-        #$kernel->yield('check_open_files');
       },
       
       timer => sub
@@ -180,7 +171,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool))
+        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool xl iptables ip6tables))
         {
           $shared_data->{binaries}->{$bin} = which("$bin");
           $shared_data->{binaries}->{missing} .= "$bin " unless defined $shared_data->{binaries};
@@ -191,70 +182,29 @@ sub new
         $kernel->call('logger' => 'log' => "Dispatch: check_bins: have: $found"  ) if $SNAG::flags{debug};
         $kernel->call('logger' => 'log' => "Dispatch: check_bins: missing: $shared_data->{binaries}->{missing}" ) if $SNAG::flags{debug};
 
-        #if(HOST_NAME =~ m/^s05-/)
-        #{
-        #  if ( -e '/usr/sbin/smartctl')
-        #  {
-        #    $kernel->yield( 'dispatcher' => 'SNAG::Source::Manager::smartctl', {Alias => 'snagc'}  );
-        #  }
-        #}
-      },
-
-      check_checkpoint => sub
-      {
-        my ($kernel, $heap) = @_[KERNEL, HEAP];
-        $kernel->delay($_[STATE] => 3600);
-
-        if(-e '/etc/cp-release')
+        if( $shared_data->{binaries}->{iptables} || $shared_data->{binaries}->{ip6tables} )
         {
-          $shared_data->{tags}->{service}->{firewall}->{checkpoint} = 1;
-          $kernel->yield('dispatcher' => 'SNAG::Source::checkpoint' );
-        } 
-
-        #kludge for old-school stat gathering that resulted in 300sec rrds vs current 60
-        if(-d '/home/admin/fwmonitor2')
-        {
-          $shared_data->{systemstats_step} = 300;
+          $kernel->yield( 'dispatcher' => 'SNAG::Source::iptables' );
         }
-      },
 
-      check_virtual => sub
-      {
-        my ($kernel, $heap) = @_[KERNEL, HEAP];
-        $kernel->delay($_[STATE] => 3600);
+        if( $shared_data->{binaries}->{'vserver-stat'} )
+	{
+          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
+          $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
+	}
 
-        if(-e '/usr/bin/xenstore-read')
-        {
-          my $release = `/usr/bin/xenstore-read domid`;
-          chomp $release;
-
-          if($release eq '0')
+	if( -e '/sys/hypervisor/uuid' )
+	{
+          if( $shared_data->{binaries}->{'xl'} )
           {
             $shared_data->{tags}->{'virtual'}->{xen}->{host} = 1;
             $kernel->yield('dispatcher' => 'SNAG::Source::xen' );
           }
-          elsif($release)
+          else
           {
             $shared_data->{tags}->{'virtual'}->{xen}->{guest} = 1;
           }
-        }
-
-        if(-e '/usr/sbin/vserver-stat')
-        {
-          $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
-          $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
-        }
-
-        if(-e '/proc/vmware/vm/' || -e '/var/lib/vm/guests/')
-        {
-          $shared_data->{tags}->{'virtual'}->{vmware}->{host} = 1;
-        }
-
-        if(-e '/sbin/iptables')
-        {
-          $kernel->yield('dispatcher' => 'SNAG::Source::iptables' );
-          $shared_data->{tags}->{service}->{iptables} = 1;
-        }
+	}
       },
 
       check_mounts => sub
@@ -292,22 +242,6 @@ sub new
         $shared_data->{mounts} = $mounts;
       },
 
-      check_listening_ports => sub
-      {
-        my ($kernel, $heap) = @_[KERNEL, HEAP];
-        $kernel->delay($_[STATE] => 3600);
-
-        my @server_uris;
-
-        foreach my $port (sort keys %{$shared_data->{listening_ports}})
-        {
-          if($port =~ /^(80)$/) ### Known web ports
-          {
-            #now handled by SNAGx::Dispatch
-          }
-        }
-      },
-
       check_process_table => sub
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
@@ -315,8 +249,6 @@ sub new
 
         my $procs = new Proc::ProcessTable; 
         my %fields = map { $_ => 1 } $procs->fields;
-
-        my $already_started; #kludge, id like to rework this later
 
         foreach my $proc ( @{$procs->table} )
         {
@@ -392,31 +324,6 @@ sub new
             #$kernel->yield('dispatcher' => 'SNAG::Source::tomcat' );
           }
 
-          if($proc->fname eq 'java' && $proc->cmndline =~ /EDNAServer/)
-          {
-            $shared_data->{tags}->{service}->{edna}->{server} = 1;
-
-            $kernel->yield( 'dispatcher' => 'SNAG::Source::edna_server' );
-
-            foreach my $file ('/usr/local/EDNA/logs/AuditLog')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::edna', { Alias => 'edna', Source => $file } );
-              }
-            }
-          }
-
-          if($proc->fname eq 'java' && $fields{cwd} && $proc->cwd =~ /jboss/)
-          {
-            $shared_data->{tags}->{service}->{web}->{jboss} = 1;
-          }
-
-          if($proc->fname eq 'java' && $fields{cwd} && $proc->cwd =~ /SaAppServController/)
-          {
-            $shared_data->{tags}->{service}->{web}->{sapphire} = 1;
-          }
-
           if($proc->fname eq 'slapd')
           {
             $shared_data->{tags}->{service}->{ldap} = 1;
@@ -443,62 +350,9 @@ sub new
              #$kernel->yield('dispatcher' => 'SNAG::Source::apache_logs' );
           }
 
-          if($proc->fname eq 'webservd' && $proc->cmndline =~ /iplanet/)
-          {
-            $shared_data->{tags}->{service}->{web}->{iplanet} = 1;
-          }
-
-          if($proc->fname eq 'httpd.worker' && ($proc->cmndline =~ m[/perfigo/control/] | $proc->cmndline =~ m[/perfigo/access/]))
-          {
-            if($proc->cmndline =~ m[/perfigo/control/])
-            {
-              $shared_data->{tags}->{service}->{perfigo}->{sm} = 1;
-
-              $kernel->yield('dispatcher' => 'SNAG::Source::perfigo' );
-            }
-            else
-            {
-              $shared_data->{tags}->{service}->{perfigo}->{ss} = 1;
-            }
-          }
-
-          #if($proc->fname eq 'vmware-serverd')
-          #{
-            #$shared_data->{tags}->{'system'}->{vmware}->{host} = 1;
-          #}
-
-          #if($proc->fname eq 'vmware-guestd')
-          #{
-            ## Also checked for in dmidecode results, see SNAG::Source::SystemInfo::Linux
-          #  $shared_data->{tags}->{'virtual'}->{vmware}->{guest} = 1;
-          #}
-
-          if($proc->fname =~ /tac_plus/)
-          {
-            $shared_data->{tags}->{service}->{tacacs} = 1;
-          }
-
           if($proc->fname eq 'radius')
           {
             $shared_data->{tags}->{service}->{radius} = 1;
-          }
-
-          if($proc->fname eq 'niddnsd')
-          {
-            $shared_data->{tags}->{service}->{dns}->{netid} = 1;
-          }
-
-          if($proc->fname eq 'niddhcpd')
-          {
-            $shared_data->{tags}->{service}->{dhcp}->{netid} = 1;
-
-            foreach my $file ('/opt/netid4.3.2/log/niddhcp.log')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::dhcp', { Alias => 'dhcp', Source => $file } );
-              }
-            }
           }
 
           if($proc->fname eq 'nfsd' && !$shared_data->{tags}->{storage}->{nfs}->{server}) ### Keep it from running exportfs for every nfsd proc in the table
@@ -511,168 +365,7 @@ sub new
               $shared_data->{tags}->{storage}->{nfs}->{server} = 1;
             }
           }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/fileserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{fileserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/bosserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{bosserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/kaserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{kaserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/ptserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{ptserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/buserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{buserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/vlserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{vlserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->cmndline =~ m#^/usr/afs/bin/volserver\s*#)
-          {
-            $shared_data->{tags}->{storage}->{afs}->{volserver} = 1;
-
-            unless($already_started->{afs_server})
-            {
-              $kernel->yield('dispatcher' => 'SNAG::Source::afs_server' );
-              $already_started->{afs_server} = 1;
-            }
-          }
-
-          if($proc->fname eq 'iscsid')
-          {
-            $shared_data->{tags}->{storage}->{iscsi}->{client} = 1;
-          }
-
-          if($proc->fname eq 'dsmserv')
-          {
-            $shared_data->{tags}->{storage}->{tsm}->{server} = 1;
-          }
-
-          if($proc->fname eq 'authd')
-          {
-            $shared_data->{tags}->{service}->{webauth} = 1;
-
-            foreach my $file ('/usr/local/webauth/etc/authlog')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::authd', { Alias => 'authd', Source => $file } );
-              }
-            }
-
-            foreach my $file ('/usr/local/webauth/etc/verifylog')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::verifyd', { Alias => 'verifyd', Source => $file } );
-              }
-            }
-          }
-
-          if($proc->fname eq 'verifyd')
-          {
-            $shared_data->{tags}->{service}->{webauth} = 1;
-          }
-
-          if($proc->fname eq 'krb5kdc')
-          {
-            $shared_data->{tags}->{service}->{kerberos} = 1;
-
-            foreach my $file ('/usr/local/var/krb5kdc/krb5kdc.log')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::krb', { Alias => 'krb', Source => $file } );
-              }
-            }
-          }
-
-          if($proc->fname eq 'kaserver')
-          {
-            $shared_data->{tags}->{service}->{klog} = 1;
-
-            foreach my $file ('/usr/afs/logs/AuthLog')
-            {
-              if(-e $file)
-              {
-                $kernel->yield('dispatcher' => 'SNAG::Source::File::klog', { Alias => 'klog', Source => $file } );
-              }
-            }
-          }
-
-          ### PHP?  MASON?  mod_perl?
         }
-      },
-
-      check_open_files => sub
-      {
-        my ($kernel, $heap) = @_[KERNEL, HEAP];
-        $kernel->delay($_[STATE] => 3600);
-
-        #my $open_files;
-
-        #open LSOF, 'lsof |';
-        #my @keys = split /\s+/, <LSOF>; 
-
-        #while(<LSOF>)
-        #{
-          #my @values = split /\s+/, <LSOF>;
-#
-          #my $line;
-          #@$line{@keys} = @values;
-          #push @$open_files, $line;
-        #}
       },
 
       check_win_services => sub
@@ -715,6 +408,31 @@ sub new
             $shared_data->{tags}->{storage}->{iscsi}->{client} = 1;
           }
           #print "$service => $services->{$service}\n"; 
+        }
+      },
+
+      check_control => sub
+      {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+        $kernel->delay($_[STATE] => 60);
+
+        my $control_path = BASE_DIR . '/' . SCRIPT_NAME;
+        $control_path =~ s/\.\w+$//;
+
+        $control_path .= '.control';
+
+        $shared_data->{control} = {};
+
+        if( -e $control_path )
+        {
+          open IN, $control_path;
+          while( my $line = <IN> )
+          {
+            chomp $line;
+            my ($key, $val) = split /\=/, $line, 2;
+            $shared_data->{control}->{ lc($key) } = lc($val);
+          }
+          close IN;
         }
       },
     }
