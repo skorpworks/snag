@@ -247,8 +247,11 @@ sub service_monitor
   my $active_procs;
   my $info;
 
-  while( my ($pid, $ref) = each %$process_list)
+  #while( my ($pid, $ref) = each %$process_list)
+  foreach my $pid (keys %$process_list)
   {
+    my $ref = $process_list->{$pid};
+
     ### Ignore any process owned by SNAGc.pl
     if(defined $ref->{ppid} && defined $process_list->{ $ref->{ppid} }->{fname} && $process_list->{ $ref->{ppid} }->{fname} =~ m/\bsnagc(\.pl|.{0})\b/i)
     {
@@ -501,7 +504,7 @@ sub portage
 {
   my $info;
 
-  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info 2>&1` } if -e '/usr/bin/emerge';
+  $info->{conf}->{portage} = { contents => `/usr/bin/emerge --info | egrep -v '^KiB' 2>&1` } if -e '/usr/bin/emerge';
 
   return $info;
 }
@@ -587,6 +590,7 @@ sub smartctl
         my ($disk, $device, $vendor, $product, $version, $serial, $capacity, $transport, $smart);  
         ($disk, $device, $version, $serial, $capacity, $transport) = '';  
         $smart = 0;
+        $device = 'unk';
 
         foreach (`$SNAG::Dispatch::shared_data->{binaries}->{smartctl} -i $sg 2>&1`)
         {                                                                                 
@@ -730,8 +734,8 @@ sub system
   #$info->{host} = HOST_NAME;
   $info->{entity}->{type} = 'system';
 
-  $info->{SNAG}->{version} = VERSION;
-  $info->{SNAG}->{perl} = `$^X -V`;
+  $info->{snag}->{version} = VERSION;
+  $info->{snag}->{perl} = `$^X -V`;
 
   $info->{os}->{os} = OS;
   $info->{os}->{os_version} = OSLONG;
@@ -747,6 +751,15 @@ sub system
       my $get_uuid = `/usr/bin/xenstore-read vm`;
       my ($uuid) = ($get_uuid =~ m#/vm/([\w\-]+)$#);
 
+      $info->{device}->{uuid} = $uuid;
+    }
+    elsif( -e '/sys/hypervisor/uuid' )
+    {
+      open IN, '/sys/hypervisor/uuid';
+      my $uuid = <IN>;
+      close IN;
+
+      chomp $uuid;
       $info->{device}->{uuid} = $uuid;
     }
 

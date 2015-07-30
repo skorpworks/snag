@@ -50,7 +50,7 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-        print "Stopping $package\n";
+        #print "Stopping $package\n";
       },
 
       stats_update => sub

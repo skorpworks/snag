@@ -86,10 +86,6 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->sig( CHLD => 'catch_sigchld' ); ## Does this even need to be here?
 
-        $kernel->delay('sync_remote_hosts' => 5) unless OS eq 'Windows';
-        $kernel->delay('sync_xen_uuids' => 5) unless OS eq 'Windows';
-        #$kernel->delay('get_client_functions' => 7) unless OS eq 'Windows';
-
         $kernel->delay('get_info' => 2);
 
       },
@@ -123,72 +119,6 @@ sub new
 	}
       },
 
-      sync_remote_hosts => sub
-      {
-        my ($kernel, $heap, $session) = @_[ KERNEL, HEAP, SESSION ];
-        $kernel->delay($_[STATE] => 21600);
-
-        $kernel->post('client' => 'sysinfo' => 'sync_remote_hosts' => { postback => $session->postback('add_remote_hosts') } );
-      },
-
-      sync_xen_uuids => sub
-      {
-        my ($kernel, $heap, $session) = @_[ KERNEL, HEAP, SESSION ];
-        $kernel->delay($_[STATE] => 21600);
-        $kernel->post('client' => 'sysinfo' => 'sync_xen_uuids' => { postback => $session->postback('add_xen_uuids') } );
-      },
-
-      get_client_functions => sub
-      {
-        my ($kernel, $heap, $session) = @_[ KERNEL, HEAP, SESSION ];
-        $kernel->delay($_[STATE] => 600);
-
-        $kernel->post('client' => 'sysinfo' => 'get_client_functions' => { host => HOST_NAME, postback => $session->postback('process_client_functions') } );
-      },
-
-      process_client_functions => sub
-      {
-#[
-  #{
-    #client_function => 'remove_user',
-    #arg => 'ghetto',
-    #function_id => 292,
-  #}
-#]
-        my ($kernel, $heap, $ref) = @_[ KERNEL, HEAP, ARG1 ];
- 
-        my $functions = $ref->[0];
-
-        foreach my $ref (@$functions)
-        {
-          my $rv;
-
-          if( defined $client_functions->{ $ref->{client_function} })
-          {
-            $rv = $client_functions->{ $ref->{client_function} }->( $ref->{arg} );
-          }
-          else
-          {
-            $rv = "client function $ref->{client_function} not installed on this system!";
-          }
-
-          $kernel->post('client' => 'sysinfo' => 'result_client_function' => { result => $rv, function_id => $ref->{function_id} } );
-        }
-      },
-
-      add_remote_hosts => sub
-      {
-        my ($kernel, $heap, $ref) = @_[ KERNEL, HEAP, ARG1 ];
-
-        $SNAG::Dispatch::shared_data->{remote_hosts} = $ref->[0];
-      },
-
-      add_xen_uuids => sub
-      {
-        my ($kernel, $heap, $ref) = @_[ KERNEL, HEAP, ARG1 ];
-        $SNAG::Dispatch::shared_data->{xen_uuids} = $ref->[0];
-      },
-
       get_info => sub
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
@@ -198,6 +128,11 @@ sub new
 
         while(my ($sub, $args) = each %$config)
         {
+          if( $SNAG::Dispatch::shared_data->{control}->{ 'sysinfo_' . $sub } eq 'off' )
+          {
+            next;
+          }
+
           if(my $tag = $args->{if_tag})
           {
             my $tag_match = $SNAG::Dispatch::shared_data->{tags};
@@ -248,7 +183,7 @@ sub new
 	      my $wheel = POE::Wheel::Run->new
 	      (
 	        Program => sub { info($subs_to_run) },
-	        StdioFilter  => POE::Filter::Reference->new(),
+	        StdioFilter  => POE::Filter::Reference->new('Storable'),
 	        StdoutEvent  => 'info_stdio',
 	        StderrEvent  => 'info_stderr',
 	        CloseEvent   => "info_close",
@@ -362,32 +297,6 @@ sub new
     }
   );
 }
-
-my $client_functions =
-{
-  'remove_user' => sub
-  {
-    my $uid = shift;
-
-    my $return;
-
-    if($uid =~ /^\w+$/)
-    {
-      my $rv = `userdel $uid`;
-
-      unless($rv)
-      {
-        $rv = 'success!';
-      }
-
-      return $rv;
-    }
-    else
-    {
-      return "invalid uid $uid";
-    }
-  },
-};
 
 sub info
 {

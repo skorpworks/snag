@@ -30,6 +30,8 @@ WriteMakefile
 	  'Net::Nslookup' => 0,
 	  'Net::Patricia' => 0,
 	  'POE' => 0,
+	  'POE::Filter::Reference' => 0,
+	  'POE::Wheel::Run' => 0,
 	  'POE::Component::EasyDBI' => 0,
 	  'POE::XS::Loop::Poll' => 0,
           'POE::XS::Queue::Array' => 0,

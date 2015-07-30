@@ -10,60 +10,103 @@ use SNAG;
 
 use base qw/SNAG::Source/;
 
-sub new {
-    my $package = shift;
+sub new 
+{
+	my $package = shift;
 
-    $package->SUPER::new(@_);
+	$package->SUPER::new(@_);
 
-    my %params = @_;
-    my $alias  = delete $params{Alias};
-    my $debug  = $SNAG::flags{debug};
+	my %params = @_;
+	my $alias = delete $params{Alias};
+	my $debug = $SNAG::flags{debug};
 
+	my $shared_data = $SNAG::Dispatch::shared_data;
 
-    POE::Session->create(
-        inline_states => {
-            _start => sub {
-                my ($kernel, $heap) = @_[KERNEL, HEAP];
+	POE::Session->create
+	(
+		inline_states => 
+		{
+			_start => sub 
+			{
+				my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-                $heap->{epoch}     = int(time() + 1);
-                $heap->{next_time} = $heap->{epoch};
-                while (++$heap->{next_time} % 60) { };
+				$heap->{epoch} = int(time() + 1);
+				$heap->{next_time} = $heap->{epoch};
+				while (++$heap->{next_time} % 60) { };
  
-                $kernel->alias_set($alias);
-                $kernel->alarm('iptables' => $heap->{next_time});
-            },
+				$kernel->alias_set($alias);
+				$kernel->alarm('iptables' => $heap->{next_time});
+			},
 
-            iptables => sub {
-                my ($kernel, $heap) = @_[KERNEL, HEAP];
+			iptables => sub 
+			{
+				my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-                $heap->{next_time} += 60;
-                $kernel->alarm($_[STATE] => $heap->{next_time});
+				$heap->{next_time} += 60;
+				$kernel->alarm($_[STATE] => $heap->{next_time});
 
-                my $time = time;
+				return if $SNAG::Dispatch::shared_data->{control}->{iptables};
 
-                #   74318 572652901 NNTP       tcp  --  *      *       0.0.0.0/0            0.0.0.0/0           tcp spt:8000 /* snag:ipt_nntp_p_s_8000 */
-                #   29010 163993962 NNTP       tcp  --  *      *       0.0.0.0/0            0.0.0.0/0           tcp spt:9000 /* snag:ipt_nntp_p_s_9000 */
-                #
-                #Chain NNTP (22 references)
-                #    pkts      bytes target     prot opt in     out     source               destination
-                #39253428 81025601206 RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0           /* snag:ipt_nntp */
-                #
-                #Chain NNTPS (10 references)
-                #    pkts      bytes target     prot opt in     out     source               destination
-                #35228491 73888281945 RETURN     all  --  *      *       0.0.0.0/0            0.0.0.0/0           /* snag:ipt_nntps */
-                my ($pkts, $bytes, $proto, $sessions);
-                
-		            foreach (`iptables -L -nxv`)
-                {
-                  if (m/^\s{0,}(\d+)\s+(\d+)\s+.*\s+snag:([\w\d\~\-\_]+)\s+/)
-                  {
-		                $kernel->post('client' => 'sysrrd' => 'load' => join ':', (HOST_NAME, "ipt~$3_p", '1d', $time, $1));
-		                $kernel->post('client' => 'sysrrd' => 'load' => join ':', (HOST_NAME, "ipt~$3_b", '1d', $time, $2));
-                  }
-                }
-            }
-	      }
-    );
+				my $time = time;
+
+				foreach my $bin ('iptables', 'ip6tables')
+				{
+					next unless defined $SNAG::Dispatch::shared_data->{binaries}->{$bin};
+					my $path = $SNAG::Dispatch::shared_data->{binaries}->{$bin};
+
+					if( -e $path )
+					{
+						my $wheel = POE::Wheel::Run->new
+						(
+							Program      => [ $path, '-L', '-nxv' ],
+							StdioFilter  => POE::Filter::Line->new(),
+							StderrFilter => POE::Filter::Line->new(),
+							StdoutEvent  => 'iptables_stdout',
+							StderrEvent  => 'iptables_stderr',
+							CloseEvent   => 'iptables_close',
+						);
+
+                        			$heap->{wheels}->{ $wheel->ID } = { wheel => $wheel, bin => $bin, epoch => $time };
+
+                        			$kernel->sig_child( $wheel->PID, 'sig_child' );
+					}
+				}
+			},
+
+			iptables_stdout => sub
+			{
+				my ($kernel, $heap, $result, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+
+				my $bin = $heap->{wheels}->{$wheel_id}->{bin};
+				my $epoch = $heap->{wheels}->{$wheel_id}->{epoch};
+				my $prefix = $bin eq 'ip6tables' ? 'ip6t' : 'ipt';
+
+				if ($result =~ m/^\s{0,}(\d+)\s+(\d+)\s+.*\s+snag:([\w\d\~\-\_]+)\s+/)
+				{
+					$kernel->post('client' => 'sysrrd' => 'load' => join ':', (HOST_NAME, $prefix . "~$3_p", '1d', $epoch, $1));
+					$kernel->post('client' => 'sysrrd' => 'load' => join ':', (HOST_NAME, $prefix . "~$3_b", '1d', $epoch, $2));
+				}
+			},
+
+			iptables_stderr => sub
+			{
+				my ($kernel, $heap, $result, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+			},
+
+			iptables_close => sub
+			{
+				my ($kernel, $heap, $wheel_id) = @_[KERNEL, HEAP, ARG0];
+
+				delete $heap->{wheels}->{$wheel_id};
+			},
+
+			sig_child => sub
+			{
+				my ($kernel, $heap, $not_sure, $pid, $status) = @_[KERNEL, HEAP, ARG0, ARG1, ARG2];
+				#print STDERR "unrar pid $pid exited with status $status.\n" if $args->{debug};
+			},
+		}
+	);
 }
 
 1;

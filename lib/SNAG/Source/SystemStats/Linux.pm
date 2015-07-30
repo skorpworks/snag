@@ -173,10 +173,9 @@ sub run_mpstat
 {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-
   $heap->{mpstat_wheel} = POE::Wheel::Run->new
   (
-    Program      => [ "mpstat", $stat_quanta, 1],
+    Program      => [ 'mpstat', '-P', 'ALL', $stat_quanta, 1],
     StdioFilter  => POE::Filter::Line->new(),
     StderrFilter => POE::Filter::Line->new(),
     StdoutEvent  => 'supp_mpstat_child_stdio',
@@ -190,42 +189,98 @@ sub supp_mpstat_child_stdio
 {
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
 
-  #10:34:46     CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
-  #10:34:51     all   61.43    0.00    3.19    0.20    2.00    6.79    0.00   26.40   9503.40
-  #
-  #17:42:24     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
-  #17:42:29     all    0.57    0.00    1.79   12.90    0.00    1.39    0.00    0.00   83.34
+#11:12:42 AM  CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+#11:12:44 AM  all    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     32.84
+#11:12:44 AM    0    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     14.43
+#11:12:44 AM    1    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      3.48
+#11:12:44 AM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     12.44
+#11:12:44 AM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      2.49
 
-
-  #Linux 2.6.38-13-server (XXXXXXXXXXXXXXXXXXXXX)  03/10/2014      _x86_64_        (2 CPU)
-  #06:15:41 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest   %idle
-  #06:15:51 PM  all    2.90    0.00    9.65   53.95    0.00    5.80    0.00    0.00   27.70
-  #Average:     all    2.90    0.00    9.65   53.95    0.00    5.80    0.00    0.00   27.70
+#Average:     CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+#Average:     all    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     32.84
+#Average:       0    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     14.43
+#Average:       1    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      3.48
+#Average:       2    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00     12.44
+#Average:       3    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00      2.49
 
   if ($output =~ s/^\d+:\d+:\d+\s+[APM]{0,2}\s+CPU\s+//)
   {
     my @fields = split /\s+/, $output;
     for (my $i = 0; $i <= $#fields; $i++)
     {
-      $mp_fields->{"$fields[$i]"}->{idx} = $i;
+      $mp_fields->{$fields[$i]}->{idx} = $i;
     }
   }
 
-  if ($output =~ s/^\d+:\d+:\d+\s+[APM]{0,2}\s+all\s+//)
+  if ($output =~ s/^\d+:\d+:\d+\s+[APM]{0,2}\s+(\d+|all)\s+//)
   {
+    my $cpu_id = $1;
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
 
     my $host = HOST_NAME;
+
     foreach my $key (keys %{$mp_fields})
     {
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host", "mp_" . $mp_fields->{"$key"}->{ds}, "1g", $time, $stats[$mp_fields->{"$key"}->{idx}])) if defined $mp_fields->{"$key"}->{idx};
+      my $idx = $mp_fields->{$key}->{idx};
+      if(defined $idx)
+      {
+        my $val = $stats[$idx];
+	my $inv_val = sprintf( '%.2f', ( 100 - $val ) );
+
+        my $ds = $mp_fields->{$key}->{ds};
+
+        if($cpu_id eq 'all')
+        {
+          $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, "mp_" . $ds, "1g", $time, $val) );
+
+          if( $ds eq 'idle' )
+          {
+            $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'mp_busy', "1g", $time, $inv_val ) );
+          }
+        }
+        else
+        {
+          if( $ds eq 'idle' )
+          {
+            $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'mpc_' . $cpu_id . '_busy', "1g", $time, $inv_val ) );
+          }
+
+          unless( defined $heap->{mp_max}->{$ds} )
+          {
+            $heap->{mp_max}->{$ds} = $val;
+
+            if( $ds eq 'idle' )
+            {
+              $heap->{mp_max}->{busy} = $inv_val;
+            }
+          }
+          elsif( $ds eq 'idle' )
+          {
+            if( $val > $heap->{mp_max}->{idle} )
+            {
+              $heap->{mp_max}->{idle} = $val;
+            }
+
+            if( $inv_val > $heap->{mp_max}->{busy} )
+            {
+              $heap->{mp_max}->{busy} = $inv_val;
+            }
+          }
+          elsif( $val > $heap->{mp_max}->{$ds} )
+          {
+            $heap->{mp_max}->{$ds} = $val;
+          }
+        }
+      }
     }
   }
 }
 
 sub supp_mpstat_child_stderr
 {
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+  $poe_kernel->call('logger' => 'log' => "SysStats::Linux::supp_mpstat_child_stderr $output");
 }
 
 sub supp_mpstat_child_close
@@ -233,8 +288,19 @@ sub supp_mpstat_child_close
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
   delete $heap->{running_states}->{run_mpstat};
   delete $heap->{mpstat_wheel};
-}
 
+  my $host = HOST_NAME;
+  my $time = $heap->{run_epoch};
+
+  if( my $max = delete $heap->{mp_max} )
+  {
+    foreach my $ds (keys %$max)
+    {
+      my $val = $max->{$ds};
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, "mpm_" . $ds, "1g", $time, $val) );
+    }
+  }
+}
 
 
 #####################################################################################
@@ -825,10 +891,15 @@ sub run_network_dev
   foreach (@lines)
   {
     s/\s+/ /g;
-    s/\s+/ /g;
     if (s/^\s*([\w\.\-]+)\s*:\s*//)
     {
       next if($1 =~ /^(vif|ppp)/);
+
+      if( $1 =~ /^tun/ && $shared_data->{control}->{ 'sysstats_run_network_dev_keep_tun' } ne 'on' )
+      {
+        next;
+      }
+
       my @stats = split(/\s+/);
       #in
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inbyte', $rrd_min . "d", $time, $stats[0]));

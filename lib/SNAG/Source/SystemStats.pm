@@ -139,6 +139,11 @@ sub new
 
         while( my ($state, $ref) = each %$run_states)
         {
+          if( $SNAG::Dispatch::shared_data->{control}->{ 'sysstats_' . $state } eq 'off' )
+          {
+            next;
+          }
+
           unless($heap->{running_states}->{$state})
           {
             $kernel->yield($state);
