@@ -176,7 +176,6 @@ sub new
 
         my $diff = Time::HiRes::time() - ($heap->{timekeeper});
 
-
         push @{$heap->{timekeeper_samples}}, $diff;
         shift @{$heap->{timekeeper_samples}} if scalar(@{$heap->{timekeeper_samples}}) > 200;
 
@@ -326,9 +325,8 @@ sub new
           }
         }
 
-        $kernel->delay('query_server_info' => 60, $passed_through->[0]);
+        $kernel->delay_add('query_server_info' => 60, $passed_through->[0]);
       },
-
     }
   );
 }
@@ -385,7 +383,7 @@ sub create_connection
     }
     $args->{$key} = $SNAG::flags{"$args->{name}$key"} if defined $SNAG::flags{"$args->{name}$key"};
     #FIXME
-    #sooo does not work right now. Need to do some getopt spec work
+    #does not work right now. Need to do some getopt spec work
     $args->{override} .= "$key:$args->{name}$key " if defined $SNAG::flags{"$args->{name}$key"};
   }
 
@@ -420,10 +418,17 @@ sub create_connection
                         );
 
                         #FIXME
-                        #sooo does not work right now. Need to do some getopt spec work
+                        #does not work right now. Need to do some getopt spec work
                         $args->{override} = " ( override: $args->{override})" if defined $args->{override};
                         $kernel->call('logger' => "log" => "Client: Started: $args->{name}$args->{override}" );
                       },
+
+## WTF: [2015-09-21 15:49:45] [26119] SNAG warning: POE::Component::Client::TCP->new() doesn't recognize "Stopped" as a parameter at SNAG/Client.pm line 646.
+    # Stopped =>        sub
+                      # {
+                        # my ($kernel, $heap) = @_[ KERNEL, HEAP ];
+                        # $kernel->call('logger' => "log" => "Client: Stopped: $args->{name}$args->{override}" );
+		      # },
 
     Connected      => sub
                       {
@@ -529,18 +534,17 @@ sub create_connection
 
                             unless($function eq 'load')
                             {
-                              my $postback = delete $data->[0]->{postback};
-
-                              $parcel =
+			      $parcel->{function} = $function;
+                              foreach my $key (keys %{$data->[0]})
                               {
-                                function => $function,
-                                data => $data->[0],
-                              };
-
+                                next if $key eq 'postback';
+                                $parcel->{data}->{$key} = $data->[0]->{$key};
+                              }
+			     
                               $heap->{pending_data} =
                               {
                                 function => $function,
-                                postback => $postback,
+                                postback => $data->[0]->{postback},
                               };
 
                               if($SNAG::flags{debug})
