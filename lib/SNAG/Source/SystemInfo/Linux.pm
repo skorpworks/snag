@@ -985,10 +985,11 @@ sub system
     push @{$info->{scsi}}, { device => $device, %{$scsi->{$device}} };
   }
 
-  my ($iface, $name);
+  my $iface;
   if (defined $SNAG::Dispatch::shared_data->{binaries}->{ip})
   {
     my $int;
+    my $name;
     foreach (`$SNAG::Dispatch::shared_data->{binaries}->{ip} addr`)
     {
  
@@ -1006,7 +1007,7 @@ sub system
       #    inet 69.16.128.183/27 brd 69.16.128.191 scope global secondary eth0
       #    inet6 fe80::230:48ff:fe34:b2fa/64 scope link
       #2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 100
-      if (m/^(\d+):\s(enp\d+s\d+f\d+|lo|eth\d+|em\d+|bond\d+|tunl\d|tun\d|tap\d):\s(.*)$/ || /^(\d+):\s(vlan\d+)@\w+:\s(.*)$/)
+      if (m/^(\d+):\s(enp\d+s\d+f\d+|lo|eth\d+|em\d+|bond\d+|tap\d|tun\d|br\d|virbr\d):\s(.*)$/ || /^(\d+):\s(vlan\d+)@\w+:\s(.*)$/)
       {
         $name = $2;
         $iface->{$name}->{port} = $3;
@@ -1044,6 +1045,8 @@ sub system
   }
   elsif (defined $SNAG::Dispatch::shared_data->{binaries}->{ifconfig})
   {
+    my $name;
+
     foreach(`$SNAG::Dispatch::shared_data->{binaries}->{ifconfig} -a`)
     {
       ###eth0      Link encap:Ethernet  HWaddr 00:09:6B:A3:C9:17  
@@ -1057,7 +1060,6 @@ sub system
       {
         undef $name;
       }
-  
   
       if(defined $name && /HWaddr\s+([\w\:]{17})/)
       {
@@ -1080,6 +1082,7 @@ sub system
   {
     foreach my $ifname (sort keys %$iface)
     {
+      next if $ifname =~ m/^lo/;
       #[root@sporkdev SNAG]# ethtool eth1
       #Settings for eth1:
       #        Supported ports: [ MII ]
@@ -1102,8 +1105,6 @@ sub system
       
       foreach my $line (`$SNAG::Dispatch::shared_data->{binaries}->{ethtool} $ifname 2>&1`)
       {
-        next if $name =~ m/^lo/;
-
         if($line =~ /^\s+Speed:\s+(\d+|Unknown)/)
         {
           $iface->{$ifname}->{speed} = lc $1;
@@ -1126,9 +1127,77 @@ sub system
     }
   }
 
+  if($SNAG::Dispatch::shared_data->{binaries}->{ipmiutil})
+  {
+        for my $attempt (1..5)
+        {
+                my $last_line;
+		my $ipmi;
+
+                open CMD, $SNAG::Dispatch::shared_data->{binaries}->{ipmiutil} . ' lan -c |';
+                while( my $line = <CMD> )
+                {
+                        chomp $line;
+                        my ($key, $val) = split /\s+\|\s+/, $line, 2;
+
+                        my $name = 'ipmiX';
+                        if( $key =~ /^Channel (\d+)/ )
+                        {
+                                $name = 'ipmi' . ($1 - 1);
+                        }
+
+                        if( $key eq 'Channel 1 IP address' )
+                        {
+                                $ipmi->{$name}->{ip} = $val;
+                        }
+                        elsif( $key eq 'Channel 1 IP addr src' )
+                        {
+                                $ipmi->{$name}->{type} = lc($val);
+                        }
+                        elsif( $key eq 'Channel 1 MAC addr' )
+                        {
+                                $ipmi->{$name}->{mac} = $val;
+                        }
+                        elsif( $key eq 'Channel 1 Subnet mask' )
+                        {
+                                $ipmi->{$name}->{netmask} = $val;
+                        }
+
+                        $last_line = $line;
+                }
+                close CMD;
+
+                if( $last_line eq 'ipmiutil lan, completed successfully' )
+                {
+			$SNAG::Dispatch::shared_data->{ipmi} = $ipmi;
+                        last;
+                }
+		### stupid kludgy edge case for some of the solr boxes, e.g. host-ensolr-01
+                elsif( $last_line eq 'ipmiutil lan, Invalid data field in request' )
+                {
+                        if( $ipmi->{ipmi0}->{ip} && $ipmi->{ipmi0}->{type} && $ipmi->{ipmi0}->{mac} && $ipmi->{ipmi0}->{netmask} )
+			{
+				$SNAG::Dispatch::shared_data->{ipmi} = $ipmi;
+                        	last;
+			}
+		}
+
+		## try again
+		sleep 1;
+	}
+  }
+
   foreach my $ifname (sort keys %$iface)
   {
     push @{$info->{iface}}, { iface => $ifname, %{$iface->{$ifname}} };
+  }
+
+  if( my $ipmi = $SNAG::Dispatch::shared_data->{ipmi} )
+  {
+    foreach my $ifname (sort keys %$ipmi)
+    {
+      push @{$info->{iface}}, { iface => $ifname, %{$ipmi->{$ifname}} };
+    }
   }
 
   if(-e '/proc/mdstat')

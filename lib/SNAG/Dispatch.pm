@@ -171,7 +171,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool xl iptables ip6tables))
+        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool xl iptables ip6tables ipmiutil))
         {
           $shared_data->{binaries}->{$bin} = which("$bin");
           $shared_data->{binaries}->{missing} .= "$bin " unless defined $shared_data->{binaries};

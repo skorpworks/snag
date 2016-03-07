@@ -101,13 +101,18 @@ sub new
 	#
 	# INIT -> UUID + HOSTNAME
 	#
-	if($SNAG::flags{init} || (! -r $client_conf))
+	#if($SNAG::flags{init} || (! -r $client_conf))
+	#{
+          #$kernel->call($_[SESSION], 'run_init', $default_connections);
+	#}
+	#else
+	#{
+          #$kernel->call($_[SESSION], 'load_conf');
+	#}
+
+	if( -r $client_conf )
 	{
-          $kernel->call($_[SESSION], 'run_init', $default_connections);
-	}
-	else
-	{
-          $kernel->call($_[SESSION], 'load_conf');
+		$kernel->call($_[SESSION], 'load_conf');
 	}
 
         foreach my $ref (@$default_connections)
@@ -193,15 +198,15 @@ sub new
         $heap->{epoch} = time();
         $kernel->alarm($_[STATE] => $heap->{epoch} + 60);
 
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_uptime', '1g', $heap->{epoch}, ($heap->{epoch} - $heap->{start}) ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'SNAGc_uptime', '1g', $heap->{epoch}, ($heap->{epoch} - $heap->{start}) ) );
 
         my $statistics = Statistics::Descriptive::Full->new();
         $statistics->add_data(@{$heap->{timekeeper_samples}});
 
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_min', '1g', $heap->{epoch}, $statistics->min() ) );
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_max', '1g', $heap->{epoch}, $statistics->max() ) );
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_mean', '1g', $heap->{epoch}, $statistics->mean() ) );
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ('SNAGc_timekpr_pct95', '1g', $heap->{epoch}, ($statistics->percentile(95))[0] ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'SNAGc_timekpr_min', '1g', $heap->{epoch}, $statistics->min() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'SNAGc_timekpr_max', '1g', $heap->{epoch}, $statistics->max() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'SNAGc_timekpr_mean', '1g', $heap->{epoch}, $statistics->mean() ) );
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, (HOST_NAME, 'SNAGc_timekpr_pct95', '1g', $heap->{epoch}, ($statistics->percentile(95))[0] ) );
       },
 
       add => sub

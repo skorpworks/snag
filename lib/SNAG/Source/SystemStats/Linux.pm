@@ -550,9 +550,10 @@ sub supp_vmstat_child_stdio
     my $host = HOST_NAME;
     my $time = $heap->{run_epoch};
     my @stats = split /\s+/, $output;
-    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
-    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', "1g", $time, $stats[5]));
-    $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcache', "1g", $time, $stats[6]));
+    ## moved these down to /proc/meminfo parsing, works better in more cases e.g. on vservers
+    #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', "1g", $time, $stats[4]));
+    #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', "1g", $time, $stats[5]));
+    #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcache', "1g", $time, $stats[6]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapin', "1g", $time, $stats[7]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'swapout', "1g", $time, $stats[8]));
     $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'blockin', "1g", $time, $stats[9]));
@@ -921,6 +922,47 @@ sub run_network_dev
 }
 
 
+#####################################################################################
+############  SLABINFO ############################################################
+#####################################################################################
+
+sub run_slabinfo
+{
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
+  my $time = $heap->{run_epoch};
+  my $host = HOST_NAME;
+
+  open (PROC, "</proc/slabinfo");
+  while (<PROC>)
+  {
+    #slabinfo - version: 2.1
+    ## name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
+    ## name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
+    #nf_conntrack_ffffffff815b9b80    723   1372    280   14    1 : tunables   54   27    8 : slabdata     98     98      0
+    #skbuff_fclone_cache    693   1358    512    7    1 : tunables   54   27    8 : slabdata    189    194    108
+    #skbuff_head_cache   1196   1320    256   15    1 : tunables  120   60    8 : slabdata     88     88    104
+    if (/^skbuff_fclone_cache/)
+    { 
+      my (@data) = split /\s+/;
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_fc_c_act_o', $rrd_min . "g", $time, $data[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_fc_c_num_o', $rrd_min . "g", $time, $data[2]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_fc_c_act_s', $rrd_min . "g", $time, $data[14]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_fc_c_pps', $rrd_min . "g", $time, $data[5]));
+    }
+    elsif (/^skbuff_head_cache/)
+    {
+      my (@data) = split /\s+/;
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_act_o', $rrd_min . "g", $time, $data[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_num_o', $rrd_min . "g", $time, $data[2]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_act_s', $rrd_min . "g", $time, $data[14]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_pps', $rrd_min . "g", $time, $data[5]));
+    }
+  }
+  close PROC;
+
+  delete $heap->{running_states}->{run_slabinfo};
+}
+
 
 #####################################################################################
 ############  LOADAVG  ############################################################
@@ -963,7 +1005,19 @@ sub run_meminfo
     {
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memtot', $rrd_min . "g", $time, $1));
     }
-    if (/^Active:\s+(\d+)/)
+    elsif (/^MemFree:\s+(\d+)/)
+    {
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memfree', $rrd_min . "g", $time, $1));
+    }
+    elsif (/^Buffers:\s+(\d+)/)
+    {
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'membuff', $rrd_min . "g", $time, $1));
+    }
+    elsif (/^Cached:\s+(\d+)/)
+    {
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memcache', $rrd_min . "g", $time, $1));
+    }
+    elsif (/^Active:\s+(\d+)/)
     {
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'memact', $rrd_min . "g", $time, $1));
     }
