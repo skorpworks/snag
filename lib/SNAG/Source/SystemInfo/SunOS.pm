@@ -103,14 +103,15 @@ sub build_config_file_list
   
   my $cron_dir = '/var/spool/cron/crontabs/';
 
-  opendir CRONS, $cron_dir;
-  foreach my $name (grep { $_ ne '.' && $_ ne '..' } readdir CRONS)
+  opendir(my $crons_dir, $cron_dir);
+  foreach my $name (grep { $_ ne '.' && $_ ne '..' } readdir $crons_dir)
   {
     next if $name eq 'core';
 
     my $file = $cron_dir . $name;
     $config_files{$cron_dir . $name} = 1;
   }
+  closedir $crons_dir;
 
   return \%config_files;
 }
@@ -145,13 +146,13 @@ sub config_files_whole
 
         my $contents;
 
-        open (SHAD, "</etc/shadow");
-        while (<SHAD>)
+        open my $shadow, '<', "/etc/shadow";
+        while (<$shadow>)
         {
           s/^([\w\_\.]+)\:([\w\/\\\.\$]{9,})\:/"$1:" . sha256_hex(md5_hex($2))/e;
           $contents .= $_;
         }
-        close SHAD;
+        close $shadow;
 
         $info->{conf}->{$file} = { contents => $contents };
       }
@@ -198,13 +199,13 @@ sub config_files_check
 
           my $contents;
 
-          open (SHAD, "</etc/shadow");
-          while (<SHAD>)
+          open my $shadow, '<', "/etc/shadow";
+          while (<$shadow>)
           {
             s/^([\w\_\.]+)\:([\w\/\\\.\$]{3,})\:/"$1:" . sha256_hex(md5_hex($2))/e;
             $contents .= $_;
           }
-          close SHAD;
+          close $shadow;
 
           $info->{conf}->{$file} = { contents => $contents };
         }
@@ -338,9 +339,9 @@ sub startup
 {
   my ($contents, %valid_runlevels, $stuff, $max_length);
 
-  opendir INIT, '/etc/init.d' or die $!;
-  my @inits = readdir INIT;
-  closedir INIT;
+  opendir(my $init_dir, '/etc/init.d') or die $!;
+  my @inits = readdir $init_dir;
+  closedir $init_dir;
 
   foreach my $init (@inits)
   {
@@ -356,9 +357,9 @@ sub startup
 
     $valid_runlevels{$i} = 1;
 
-    opendir DIR, $dir or die $!;
-    my @scripts = readdir DIR;
-    closedir DIR;
+    opendir(my $scripts_dir, $dir) or die $!;
+    my @scripts = readdir $scripts_dir;
+    closedir $scripts_dir;
 
     foreach my $script (@scripts)
     {
@@ -881,8 +882,8 @@ sub mounts
 
   my $seen = time2str("%Y-%m-%d %T", time);
 
-  open IN, '/etc/vfstab';
-  while(<IN>)
+  open my $in, '<', '/etc/vfstab';
+  while(<$in>)
   {
     next if /^\s*#/;
     next if /^\s*$/;
@@ -900,7 +901,7 @@ sub mounts
       $mounts->{$mount}->{nfs_addr} = $ip;
     }
   }
-  close IN;
+  close $in;
 
   foreach (`/sbin/mount -v`)
   {

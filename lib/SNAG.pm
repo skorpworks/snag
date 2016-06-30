@@ -41,9 +41,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/redhat-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/redhat-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -99,9 +99,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/gentoo-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/gentoo-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -120,9 +120,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, '/etc/lsb-release';
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', '/etc/lsb-release';
+      $release = <$file>;
+      close $file;
     }
     #DISTRIB_ID=Ubuntu
     #DISTRIB_RELEASE=10.04
@@ -141,9 +141,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, '/etc/os-release';
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', '/etc/os-release';
+      $release = <$file>;
+      close $file;
     }
     #PRETTY_NAME="Debian GNU/Linux 7 (wheezy)"
     #NAME="Debian GNU/Linux"
@@ -168,9 +168,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/issue";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/issue";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -191,9 +191,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/cp-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/cp-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;

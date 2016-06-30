@@ -126,8 +126,9 @@ sub new
         ### Go through all existing queue files for this script
         ###   if they are empty, delete them
         ###   if they are non-empty, set up a client for them
-        opendir IN, LOG_DIR;
-        my @files = readdir IN;
+        opendir(my $in, LOG_DIR);
+        my @files = readdir $in;
+        closedir $in;
         foreach my $line (@files)
         {
           if($line =~ /^($script_name\_(\w+)\_client_queue)\.dat$/)

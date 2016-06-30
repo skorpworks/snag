@@ -425,14 +425,14 @@ sub new
 
         if( -e $control_path )
         {
-          open IN, $control_path;
-          while( my $line = <IN> )
+          open my $in, '<', $control_path;
+          while( my $line = <$in> )
           {
             chomp $line;
             my ($key, $val) = split /\=/, $line, 2;
             $shared_data->{control}->{ lc($key) } = lc($val);
           }
-          close IN;
+          close $in;
         }
       },
     }

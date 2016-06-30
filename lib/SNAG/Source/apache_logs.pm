@@ -60,9 +60,9 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 43200);
 
-        open LOGS, "/usr/sbin/lsof -nP | /bin/egrep 'access_log|error_log' | /bin/awk '{print \$9}' | /bin/sort -u |";
+        open my $logs, "/usr/sbin/lsof -nP | /bin/egrep 'access_log|error_log' | /bin/awk '{print \$9}' | /bin/sort -u |";
 
-	      while(<LOGS>)
+	      while(<$logs>)
 	      {
 	        chomp;
 	        my $log = $_;
@@ -139,6 +139,7 @@ sub new
 	          }
 	        }
 	      }
+          close $logs;
       },
 
       add_msg => sub

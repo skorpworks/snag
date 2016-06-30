@@ -854,8 +854,9 @@ sub run_proc
   {
     my $time = time;
 
-    opendir QUEUE, "/proc";
-    my @contents = readdir QUEUE;
+    opendir(my $queue, "/proc");
+    my @contents = readdir $queue;
+    closedir $queue;
     my $count = scalar @contents - 2;
 
     $kernel->post('client' => 'sysrrd' => 'load' => join $del, ($host, 'proc', '1g', $time, $count));
