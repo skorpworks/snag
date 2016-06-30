@@ -247,7 +247,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        my $procs = new Proc::ProcessTable; 
+        my $procs = Proc::ProcessTable->new;
         my %fields = map { $_ => 1 } $procs->fields;
 
         foreach my $proc ( @{$procs->table} )

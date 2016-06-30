@@ -345,7 +345,7 @@ sub apache_version
   my ($execs, $contents);
 
   require Proc::ProcessTable;
-  my $procs = new Proc::ProcessTable;
+  my $procs = Proc::ProcessTable->new;
 
   foreach my $proc ( @{$procs->table} )
   {

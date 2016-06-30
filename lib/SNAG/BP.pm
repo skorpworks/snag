@@ -68,8 +68,8 @@ BEGIN
 
   unless ( $opt{allowdup} )
   {
-    my @res = grep { $_->pid == $$ } @{ ( new Proc::ProcessTable )->table };
-    exit(0) if grep { @res && $_->cmndline eq $res[0]->cmndline && $_->pid != $$ } @{ ( new Proc::ProcessTable )->table };
+    my @res = grep { $_->pid == $$ } @{ ( Proc::ProcessTable->new )->table };
+    exit(0) if grep { @res && $_->cmndline eq $res[0]->cmndline && $_->pid != $$ } @{ ( Proc::ProcessTable->new )->table };
   }
 
   $id = md5_hex( "$0 $args" . time() . int( rand(127) ) );

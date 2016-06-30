@@ -125,7 +125,7 @@ sub config_files_whole
   #Add any new files that might have popped up
   my $config_files = build_config_file_list();
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
@@ -179,7 +179,7 @@ sub config_files_check
 
   my $now = time;
 
-  my $state_files = new DBM::Deep
+  my $state_files = DBM::Deep->new
   (
     file => catfile(LOG_DIR, 'sysinfo_conf_files.state'),
     autoflush => 1,
@@ -808,7 +808,7 @@ sub service_monitor
     $service_monitor = retrieve($state_file) or die "Could not open $state_file";
   }
 
-  my $table = new Proc::ProcessTable;
+  my $table = Proc::ProcessTable->new;
 
   my $process_list;
   foreach my $ref (@{$table->table})

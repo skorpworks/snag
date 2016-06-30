@@ -455,8 +455,8 @@ sub already_running
 
     my $full_script = "^($^X |perl |.{0,0})$0";
 
-    #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
-    return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
+    #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
+    return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
   }
 }
 
@@ -513,16 +513,16 @@ sub logger
             # Check if logfile was modified in the last day, so we can append rather than overwrite
             if(time() - (stat($logfile))[9] < 3600)
             {
-              $fh = new FileHandle ">> $logfile" or die "Could not open log $logfile";
+              $fh = FileHandle->new(">> $logfile") or die "Could not open log $logfile";
             }
             else
             {
-              $fh = new FileHandle "> $logfile" or die "Could not open log $logfile"
+              $fh = FileHandle->new("> $logfile") or die "Could not open log $logfile"
             }
           }
           else
           {
-            $fh = new FileHandle ">> $logfile" or die "Could not open log $logfile";
+            $fh = FileHandle->new(">> $logfile") or die "Could not open log $logfile";
           }
 
           $fh->autoflush(1);

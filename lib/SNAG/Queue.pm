@@ -51,8 +51,8 @@ sub new
   $self->{queue_file} = $queue_file;
   $self->{idx_file} = $idx_file;
 
-  $self->{queue} = new IO::File($queue_file, (O_CREAT | O_RDWR), $mode) or croak $!;
-  $self->{idx} = new IO::File($idx_file, (O_CREAT | O_RDWR), $mode) or croak $!;
+  $self->{queue} = IO::File->new($queue_file, (O_CREAT | O_RDWR), $mode) or croak $!;
+  $self->{idx} = IO::File->new($idx_file, (O_CREAT | O_RDWR), $mode) or croak $!;
 
   ### Default ptr to 0, replace it with value in idx file if one exists
   $self->{idx}->sysseek(0, SEEK_SET); 

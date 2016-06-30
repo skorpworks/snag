@@ -235,7 +235,7 @@ sub service_monitor
     $service_monitor = retrieve($state_file) or die "Could not open $state_file";
   }
 
-  my $table = new Proc::ProcessTable;
+  my $table = Proc::ProcessTable->new;
 
   my $process_list;
   foreach my $ref (@{$table->table})
