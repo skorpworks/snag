@@ -30,7 +30,7 @@ GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile'
 our $VERSION = '5.13';
 sub VERSION { $VERSION };
 
-my ($os, $dist, $ver);
+my ($os, $dist, $ver, $long, $name);
 if($^O =~ /linux/i)
 {
   $os = "Linux";
@@ -277,15 +277,17 @@ eval
 {
   %$conf = ParseConfig(-ConfigFile => "snag.conf", -ConfigPath => \@path);
 };
-if($@ && $opt{debug})
+if($@ && $flags{debug})
 {
   print "snag.conf not found!  This will result in many constants not working.\n";
 }
 
 sub CONF { $conf };
 
+my $host_name = CHECK_HOST_NAME();
 sub CHECK_HOST_NAME
 {
+  my $host;
   if(OS eq 'Windows')
   {
     require Win32::OLE;
@@ -325,7 +327,6 @@ sub CHECK_HOST_NAME
   return $host;
 }
 
-my $host_name = CHECK_HOST_NAME;
 my $uuid = 0;
 
 sub HOST_NAME { $host_name };
@@ -344,8 +345,8 @@ sub SET_UUID
 }
 
 sub UUID { return $uuid };
-my $name = basename $0;
-sub SCRIPT_NAME { $name };
+my $script_name = basename $0;
+sub SCRIPT_NAME { $script_name };
 
 sub REC_SEP { '~_~' };
 sub RRD_SEP { ':' };

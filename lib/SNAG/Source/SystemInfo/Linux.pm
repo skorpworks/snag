@@ -1024,7 +1024,7 @@ sub system
       #    inet 69.16.168.98/28 brd 69.16.168.111 scope global eth0
       elsif ( defined $name && m/\s+inet ([\d\.\/]+) .*scope global( | secondary )($name.*)$/ )
       {
-        my ($ip,$cidr) = ipv4_parse( "$1" ) or dir $!;
+        my ($ip,$cidr) = ipv4_parse( "$1" ) or die $!;
         #$cidr = ipv4_cidr2msk($cidr);
         if ($3 eq $name && $int >= 1)
         {

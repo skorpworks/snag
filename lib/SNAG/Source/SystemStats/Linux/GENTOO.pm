@@ -34,6 +34,7 @@ sdb             958.88    44.91   25.55    3.39  8076.65   389.62   292.52     0
     my $time = time();
     my @stats = split /\s+/, $output;
 
+    my $mp;
     if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]})
     {
       $mp = uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount} );

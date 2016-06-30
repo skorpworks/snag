@@ -78,6 +78,7 @@ sda          0.00   0.40  0.00  2.50    0.00   23.20     0.00    11.60     9.28 
     ### RHEL4's default iostat installation only shows device level statistics
     ###  send the same crap to all of the partitions on each device
 
+    my $mp;
     if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]})
     {
       $mp = uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount} );

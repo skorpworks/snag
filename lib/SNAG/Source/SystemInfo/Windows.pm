@@ -287,7 +287,7 @@ sub iscsi
   }
 
   my $total_connections = 0;
-
+  my $seen = time2str("%Y-%m-%d %T", time);
   foreach my $session (@$info)
   {
     $total_connections += $session->{number_connections};
@@ -458,6 +458,7 @@ sub service_monitor
   my $wmi = Win32::OLE->GetObject ("winMgmts:{(Security)}!//");
 
   my $state_file = catfile(LOG_DIR, 'service_monitor.state');
+  my $service_monitor;
 
   if(-e $state_file)
   {
