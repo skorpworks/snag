@@ -1467,7 +1467,7 @@ sub iscsi
 
   unless(-e $SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'})
   {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", '', $seen);
+    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", "Couldn't find iscsi-ls", '', $seen);
     print STDERR "\n";
 
     return;
@@ -1475,7 +1475,7 @@ sub iscsi
 
   unless(-e $iscsi_initiator)
   {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_initiator", '', $seen);
+    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_initiator", "Couldn't find $iscsi_initiator", '', $seen);
     print STDERR "\n";
 
     return;
