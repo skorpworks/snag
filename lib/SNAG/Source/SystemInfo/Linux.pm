@@ -18,14 +18,12 @@ use Net::Nslookup;
 use File::Which;
 use Network::IPv4Addr qw(ipv4_parse ipv4_cidr2msk);
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole installed_software_whole service_monitor iscsi mounts smartctl/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole installed_software_whole service_monitor mounts smartctl/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
 our $config =
 {
-  'iscsi'	        => { 'period' => 60, if_tag => 'storage.iscsi.client' },
-
   'listening_ports'     => { 'period' => 300, data => $SNAG::Dispatch::shared_data },
   'tags'          	=> { 'period' => 300, data => $SNAG::Dispatch::shared_data },
   'service_monitor'     => { 'period' => 300 },
@@ -1457,153 +1455,6 @@ sub mounts
   return $info;
 }
 
-sub iscsi
-{
-  local $/ = "\n";
-
-  my $seen = time2str("%Y-%m-%d %T", time);
-
-  my $iscsi_initiator = '/etc/initiatorname.iscsi';
-
-  unless(-e $SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'})
-  {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", "Couldn't find iscsi-ls", '', $seen);
-    print STDERR "\n";
-
-    return;
-  }
-
-  unless(-e $iscsi_initiator)
-  {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_initiator", "Couldn't find $iscsi_initiator", '', $seen);
-    print STDERR "\n";
-
-    return;
-  }
-
-  my $info;
-
-  ### Get initiator name
-  {
-    open my $in, '<', $iscsi_initiator;
-    while(<$in>)
-    {
-      next if /^\#/;
-      if(/^InitiatorName=(\S+)/)
-      {
-        my ($iname, $name) = split /:/, $1;
-
-        $info->{iscsi}->{iname} = $iname;
-        $info->{iscsi}->{name} = $name;
-      }
-    }
-    close $in;
-  }
-
-  my ($lun, $status);
-  foreach my $line (`$SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'} -l 2>/dev/null`)
-  {
-    ##DEVICE DETAILS:
-    ##---------------
-    ##LUN ID : 0
-    ##  Vendor: NETAPP   Model: LUN              Rev: 0.2
-    ##  Type:   Direct-Access                    ANSI SCSI revision: 04
-    ##  page83 type3: 60a98000486e5374584a43684272506e
-    ##  page80: 486e5374584a43684272506e0a
-    ##  Device: /dev/sdb
-    ##*******************************************************************************
-    if($line =~ /^LUN ID : (\d+)/)
-    {
-      $lun = $1;
-      push @{$info->{iscsi_lun}}, {'id' => $1};
-    }
-    elsif($line =~ /\s+page83 type3: (\S+)/)
-    {
-      ${$info->{iscsi_lun}->[ $#{$info->{iscsi_lun}} ]}{page83_type3} =  $1;
-    }
-    elsif($line =~ /\s+page80: (\S+)0a$/)
-    {
-      ${$info->{iscsi_lun}->[ $#{$info->{iscsi_lun}} ]}{page80} =  $1;
-    }
-    elsif($line =~ /\s+Device: (\S+)/)
-    {
-      ${$info->{iscsi_lun}->[ $#{$info->{iscsi_lun}} ]}{device} =  $1;
-    }
-    elsif($line =~ /\s+Vendor:\s+(\S+)\s+ Model:\s+(\S+)/)
-    {
-      ${$info->{iscsi_lun}->[ $#{$info->{iscsi_lun}} ]}{vendor} =  $1;
-      ${$info->{iscsi_lun}->[ $#{$info->{iscsi_lun}} ]}{model} =  $2;
-    }
-    ##*******************************************************************************
-    ##SFNet iSCSI Driver Version ...4:0.1.11-6(03-Aug-2007)
-    ##*******************************************************************************
-    ##TARGET NAME             : iqn.1992-08.com.netapp:sn.50404989
-    ##TARGET ALIAS            :
-    ##HOST ID                 : 1               | HOST NO                 : 4
-    ##BUS ID                  : 0               | BUS NO                  : 0
-    ##TARGET ID               : 0
-    ##TARGET ADDRESS          : 10.106.140.253:3260,2000
-    ##SESSION STATUS          : ESTABLISHED AT Thu May 15 03:30:49 MST 2008
-    ##SESSION ID              : ISID 00023d000001 TSIH 38b
-    ##
-    elsif($line =~ /SFNet iSCSI Driver Version [\. ]{0,4}(\S+)/)
-    {
-      $info->{iscsi}->{driver_version} = $1;
-    }
-    elsif($line =~ /^TARGET NAME\s+:\s+(\S+)/)
-    {
-      my ($target_iname, $target_name) = split /:/, $1;
-
-      $info->{iscsi}->{target_iname} = $target_iname;
-      $info->{iscsi}->{target_name} = $target_name;
-    }
-    elsif($line =~ /^HOST (ID|NO)\s+:\s+(\S+)/)
-    {
-      $info->{iscsi}->{host_id} = $2;
-    }
-    elsif($line =~ /^BUS (ID|NO)\s+:\s+(\S+)/)
-    {
-      $info->{iscsi}->{bus_id} = $2;
-    }
-    elsif($line =~ /^TARGET ID\s+:\s+(\S+)/)
-    {
-      $info->{iscsi}->{target_id} = $1;
-    }
-    elsif($line =~ /^TARGET ADDRESS\s+:\s+(\S+)/)
-    {
-      my ($address, $ports) = split /:/, $1;
-      $info->{iscsi}->{target_address} = $address;
-      $info->{iscsi}->{target_ports} = $ports;
-    }
-    elsif($line =~ /^SESSION STATUS\s+:\s+(\S+)/)
-    {
-      $info->{iscsi}->{session_status} = $status = $1;
-
-      unless($status eq 'ESTABLISHED')
-      {
-        chomp $line;
-        print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_status', 'iscsi client connection down', $line, '', $seen);
-        print STDERR "\n";
-      }
-    }
-    elsif($line =~ /^SESSION ID\s+:\s+(.*)/)
-    {
-      $info->{iscsi}->{session_id} = $1;
-    }
-  }
-
-  if($status)
-  {
-    return $info;
-  }
-  else
-  {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_status', 'iscsi client connection down', 'iscsi client appears to be turned off', '', $seen);
-    print STDERR "\n";
- 
-    return;
-  }
-}
 
 ######################################################################################
 ####################### HELPER SUBS ##################################################
