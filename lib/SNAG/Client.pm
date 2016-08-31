@@ -126,8 +126,9 @@ sub new
         ### Go through all existing queue files for this script
         ###   if they are empty, delete them
         ###   if they are non-empty, set up a client for them
-        opendir IN, LOG_DIR;
-        my @files = readdir IN;
+        opendir(my $in, LOG_DIR);
+        my @files = readdir $in;
+        closedir $in;
         foreach my $line (@files)
         {
           if($line =~ /^($script_name\_(\w+)\_client_queue)\.dat$/)
@@ -135,7 +136,7 @@ sub new
             my ($queue_name, $server_name) = ($1, $2);
 
             my $queue_file = catfile(LOG_DIR, $queue_name);
-            my $queue = new SNAG::Queue ( File => $queue_file, Seperator => PARCEL_SEP );
+            my $queue = SNAG::Queue->new( File => $queue_file, Seperator => PARCEL_SEP );
 
             if($queue->peek(1))
             {
@@ -269,12 +270,12 @@ sub new
 	
 	# create UUID
 	use Data::UUID;
-	my $ug = new Data::UUID;
+	my $ug = Data::UUID->new;
 	$config->{uuid} = $ug->create_str();
 
         $kernel->call('logger' => 'log' => "saving config file: " . $client_conf) if $SNAG::flags{debug};
 	use Config::General;
-	my $cg = new Config::General();
+	my $cg = Config::General->new();
 	$cg->save_file($client_conf, $config);
         $kernel->call($_[SESSION], 'load_conf');	
       },
@@ -348,7 +349,7 @@ sub handle_input
     {
       my $queue_file = catfile(LOG_DIR, $script_name . '_' . $name . '_client_queue');
 
-      $heap->{client_queue}->{$name}->{functions}->{load} = new SNAG::Queue ( File => $queue_file, Seperator => PARCEL_SEP );
+      $heap->{client_queue}->{$name}->{functions}->{load} = SNAG::Queue->new( File => $queue_file, Seperator => PARCEL_SEP );
     }
 
     $kernel->call('logger' => 'log' => "Enqueue: $name($function): " . substr($data, 0, 130) . "....") if $SNAG::flags{debug} && ! $SNAG::flags{verbose};

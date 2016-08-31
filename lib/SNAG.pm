@@ -30,7 +30,7 @@ GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile'
 our $VERSION = '5.13';
 sub VERSION { $VERSION };
 
-my ($os, $dist, $ver);
+my ($os, $dist, $ver, $long, $name);
 if($^O =~ /linux/i)
 {
   $os = "Linux";
@@ -41,9 +41,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/redhat-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/redhat-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -99,9 +99,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/gentoo-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/gentoo-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -120,9 +120,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, '/etc/lsb-release';
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', '/etc/lsb-release';
+      $release = <$file>;
+      close $file;
     }
     #DISTRIB_ID=Ubuntu
     #DISTRIB_RELEASE=10.04
@@ -141,9 +141,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, '/etc/os-release';
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', '/etc/os-release';
+      $release = <$file>;
+      close $file;
     }
     #PRETTY_NAME="Debian GNU/Linux 7 (wheezy)"
     #NAME="Debian GNU/Linux"
@@ -168,9 +168,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/issue";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/issue";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -191,9 +191,9 @@ if($^O =~ /linux/i)
     {
       local $/;
 
-      open FILE, "/etc/cp-release";
-      $release = <FILE>;
-      close FILE;
+      open my $file, '<', "/etc/cp-release";
+      $release = <$file>;
+      close $file;
     }
 
     $long = $release;
@@ -277,15 +277,17 @@ eval
 {
   %$conf = ParseConfig(-ConfigFile => "snag.conf", -ConfigPath => \@path);
 };
-if($@ && $opt{debug})
+if($@ && $flags{debug})
 {
   print "snag.conf not found!  This will result in many constants not working.\n";
 }
 
 sub CONF { $conf };
 
+my $host_name = CHECK_HOST_NAME();
 sub CHECK_HOST_NAME
 {
+  my $host;
   if(OS eq 'Windows')
   {
     require Win32::OLE;
@@ -325,7 +327,6 @@ sub CHECK_HOST_NAME
   return $host;
 }
 
-my $host_name = CHECK_HOST_NAME;
 my $uuid = 0;
 
 sub HOST_NAME { $host_name };
@@ -344,8 +345,8 @@ sub SET_UUID
 }
 
 sub UUID { return $uuid };
-my $name = basename $0;
-sub SCRIPT_NAME { $name };
+my $script_name = basename $0;
+sub SCRIPT_NAME { $script_name };
 
 sub REC_SEP { '~_~' };
 sub RRD_SEP { ':' };
@@ -455,8 +456,8 @@ sub already_running
 
     my $full_script = "^($^X |perl |.{0,0})$0";
 
-    #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
-    return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(new Proc::ProcessTable)->table};
+    #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
+    return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
   }
 }
 
@@ -513,16 +514,16 @@ sub logger
             # Check if logfile was modified in the last day, so we can append rather than overwrite
             if(time() - (stat($logfile))[9] < 3600)
             {
-              $fh = new FileHandle ">> $logfile" or die "Could not open log $logfile";
+              $fh = FileHandle->new(">> $logfile") or die "Could not open log $logfile";
             }
             else
             {
-              $fh = new FileHandle "> $logfile" or die "Could not open log $logfile"
+              $fh = FileHandle->new("> $logfile") or die "Could not open log $logfile"
             }
           }
           else
           {
-            $fh = new FileHandle ">> $logfile" or die "Could not open log $logfile";
+            $fh = FileHandle->new(">> $logfile") or die "Could not open log $logfile";
           }
 
           $fh->autoflush(1);

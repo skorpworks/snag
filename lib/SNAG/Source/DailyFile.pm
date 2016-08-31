@@ -95,7 +95,7 @@ sub new
           $startatend = 1 if $startatendifnew;
         }
          
-        $heap->{file_state} = new DBM::Deep(file => $state_file);
+        $heap->{file_state} = DBM::Deep->new(file => $state_file);
 
         $kernel->state('filter' => \&{$package . '::filter'});
 

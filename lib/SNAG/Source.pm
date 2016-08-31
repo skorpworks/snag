@@ -18,7 +18,8 @@ sub new
 {
   my $package = shift;
   my %params = @_;
-  $alias = $params{Alias};
+  my $alias = $params{Alias};
+  my $debug = 0;
 
   POE::Session->create
   (

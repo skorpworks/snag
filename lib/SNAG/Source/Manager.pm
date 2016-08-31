@@ -72,7 +72,7 @@ sub new
   eval
   {
 
-    $state = new DBM::Deep( file => LOG_DIR . "/$type-$alias.state", autoflush => 1 ) or die "Could not open state file $type-$alias.state: $!";
+    $state = DBM::Deep->new( file => LOG_DIR . "/$type-$alias.state", autoflush => 1 ) or die "Could not open state file $type-$alias.state: $!";
   
     if ( -r CFG_DIR . "/$type-$alias.xml")
     {

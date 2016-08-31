@@ -177,7 +177,7 @@ sub new
           my $get_nets = $heap->{dbh}->selectall_hashref("select subnet, pop, domain, override from domain_map", "subnet");
 	  delete $heap->{netpat};
 	  delete $heap->{netmap};
-	  $heap->{netpat} = new Net::Patricia;
+	  $heap->{netpat} = Net::Patricia->new;
 	  foreach my $key (keys %$get_nets)
 	  {
             $heap->{netpat}->add_string($key);

@@ -54,8 +54,8 @@ sub new
 # syd-a06.ipvanish.com                         8  6144     4     r-----  4725531.9 3da732a1-b3d8-4cad-8a82-eac9bd576421        -                -
 # rmt01                                       10   256     1     -b----   13085.8 6df6d187-8b0d-4a60-8c56-56ef8d3af9cd        -                -
 
-						open CMD, $shared_data->{binaries}->{xl} . ' list -v |';
-						while( my $line = <CMD> )
+						open my $cmd, $shared_data->{binaries}->{xl} . ' list -v |';
+						while( my $line = <$cmd> )
 						{
 							chomp $line;
 
@@ -66,7 +66,7 @@ sub new
 
 							push @$xen_dom0, { uuid => $fields[6], domid => $fields[1], name => $fields[0] };
 						}
-						close CMD;
+						close $cmd;
 					}
 				}
 				elsif(-e '/usr/sbin/xm')
@@ -133,8 +133,8 @@ sub new
 					my ($uuid, $args);
 					if (-r '/etc/xensource-inventory')
 					{
-						open(XE, "</etc/xensource-inventory");
-						while(<XE>)
+						open my $xe, '<', "</etc/xensource-inventory";
+						while(<$xe>)
 						{
 							chomp;
 							s/\'//g;
@@ -151,7 +151,7 @@ sub new
 								$args = "resident-on=$val";
 							}
 						}
-						close XE;
+						close $xe;
 					}
 
 					foreach (`xe pool-list params=all`)

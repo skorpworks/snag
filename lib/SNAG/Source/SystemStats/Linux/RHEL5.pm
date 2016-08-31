@@ -75,6 +75,7 @@ dm-1              0.00     0.00  0.00  0.00     0.00     0.00     0.00     0.00 
     my $time = time();
     my @stats = split /\s+/, $output;
 
+    my $mp;
     if($SNAG::Dispatch::shared_data->{mounts}->{$stats[0]})
     {
       $mp = uri_escape( $SNAG::Dispatch::shared_data->{mounts}->{$stats[0]}->{mount} );

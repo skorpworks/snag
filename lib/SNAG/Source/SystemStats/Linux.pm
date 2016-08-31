@@ -860,9 +860,9 @@ sub run_uptime
   my $time = $heap->{run_epoch};
   my $host = HOST_NAME;
 
-  open (PROC, "</proc/uptime");
-  my @stats = split(/ /, <PROC>);
-  close PROC;
+  open my $proc, '<', "/proc/uptime";
+  my @stats = split(/ /, <$proc>);
+  close $proc;
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'uptime', $rrd_min . "g", $time, $stats[0]));
 
   delete $heap->{running_states}->{run_uptime};
@@ -886,9 +886,9 @@ sub run_network_dev
   #####################################################################################
   # face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
   #           0          1    2    3    4     5          6         7     8          9   10   11   12    13      14         15
-  open (PROC, "</proc/net/dev");
-  my (@lines) = <PROC>;
-  close PROC;
+  open my $proc, '<', "/proc/net/dev";
+  my (@lines) = <$proc>;
+  close $proc;
   foreach (@lines)
   {
     s/\s+/ /g;
@@ -932,8 +932,8 @@ sub run_slabinfo
   my $time = $heap->{run_epoch};
   my $host = HOST_NAME;
 
-  open (PROC, "</proc/slabinfo");
-  while (<PROC>)
+  open my $proc, '<', "/proc/slabinfo";
+  while (<$proc>)
   {
     #slabinfo - version: 2.1
     ## name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>
@@ -958,7 +958,7 @@ sub run_slabinfo
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_pps', $rrd_min . "g", $time, $data[5]));
     }
   }
-  close PROC;
+  close $proc;
 
   delete $heap->{running_states}->{run_slabinfo};
 }
@@ -974,9 +974,9 @@ sub run_loadavg
   my $time = $heap->{run_epoch};
   my $host = HOST_NAME;
 
-  open (PROC, "</proc/loadavg");
-  my @stats = split(/ /, <PROC>);
-  close PROC;
+  open my $proc, '<', "/proc/loadavg";
+  my @stats = split(/ /, <$proc>);
+  close $proc;
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'lavg1', $rrd_min . "g", $time, $stats[0]));
   $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'lavg5', $rrd_min . "g", $time, $stats[1]));
   #$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'lavg15', $rrd_min . "g", $time, $stats[2]));
@@ -998,8 +998,8 @@ sub run_meminfo
   my $time = $heap->{run_epoch};
   my $host = HOST_NAME;
 
-  open (PROC, "</proc/meminfo");
-  while (<PROC>)
+  open my $proc, '<', "/proc/meminfo";
+  while (<$proc>)
   {
     if (/^MemTotal:\s+(\d+)/)
     {
@@ -1038,7 +1038,7 @@ sub run_meminfo
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, "mem_" . lc($1), $rrd_min . "g", $time, $2));
     }
   }
-  close PROC;
+  close $proc;
 
   delete $heap->{running_states}->{run_meminfo};
 }
@@ -1067,9 +1067,9 @@ sub run_proc_stat
 
   my ($stat, $val);
 
-  open (PROC, "</proc/stat");
-  my (@lines) = <PROC>;
-  close PROC;
+  open my $proc, '<', "/proc/stat";
+  my (@lines) = <$proc>;
+  close $proc;
   foreach (@lines)
   {
     ($stat, $val) = m/^(\w+)\s(\d+)/;
@@ -1099,9 +1099,9 @@ sub supp_proc_stat_collect
   my $time = time();
   my $host = HOST_NAME;
 
-  open (PROC, "</proc/stat");
-  my (@lines) = <PROC>;
-  close PROC;
+  open my $proc, '<', "/proc/stat";
+  my (@lines) = <$proc>;
+  close $proc;
   foreach (@lines)
   {
     ($stat, $val) = m/^(\w+)\s(\d+)/;

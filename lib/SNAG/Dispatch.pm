@@ -247,7 +247,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        my $procs = new Proc::ProcessTable; 
+        my $procs = Proc::ProcessTable->new;
         my %fields = map { $_ => 1 } $procs->fields;
 
         foreach my $proc ( @{$procs->table} )
@@ -425,14 +425,14 @@ sub new
 
         if( -e $control_path )
         {
-          open IN, $control_path;
-          while( my $line = <IN> )
+          open my $in, '<', $control_path;
+          while( my $line = <$in> )
           {
             chomp $line;
             my ($key, $val) = split /\=/, $line, 2;
             $shared_data->{control}->{ lc($key) } = lc($val);
           }
-          close IN;
+          close $in;
         }
       },
     }

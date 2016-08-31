@@ -160,7 +160,7 @@ sub poller
 
     eval
     {
-      my ($disk, $device, $version, $serial, $enabled, $status, $hours, $nmec, $egdl);               
+      my ($disk, $device, $version, $serial, $enabled, $status, $hours, $nmec, $egdl, $capacity, $vendor);
       #=== START OF INFORMATION SECTION ===
       #Device Model:     WDC WD30EZRS-00J99B0
       #Serial Number:    WD-WCAWZ0117762
@@ -317,7 +317,7 @@ sub poller
          # size   | text                        | 
          # seen   | timestamp without time zone | 
         $job->{out} =  "$device || $version || $serial || en:$enabled || hrs:$hours || nmec:$nmec || egdl:$egdl || status:$status"; 
-        $job->{disk} =  { device => $device, vendor => $vendor
+        $job->{disk} =  { device => $device, vendor => $vendor };
       }                                                                                                                            
       else                                                                                                                         
       {                                                                                                                            

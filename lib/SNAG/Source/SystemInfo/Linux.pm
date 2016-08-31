@@ -170,21 +170,21 @@ sub build_config_file_list
   foreach my $dir (keys %default_config_dirs)
   {
     next unless -d $dir;
-    opendir SCRIPTS, $dir;
-    foreach my $name (readdir SCRIPTS)
+    opendir(my $scripts_dir, $dir);
+    foreach my $name (readdir $scripts_dir)
     { 
       next if $name =~ /^(\.+)$/; # ignore . and .. inside wildcard directories
       next unless $name =~ /$default_config_dirs{$dir}/;
       next unless -f $dir . $name; 
       $config_files{$dir . $name} = 1;
     }
-    closedir SCRIPTS;
+    closedir $scripts_dir;
   }
 
   foreach my $cron_dir ('/var/spool/cron/', '/var/spool/cron/crontabs/')
   {
-    opendir CRONS, $cron_dir;
-    foreach my $name (grep { $_ ne '.' && $_ ne '..' } readdir CRONS)
+    opendir(my $crons_dir, $cron_dir);
+    foreach my $name (grep { $_ ne '.' && $_ ne '..' } readdir $crons_dir)
     {
       next if $name eq 'core';
 
@@ -194,7 +194,7 @@ sub build_config_file_list
         $config_files{$cron_dir . $name} = 1;
       }
     }
-    closedir CRONS;
+    closedir $crons_dir;
   }
 
   if(-e '/proc/vmware/vm/')
@@ -205,9 +205,8 @@ sub build_config_file_list
       {
 	if($_ eq 'names')
 	{
-	  open IN, $File::Find::name;
-	  my $line;
-	  while(<IN>)
+	  open my $in, $File::Find::name;
+	  while(<$in>)
 	  {
 	    if(/uuid/)
 	    {
@@ -236,7 +235,7 @@ sub service_monitor
     $service_monitor = retrieve($state_file) or die "Could not open $state_file";
   }
 
-  my $table = new Proc::ProcessTable;
+  my $table = Proc::ProcessTable->new;
 
   my $process_list;
   foreach my $ref (@{$table->table})
@@ -353,13 +352,13 @@ sub config_files_whole
 
         my $contents;
 
-        open (SHAD, "</etc/shadow");
-        while (<SHAD>)
+        open my $shadow, '<', "/etc/shadow";
+        while (<$shadow>)
         {
           s/^([\w\_\.]+)\:([\w\/\\\.\$]{3,})\:/"$1:" . sha256_hex(md5_hex($2))/e;
           $contents .= $_;
         }
-        close SHAD;
+        close $shadow;
 
         $info->{conf}->{$file} = { contents => $contents };
       }
@@ -408,13 +407,13 @@ sub config_files_check
 
           my $contents;
 
-          open (SHAD, "</etc/shadow");
-          while (<SHAD>)
+          open my $shadow, '<', "/etc/shadow";
+          while (<$shadow>)
           {
             s/^([\w\_\.]+)\:([\w\/\\\.\$]{3,})\:/"$1:" . sha256_hex(md5_hex($2))/e;
             $contents .= $_;
           }
-          close SHAD;
+          close $shadow;
 
           $info->{conf}->{$file} = { contents => $contents };
         }
@@ -526,13 +525,13 @@ sub bonding
 
   return unless -d $dir;
 
-  opendir SCRIPTS, $dir;
-  foreach my $file (readdir SCRIPTS)
+  opendir(my $scripts_dir, $dir);
+  foreach my $file (readdir $scripts_dir)
   {
     local $/ = "\n";
     my $contents;
-    open BOND, "<$dir/$file";
-    while (<BOND>)
+    open my $bond, '<', "$dir/$file";
+    while (<$bond>)
     {
       if (/^Bonding Mode:\s+(.*)$/)
       {
@@ -550,10 +549,10 @@ sub bonding
         $contents .= $_;
       }
     }
-    close BOND;
+    close $bond;
     $info->{conf}->{$dir.'/'.$file} = { contents => $contents };
   }
-  close SCRIPTS;
+  closedir $scripts_dir;
 
   return $info;
 }
@@ -695,15 +694,15 @@ sub arp
   if ( -e '/proc/net/arp')
   {
     local $/ = "\n";
-    open (ARP, "</proc/net/arp");
-    while(<ARP>)
+    open my $arp, '<', "/proc/net/arp";
+    while(<$arp>)
     { 
       if ( m/^([\d\.]+) \s+ \S+ \s+ \S+ \s+ ([\w\:]+) \s+/x )
       { 
         push @{$info->{arp}}, { remote => $1, mac => $2 };
       }
     }
-    close ARP;
+    close $arp;
   }
   else
   { 
@@ -755,9 +754,9 @@ sub system
     }
     elsif( -e '/sys/hypervisor/uuid' )
     {
-      open IN, '/sys/hypervisor/uuid';
-      my $uuid = <IN>;
-      close IN;
+      open my $in, '<', '/sys/hypervisor/uuid';
+      my $uuid = <$in>;
+      close $in;
 
       chomp $uuid;
       $info->{device}->{uuid} = $uuid;
@@ -881,10 +880,10 @@ sub system
     #cpu MHz         : 3193.094
     #cache size      : 512 KB
 
-    open CPU, '/proc/cpuinfo';
+    open my $cpu, '<', '/proc/cpuinfo';
     
     my $cpu_count;
-    while(<CPU>)
+    while(<$cpu>)
     {
       chomp;
 
@@ -906,15 +905,15 @@ sub system
         $info->{cpumem}->{cpu_cache} = $val;
       }
     }
-    close CPU;
+    close $cpu;
 
     $info->{cpumem}->{cpu_count} = $cpu_count
   }
 
   if(-e '/proc/meminfo')
   {
-    open MEM, '/proc/meminfo';
-    while(<MEM>)
+    open my $mem, '<', '/proc/meminfo';
+    while(<$mem>)
     {
       chomp;
 
@@ -939,7 +938,7 @@ sub system
         $info->{cpumem}->{mem} = "$num $units";
       }
     }
-    close MEM;
+    close $mem;
   }
 
   #[root@filesrv9 root]# cat /proc/scsi/scsi
@@ -956,8 +955,8 @@ sub system
   {
     my $name;
 
-    open SCSI, '/proc/scsi/scsi';
-    while(<SCSI>)
+    open my $scsi, '<', '/proc/scsi/scsi';
+    while(<$scsi>)
     {
       chomp;
       if(/Host:\s+(\w+)\s+Channel:\s+(\w+)\s+Id:\s+(\w+)\s+Lun:\s+(\w+)/)
@@ -977,7 +976,7 @@ sub system
         $scsi->{$name}->{type} = $1;
       }
     }
-    close SCSI;
+    close $scsi;
   }
 
   foreach my $device (sort keys %$scsi)
@@ -1025,7 +1024,7 @@ sub system
       #    inet 69.16.168.98/28 brd 69.16.168.111 scope global eth0
       elsif ( defined $name && m/\s+inet ([\d\.\/]+) .*scope global( | secondary )($name.*)$/ )
       {
-        my ($ip,$cidr) = ipv4_parse( "$1" ) or dir $!;
+        my ($ip,$cidr) = ipv4_parse( "$1" ) or die $!;
         #$cidr = ipv4_cidr2msk($cidr);
         if ($3 eq $name && $int >= 1)
         {
@@ -1134,8 +1133,8 @@ sub system
                 my $last_line;
 		my $ipmi;
 
-                open CMD, $SNAG::Dispatch::shared_data->{binaries}->{ipmiutil} . ' lan -c |';
-                while( my $line = <CMD> )
+                open my $cmd, '<', $SNAG::Dispatch::shared_data->{binaries}->{ipmiutil} . ' lan -c |';
+                while( my $line = <$cmd> )
                 {
                         chomp $line;
                         my ($key, $val) = split /\s+\|\s+/, $line, 2;
@@ -1165,7 +1164,7 @@ sub system
 
                         $last_line = $line;
                 }
-                close CMD;
+                close $cmd;
 
                 if( $last_line eq 'ipmiutil lan, completed successfully' )
                 {
@@ -1202,10 +1201,10 @@ sub system
 
   if(-e '/proc/mdstat')
   {
-    open MDSTAT, '/proc/mdstat';
+    open my $mdstat, '/proc/mdstat';
     my $dev;
     my $md;
-    while(<MDSTAT>)
+    while(<$mdstat>)
     {
       if (m/^md(\d+) \s+ : \s+ active \s+ (raid\d+)(.*)/x)                                                                                                                                                                                  
       {                                                                                                                                                                                                                                     
@@ -1236,7 +1235,7 @@ sub system
         push @{$info->{md}}, { md => $dev, %{$md} };
       }
     }
-    close MDSTAT;
+    close $mdstat;
   }
 
   foreach my $line (sort `$SNAG::Dispatch::shared_data->{binaries}->{lspci}`)
@@ -1290,18 +1289,18 @@ sub vmware_host
       {
         if($_ eq 'names')
         {
-  	  open IN, $File::Find::name;
+	  open my $in, '<', $File::Find::name;
   	  my $line;
-  	  while(<IN>)
+	  while(<$in>)
   	  {
   	    if(/uuid/)
   	    {
               my ($cfg_file) = /cfgFile=\"([^\"]+)\"/;
 
-	      open CFG, $cfg_file;
+	      open my $cfg, '<', $cfg_file;
 
 	      my %config;
-	      while(<CFG>)
+	      while(<$cfg>)
 	      {
 	        chomp;
 	        my ($key, $val) = split /\s*=\s*/;
@@ -1309,10 +1308,12 @@ sub vmware_host
 
 	        $config{$key} = $val;
 	      }
+              close $cfg;
 
               push @$vmware_uuids, { display_name => $config{displayName}, uuid => 'VMware-' . $config{'uuid.bios'}};
 	    }
 	  }
+          close $in;
         }
       },
       '/proc/vmware/vm/'
@@ -1328,8 +1329,8 @@ sub vmware_host
         {
           my %config;
 
-	  open IN, $File::Find::name;
-	  while(<IN>)
+	  open my $in, '<', $File::Find::name;
+	  while(<$in>)
 	  {
 	    chomp;
 	    my ($key, $val) = split /\s*=\s*/;
@@ -1337,6 +1338,7 @@ sub vmware_host
 
 	    $config{$key} = $val;
 	  }
+          close $in;
 
           push @$vmware_uuids, { display_name => $config{displayName}, uuid => 'VMware-' . $config{'uuid.bios'}};
         }
@@ -1358,8 +1360,8 @@ sub mounts
 
   my $seen = time2str("%Y-%m-%d %T", time);
 
-  open IN, '/etc/fstab';
-  while(<IN>)
+  open my $fstab, '<', '/etc/fstab';
+  while(<$fstab>)
   {
     next if /^\s*#/;
     next if /^none/;
@@ -1376,7 +1378,7 @@ sub mounts
       $mounts->{$mount}->{nfs_addr} = $ip;
     }
   }
-  close IN;
+  close $fstab;
 
   foreach (`$SNAG::Dispatch::shared_data->{binaries}->{mount} -lv`)
   {
@@ -1465,7 +1467,7 @@ sub iscsi
 
   unless(-e $SNAG::Dispatch::shared_data->{binaries}->{'iscsi-ls'})
   {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", '', $seen);
+    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find iscsi-ls", "Couldn't find iscsi-ls", '', $seen);
     print STDERR "\n";
 
     return;
@@ -1473,7 +1475,7 @@ sub iscsi
 
   unless(-e $iscsi_initiator)
   {
-    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_initiator", '', $seen);
+    print STDERR join REC_SEP, ('events', HOST_NAME, 'sysinfo', 'iscsi_issue', "Couldn't find $iscsi_initiator", "Couldn't find $iscsi_initiator", '', $seen);
     print STDERR "\n";
 
     return;
@@ -1483,8 +1485,8 @@ sub iscsi
 
   ### Get initiator name
   {
-    open IN, $iscsi_initiator;
-    while(<IN>)
+    open my $in, '<', $iscsi_initiator;
+    while(<$in>)
     {
       next if /^\#/;
       if(/^InitiatorName=(\S+)/)
@@ -1495,6 +1497,7 @@ sub iscsi
         $info->{iscsi}->{name} = $name;
       }
     }
+    close $in;
   }
 
   my ($lun, $status);
@@ -1613,12 +1616,12 @@ sub _get_kernel_settings
 
   if(-f $path)
   {
-    open IN, $path or die "Cannot open $path";
+    open my $in, '<', $path or die "Cannot open $path";
 
     (my $key = $path) =~ s#^/proc/sys/##;
     $key =~ s/\//\./g;
 
-    while(<IN>)
+    while(<$in>)
     {
       chomp;
       push @$settings, { key => $key, val => $_ };
@@ -1626,19 +1629,20 @@ sub _get_kernel_settings
       my $length = length $key;
       $max_length = $length unless $max_length > $length;
     }
+    close $in;
   }
   elsif(-d $path)
   {
-    opendir PATH, $path or die "Cannot opendir $path: $!";
+    opendir(my $path_dir, $path) or die "Cannot opendir $path: $!";
 
-    for my $name (readdir PATH)
+    for my $name (readdir $path_dir)
     {
       next if $name eq "." or $name eq "..";
       my $length = _get_kernel_settings("$path/$name", $settings);
       $max_length = $length unless $max_length > $length;
     }
 
-    closedir PATH;
+    closedir $path_dir;
   }
   else
   {

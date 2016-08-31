@@ -226,7 +226,7 @@ sub monitor
 
   if(my $procs = $monitor_defs->{procs})
   {
-    my $get_procs = new Proc::ProcessTable;
+    my $get_procs = Proc::ProcessTable->new;
 
     while(my ($proc_key, $ref) = each %$procs)
     {

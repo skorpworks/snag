@@ -69,7 +69,7 @@ sub new
         $kernel->alias_set('object');
 
         my $state_file =  LOG_DIR . "/$alias.state";
-        $heap->{state} = new DBM::Deep(file => $state_file);
+        $heap->{state} = DBM::Deep->new(file => $state_file);
 
         $heap->{sleepy_time} = 100;
         $heap->{tuned} = 0;
