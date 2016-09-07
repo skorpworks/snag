@@ -643,7 +643,7 @@ sub get_template
           cfunc   => 'LAST', 
         },
         archive => { 
-          rows    => 1051200,
+          rows    => 2628000,
           cpoints => 1,
           cfunc   => 'AVERAGE', 
         },
@@ -741,7 +741,7 @@ sub get_template
           cfunc   => 'LAST', 
         },
         archive => { 
-          rows    => 210240,
+          rows    => 525600,
           cpoints => 1,
           cfunc   => 'AVERAGE', 
         },
@@ -838,7 +838,7 @@ sub get_template
           cfunc   => 'LAST', 
         },
         archive => { 
-          rows    => 105120, 
+          rows    => 175200, 
           cpoints => 1,
           cfunc   => 'AVERAGE', 
         },
@@ -931,7 +931,7 @@ sub get_template
           cfunc   => 'LAST',
         },
         archive => {
-          rows    => 26280,
+          rows    => 43800,
           cpoints => 1,
           cfunc   => 'AVERAGE',
         },
