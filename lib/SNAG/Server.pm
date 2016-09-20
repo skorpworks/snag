@@ -7,12 +7,10 @@ use Socket;
 use POE::Component::Server::TCP;
 use Carp qw(carp croak);
 
-use Net::Nslookup;
 use Sys::Hostname;
 use FileHandle;
 use Crypt::CBC;
 use File::Basename;
-use Net::Nslookup;
 use Data::Dumper;
 use FreezeThaw qw/freeze thaw/;
 use Date::Format;
