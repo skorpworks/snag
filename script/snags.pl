@@ -2,7 +2,6 @@
 
 use strict;
 
-BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };
 use FindBin;
 use lib "/opt/snag/lib/perl5";
 
