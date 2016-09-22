@@ -3,7 +3,6 @@ use base qw(SNAG::Server);
 
 use strict;
 
-BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll"; };                                                                                                                                                        
 use POE;      
 use POE::Component::EasyDBI;
 
