@@ -492,7 +492,14 @@ sub startup
 {
   my $info;
 
-  $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` } if -e '/sbin/chkconfig';
+  if( -e '/usr/bin/systemctl' )
+  {
+    $info->{conf}->{startup} = { contents => `systemctl list-unit-files` };
+  }
+  elsif( -e '/sbin/chkconfig' )
+  {
+    $info->{conf}->{startup} = { contents => `/sbin/chkconfig --list` };
+  }
 
   return $info;
 }
@@ -953,8 +960,8 @@ sub system
   {
     my $name;
 
-    open my $scsi, '<', '/proc/scsi/scsi';
-    while(<$scsi>)
+    open my $read_scsi, '<', '/proc/scsi/scsi';
+    while(<$read_scsi>)
     {
       chomp;
       if(/Host:\s+(\w+)\s+Channel:\s+(\w+)\s+Id:\s+(\w+)\s+Lun:\s+(\w+)/)
@@ -974,7 +981,7 @@ sub system
         $scsi->{$name}->{type} = $1;
       }
     }
-    close $scsi;
+    close $read_scsi;
   }
 
   foreach my $device (sort keys %$scsi)
@@ -1037,8 +1044,14 @@ sub system
           $int++;
         }
       }
+      elsif( defined $name && m/\s+inet6 (\S+) scope (global|link|host) / )
+      {
+        my ($ip, $cidr) = split /\//, $1, 2;
+        $iface->{"$name:$int"}->{ip} = $ip;
+        $iface->{"$name:$int"}->{netmask} = $cidr;
+        $int++;
+      }
     }
-
   }
   elsif (defined $SNAG::Dispatch::shared_data->{binaries}->{ifconfig})
   {
@@ -1131,7 +1144,7 @@ sub system
                 my $last_line;
 		my $ipmi;
 
-                open my $cmd, '<', $SNAG::Dispatch::shared_data->{binaries}->{ipmiutil} . ' lan -c |';
+                open my $cmd, $SNAG::Dispatch::shared_data->{binaries}->{ipmiutil} . ' lan -c |';
                 while( my $line = <$cmd> )
                 {
                         chomp $line;
