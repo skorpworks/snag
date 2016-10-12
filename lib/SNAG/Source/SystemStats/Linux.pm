@@ -894,27 +894,39 @@ sub run_network_dev
     s/\s+/ /g;
     if (s/^\s*([\w\.\-]+)\s*:\s*//)
     {
-      next if($1 =~ /^(vif|ppp)/);
+      my $dev = $1;
+      next if($dev =~ /^(vif|ppp)/);
 
-      if( $1 =~ /^tun/ && $shared_data->{control}->{ 'sysstats_run_network_dev_keep_tun' } ne 'on' )
+      if( $dev =~ /^tun/ && $shared_data->{control}->{ 'sysstats_run_network_dev_keep_tun' } ne 'on' )
       {
         next;
       }
 
       my @stats = split(/\s+/);
+
       #in
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inbyte', $rrd_min . "d", $time, $stats[0]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inpkts', $rrd_min . "d", $time, $stats[1]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inerr', $rrd_min . "d", $time, $stats[2]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'indrop', $rrd_min . "d", $time, $stats[3]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'inframe', $rrd_min . "d", $time, $stats[5]));
+      unless( $heap->{last_network_dev_inbyte}->{$dev} == $stats[0] )
+      {
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'inbyte', $rrd_min . "d", $time, $stats[0]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'inpkts', $rrd_min . "d", $time, $stats[1]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'inerr', $rrd_min . "d", $time, $stats[2]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'indrop', $rrd_min . "d", $time, $stats[3]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'inframe', $rrd_min . "d", $time, $stats[5]));
+      }
+  
       #out
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outbyte', $rrd_min . "d", $time, $stats[8]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outpkts', $rrd_min . "d", $time, $stats[9]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outerr', $rrd_min . "d", $time, $stats[10]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outdrop', $rrd_min . "d", $time, $stats[11]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outcoll', $rrd_min . "d", $time, $stats[13]));
-      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$1\]", 'outcarr', $rrd_min . "d", $time, $stats[14]));
+      unless( $heap->{last_network_dev_outbyte}->{$dev} == $stats[8] )
+      {
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outbyte', $rrd_min . "d", $time, $stats[8]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outpkts', $rrd_min . "d", $time, $stats[9]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outerr', $rrd_min . "d", $time, $stats[10]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outdrop', $rrd_min . "d", $time, $stats[11]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outcoll', $rrd_min . "d", $time, $stats[13]));
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'outcarr', $rrd_min . "d", $time, $stats[14]));
+      }
+
+      $heap->{last_network_dev_inbyte}->{$dev} = $stats[0];
+      $heap->{last_network_dev_outbyte}->{$dev} = $stats[8];
     }
   }
 
