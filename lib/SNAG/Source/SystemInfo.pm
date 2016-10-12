@@ -217,15 +217,6 @@ sub new
       {
         my ($kernel, $heap, $info, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
 
-        if($heap->{state}->{host} ne CHECK_HOST_NAME)
-        {
-          ### Send a name change thingie?
-          ### The hostname changed, clear the state
-          #delete $heap->{state};
-          $SNAG::Source::sysinfo_prune_state = undef;
-          $heap->{state}->{host} = HOST_NAME;
-        }
-
         if(defined $info->{cpumem} && defined $info->{cpumem}->{cpu_count})
         {
           $shared_data->{cpu_count} = $info->{cpumem}->{cpu_count};
