@@ -290,7 +290,7 @@ sub new
         $kernel->delay( $_[STATE] => $config->{manage} );
       },
       job_close => sub {
-        my ( $heap, $wheel_id ) = @_[ HEAP, ARG0 ];
+        my ( $kernel, $heap, $wheel_id ) = @_[ KERNEL, HEAP, ARG0 ];
 
         $kernel->call('logger' => "log" => "$alias: DEBUG: Child ", $wheel_id, " has finished.\n" ) if $debug;
         $heap->{snagstat}->{closedwheels}++;
