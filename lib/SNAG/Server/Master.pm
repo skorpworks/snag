@@ -95,6 +95,12 @@ sub new
 
         if($heap->{server_data})
         {
+          if( $input->{name} =~ /^sysrrd_(dyn_.+)$/ )
+          {
+	    $input->{name} = 'sysrrd';
+	    $input->{client_host} = $1;
+          }
+
           if(my $info = $heap->{server_data}->{mapping}->{ $input->{name} }->{ $input->{client_host} })
           {
             if($SNAG::flags{debug})
