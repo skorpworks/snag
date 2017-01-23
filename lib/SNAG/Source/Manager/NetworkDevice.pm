@@ -109,6 +109,7 @@ sub new
         else
         {
           my $time = time();
+          $state->{pickables} = {};
           foreach my $row (@{$dbires->{result}})
           {
             unless (defined $row->{dns})
