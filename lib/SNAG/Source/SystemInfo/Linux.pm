@@ -1011,10 +1011,33 @@ sub system
       #    inet 69.16.128.183/27 brd 69.16.128.191 scope global secondary eth0
       #    inet6 fe80::230:48ff:fe34:b2fa/64 scope link
       #2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 100
-      if (m/^(\d+):\s(enp\d+s\d+f\d+|lo|eth\d+|em\d+|bond\d+|tap\d|tun\d|br\d|virbr\d):\s(.*)$/ || /^(\d+):\s(vlan\d+)@\w+:\s(.*)$/)
+      #
+      #bond0.55  
+      #bond1     
+      #br-v170   
+      #br0       
+      #br0.105   
+      #br1       
+      #br170     
+      #br6       
+      #em0       
+      #em0.0     
+      #em1       
+      #em2       
+      #em2.32768 
+      #eno3      
+      #eno4      
+      #enp0s8    
+      #enp10s0f0 
+      #vlan170@eth0
+      if (m/^(\d+):\s+((lo|eth\d+|tun\d+|tap\d+|bond\d+|vlan\d+|virbr\d+|vnet\d+|br\d{0,}|em\d+|en[ospf]\d+\w{0,})([\-\.]v{0,1}\d+){0,1}):\s(.*)$/ || /^(\d+):\s(vlan\d+)@\w+:\s(.*)$/)
       {
+        #1:1  2:bond0.55    3:bond0       4:.55     5:<BROADCAST,MULTICAST,UP,LOWER_UP>  mtu  1500  qdisc  pfifo_fast  state  UP  qlen  1000
+        #1:1  2:bond1       3:bond1       4:        5:<BROADCAST,MULTICAST,UP,LOWER_UP>  mtu  1500  qdisc  pfifo_fast  state  UP  qlen  1000
+        #1:1  2:br-v170     3:br          4:-v170   5:<BROADCAST,MULTICAST,UP,LOWER_UP>  mtu  1500  qdisc  pfifo_fast  state  UP  qlen  1000
+        #1:1  2:br0         3:br0         4:        5:<BROADCAST,MULTICAST,UP,LOWER_UP>  mtu  1500  qdisc  pfifo_fast  state  UP  qlen  1000
         $name = $2;
-        $iface->{$name}->{port} = $3;
+        $iface->{$name}->{port} = $5;
         $int=0;
       }
       elsif (m/^(\d+):\s/)
