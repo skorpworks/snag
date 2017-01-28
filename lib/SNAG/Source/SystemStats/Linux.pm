@@ -895,7 +895,7 @@ sub run_network_dev
     if (s/^\s*([\w\.\-]+)\s*:\s*//)
     {
       my $dev = $1;
-      next if($dev =~ /^(vif|ppp)/);
+      next if($dev =~ /^(vif|ppp|veth)/);
 
       if( $dev =~ /^tun/ && $shared_data->{control}->{ 'sysstats_run_network_dev_keep_tun' } ne 'on' )
       {
