@@ -639,7 +639,7 @@ sub create_connection
                           delete $heap->{initiated_connection};
                           delete $heap->{pending_data};
 
-                          if($heap->{server})
+                          if($heap->{server} && $heap->{connected} && !$heap->{shutdown})
                           {
                             $heap->{server}->shutdown_input();
                             $heap->{server}->shutdown_output();
