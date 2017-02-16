@@ -18,7 +18,7 @@ use Net::Nslookup;
 use File::Which;
 use Network::IPv4Addr qw(ipv4_parse ipv4_cidr2msk);
 
-our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole installed_software_whole service_monitor mounts smartctl/; 
+our @EXPORT = qw/installed_software_check config_files_check vmware_host arp startup portage system static_routes bonding config_files_whole installed_software_whole service_monitor mounts smartctl kvm_host/; 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT ); 
 
 ### The periods must all have the same lowest common
@@ -37,6 +37,8 @@ our $config =
   'smartctl'            => { 'period' => 3600, data => $SNAG::Dispatch::shared_data },
 
   'vmware_host'		=> { 'period' => 1800, if_tag => 'virtual.vmware.host' },
+
+  'kvm_host'		=> { 'period' => 1800, if_tag => 'virtual.kvm.host' },
 
   'arp' 		=> { 'period' => 7200 },
 
@@ -1384,6 +1386,25 @@ sub vmware_host
   $info->{vmware_uuids} = $vmware_uuids;
 
   return $info;
+}
+
+sub kvm_host
+{
+	local $/ = "\n";
+
+	my $info = { kvm_uuids => [] };
+
+	open VIRSH, "virsh list --uuid --all |";
+	while( my $uuid = <VIRSH> )
+	{
+		chomp $uuid;
+		next unless $uuid;
+
+		push @{$info->{kvm_uuids}}, { uuid => $uuid };
+	}
+	close VIRSH;
+
+	return $info;
 }
 
 sub mounts

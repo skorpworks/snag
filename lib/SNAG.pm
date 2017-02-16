@@ -27,7 +27,7 @@ GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile'
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
 
-our $VERSION = '5.15';
+our $VERSION = '5.16';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver, $long, $name);
@@ -51,15 +51,15 @@ if($^O =~ /linux/i)
 
     #CentOS release 6.5 (Final)
     #CentOS Linux release 6.0 (Final)
-    if($release =~ /CentOS release ([\d\.]+) ([\w]+)/)
+    if($release =~ /CentOS release ([\d\.]+)/)
     {
-      ($ver = $1) =~ s/\.//g;
+      $ver = $1;
       $dist = 'CentOS';
       print "$dist\n";
     }
-    elsif($release =~ /CentOS Linux release ([\d\.]+) ([\w]+)/)
+    elsif($release =~ /CentOS Linux release ([\d\.]+)/)
     {
-      ($ver = $1) =~ s/\.//g;
+      $ver = $1;
       $dist = 'CentOS';
       print "$dist\n";
     }
@@ -68,13 +68,13 @@ if($^O =~ /linux/i)
     ###Red Hat Enterprise Linux WS release 3 (Taroon Update 5)
     elsif($release =~ /Red Hat Enterprise Linux \w+ release ([\.\d]+)/)
     {
-      ($ver = $1) =~ s/\.//g;
+      $ver = $1;
       $dist = 'RHEL';
     }
     ###Red Hat Linux release 7.2 (Enigma)
     elsif($release =~ /Red Hat Linux release ([\d\.]+)/)
     {
-      ($ver = $1) =~ s/\.//g;
+      $ver = $1;
       $dist = 'RH';
     }
     #Fedora Core release 4 (Stentz)

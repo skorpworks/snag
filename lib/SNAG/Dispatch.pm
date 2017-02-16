@@ -171,7 +171,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         $kernel->delay($_[STATE] => 3600);
 
-        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool xl iptables ip6tables ipmiutil))
+        foreach my $bin (qw (arp dmidecode ethtool ifconfig ip iscsi-ls lspci lsscsi mount netstat smartctl vserver vserver-stat zpool xl iptables ip6tables ipmiutil virsh))
         {
           $shared_data->{binaries}->{$bin} = which("$bin");
           $shared_data->{binaries}->{missing} .= "$bin " unless defined $shared_data->{binaries};
@@ -191,6 +191,11 @@ sub new
 	{
           $shared_data->{tags}->{'virtual'}->{vserver}->{host} = 1;
           $kernel->yield('dispatcher' => 'SNAG::Source::vserver' );
+	}
+
+        if( $shared_data->{binaries}->{virsh} )
+	{
+          $shared_data->{tags}->{'virtual'}->{kvm}->{host} = 1;
 	}
 
 	if( -e '/sys/hypervisor/uuid' )
