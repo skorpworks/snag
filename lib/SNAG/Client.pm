@@ -163,7 +163,7 @@ sub new
         return if $name eq '_child';
         return if $name eq '_stop';
 
-        $kernel->call('logger' => 'log' => "Client: recieved unhandled request to communicate with the $name server");
+        $kernel->call('logger' => 'log' => "Client: received unhandled request to communicate with the $name server");
 
         my ($function, $data) = @$args;
 
@@ -214,7 +214,7 @@ sub new
       {
         my ($kernel, $heap) = @_[KERNEL, HEAP];
 
-        my $msg = "Calling depricated state 'add' with args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
+        my $msg = "Calling deprecated state 'add' with args: " . join ', ', grep { $_ } ($_[ARG0], $_[ARG1], $_[ARG2], $_[ARG3], $_[ARG4]);
 
         $kernel->call('logger' => 'log' => $msg);
       },
@@ -295,7 +295,7 @@ sub new
 	}
 	else
 	{
-          $kernel->call('logger' => "log" => "WARNING: running load_conf but I can't find $client_conf.  I should've called init, but something must've happend");
+          $kernel->call('logger' => "log" => "WARNING: running load_conf but I can't find $client_conf.  I should've called init, but something must've happened");
 	}
       },
 
@@ -727,12 +727,12 @@ sub receive
       {
         if($parcel->{status} eq 'success')
         {
-          $kernel->call('logger' => 'log' =>  "Recieve: calling postback") if $SNAG::flags{debug};
+          $kernel->call('logger' => 'log' =>  "Receive: calling postback") if $SNAG::flags{debug};
           $postback->( $parcel->{result} );
         }
         else
         {
-          $kernel->call('logger' => 'log' => "Recieve: NOT calling postback") if $SNAG::flags{debug};
+          $kernel->call('logger' => 'log' => "Receive: NOT calling postback") if $SNAG::flags{debug};
         }
       }
 

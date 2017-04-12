@@ -162,7 +162,7 @@ $daily_tables =
     my $day = shift;
 return <<END_MESSAGES
 CREATE TABLE `messages_$day` (
-  `recieved` datetime default NULL,
+  `received` datetime default NULL,
   `from` varchar(255) NOT NULL default '',
   `mailto` varchar(255) default NULL,
   `subject` text,
@@ -176,7 +176,7 @@ CREATE TABLE `messages_$day` (
   `seen` datetime default NULL,
   `mid` bigint(20) NOT NULL auto_increment,
   PRIMARY KEY  (`mid`),
-  KEY `idx_from_recieved` (`mailto`,`recieved`, `reason`, `action`),
+  KEY `idx_from_received` (`mailto`,`received`, `reason`, `action`),
   KEY `idx_action` (`action`)
 ) ENGINE=MyISAM AUTO_INCREMENT=330815532 DEFAULT CHARSET=latin1 MAX_ROWS=1000000000
 END_MESSAGES
