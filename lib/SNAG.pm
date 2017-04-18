@@ -55,13 +55,11 @@ if($^O =~ /linux/i)
     {
       $ver = $1;
       $dist = 'CentOS';
-      print "$dist\n";
     }
     elsif($release =~ /CentOS Linux release ([\d\.]+)/)
     {
       $ver = $1;
       $dist = 'CentOS';
-      print "$dist\n";
     }
     ###Red Hat Enterprise Linux AS release 3 (Taroon Update 5)
     ###Red Hat Enterprise Linux AS release 4 (Nahant Update 1)
