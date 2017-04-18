@@ -927,6 +927,15 @@ sub run_network_dev
 
       $heap->{last_network_dev_inbyte}->{$dev} = $stats[0];
       $heap->{last_network_dev_outbyte}->{$dev} = $stats[8];
+
+	## every 5 min
+	if( (int (time / 60) % 5 ) == 0 )
+	{
+		$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'ipv_inbyte', '5di', $time, $stats[0]));
+		$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'ipv_inpkts', '5di', $time, $stats[1]));
+		$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'ipv_outbyte', '5di', $time, $stats[8]));
+		$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$dev\]", 'ipv_outpkts', '5di', $time, $stats[9]));
+	}
     }
   }
 
