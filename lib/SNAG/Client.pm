@@ -26,8 +26,8 @@ my $parcel_sep = PARCEL_SEP;
 my $line_sep = LINE_SEP;
 my $rec_sep = REC_SEP;
 my $client_conf = CLIENT_CONF;
-my $init_handshake_timeout = 20;
-my $parcel_ack_timeout = 60;
+my $init_handshake_timeout = 200;
+my $parcel_ack_timeout = 600;
 
 my $reconnect_min  = 20;
 my $reconnect_rand = 20;
@@ -534,6 +534,16 @@ sub create_connection
                           ### this doesn't work for some crazy reason
                           #while ( my ($function, $data) = each %{$heap->{client_queue}->{functions}} )
 
+				my $chunk_size;
+				if( $args->{name} eq 'sysinfo' )
+				{
+					$chunk_size = 5;
+				}
+				else
+				{
+					$chunk_size = $max_chunk_size;
+				}
+
                           foreach my $function ( keys %{$heap->{client_queue}->{functions}} )
                           {
                             my $data = $heap->{client_queue}->{functions}->{$function};
@@ -559,7 +569,7 @@ sub create_connection
                                 $kernel->call('logger' => 'log' => "Sending: $args->{name}($function): args($args_str)");
                               }
                             }
-                            elsif(my $chunk = $data->peek($max_chunk_size))
+                            elsif(my $chunk = $data->peek($chunk_size))
                             {
                               my $chunk_size = scalar @$chunk;
 
