@@ -384,9 +384,11 @@ sub new
 					print "$br \n";
 					@raw = `brctl showmacs $br`;
 					shift @raw;
+					my %seen = ();
 					foreach (sort @raw)
 					{
 						@brdata = split /\s+/;
+						next if $seen{$brdata[2]}++;
 						next unless $brdata[3] eq 'yes';
 						push @{$info->{brmac}}, {mac => $brdata[2]};
 						@{$info->{brmac}}[$#{$info->{brmac}}]->{local} = $brdata[3];
