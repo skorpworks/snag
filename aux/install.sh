@@ -8,11 +8,14 @@ ps -ef |grep 'snag[cx]$' |awk '{print $2}' | xargs kill 2>/dev/null
 ps -ef |grep 'snag[cx].pl$' |awk '{print $2}' | xargs kill 2>/dev/null
 
 echo "Creating /opt/snag base dir"
-mkdir -p /opt/snag   2>/dev/null
-mkdir /opt/snag/log  2>/dev/null
-mkdir /opt/snag/bin  2>/dev/null
-mkdir /opt/snag/sbin 2>/dev/null
-mkdir /opt/snag/conf 2>/dev/null
+mkdir -p -m 0755 /opt/snag   2>/dev/null
+mkdir -p -m 0755 /opt/snag/log  2>/dev/null
+mkdir -p /opt/snag/bin  2>/dev/null
+mkdir -p /opt/snag/sbin 2>/dev/null
+mkdir -p /opt/snag/conf 2>/dev/null
+
+chmod +rx /opt/snag /opt/snag/log
+chmod +r /opt/snag/log/*
 
 echo "Copying snag binaries to /opt/snag"
 dir=`pwd`
