@@ -11,6 +11,10 @@ cp /var/tmp/snagw /var/tmp/snag_installer/bin
 cp /var/tmp/snagp /var/tmp/snag_installer/bin
 cp /var/tmp/snagx /var/tmp/snag_installer/bin
 cp /opt/snag/snag.conf /var/tmp/snag_installer/snag.conf.def
+cp /var/tmp/snag_installer/snag.conf.def /var/tmp/snag_installer/snag.conf.sp
+sed -i -e "s/^[[:space:]]\{1,\}host[[:space:]]\{1,\}snag.easynews.com/\thost\tsnag-server.puregig.net/" /var/tmp/snag_installer/snag.conf.sp
+sed -i -e "s/^[[:space:]]\{1,\}fallbackip[[:space:]]\{1,\}69.16.160.218/\tfallbackip\t69.16.128.254/" /var/tmp/snag_installer/snag.conf.sp
+sed -i -e "s/^[[:space:]]\{1,\}port[[:space:]]\{1,\}13341/\tport\t13340/" /var/tmp/snag_installer/snag.conf.sp
 
 dmidecode=`which dmidecode 2>/dev/null`
 if [[ -x $dmidecode ]]
