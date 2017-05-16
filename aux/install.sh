@@ -14,8 +14,8 @@ mkdir -p /opt/snag/bin  2>/dev/null
 mkdir -p /opt/snag/sbin 2>/dev/null
 mkdir -p /opt/snag/conf 2>/dev/null
 
-chmod +rx /opt/snag /opt/snag/log
-chmod +r /opt/snag/log/*
+chmod 0755 /opt/snag /opt/snag/log
+chmod 0644 /opt/snag/log/*
 
 echo "Copying snag binaries to /opt/snag"
 dir=`pwd`
@@ -25,8 +25,14 @@ cp -a sbin/* /opt/snag/sbin/
 
 if [ ! -e "/opt/snag/snag.conf" ]
 then
-  echo "Copying default config"
-  cp snag.conf.def /opt/snag/snag.conf
+  if [ ! -z $1 ]
+  then
+        echo "Copying $1 config"
+        cp snag.conf.$1 /opt/snag/snag.conf
+  else
+        echo "Copying default config"
+        cp snag.conf.def /opt/snag/snag.conf
+  fi
 fi
 
 if [[ -d /etc/cron.hourly && ! -x /etc/cron.hourly/snagw ]]
