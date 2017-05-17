@@ -94,8 +94,10 @@ sub new
         $heap->{epoch} = time();
         $heap->{timekeeper} =  Time::HiRes::time();
 
-        $kernel->alarm(timekeeper => $heap->{timekeeper} + 2);
-        $kernel->delay(stats_update => 60);
+	## this stuff needs to be rethought, since every instance of snag (snagc, snagx, *_snags) running on a host is trying to create the same stat names, its resulting in a lot of log complaints on the rrd servers
+	## easiest option maybe is to add the $0 as a multi to each sysrrd post line? (see the stats_update subref below)
+        #$kernel->alarm(timekeeper => $heap->{timekeeper} + 2);
+        #$kernel->delay(stats_update => 60);
         
 	# want this inline so it blocks and runs before anything is established
 	#
