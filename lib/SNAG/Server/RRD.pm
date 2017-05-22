@@ -25,6 +25,11 @@ use Date::Format;
 
 use Statistics::Descriptive;
 
+### this bit only needed temporarily for rrd migration
+use DBI;
+my $dbh;
+$dbh = DBI->connect("dbi:Pg:dbname=sysinfo;host=snag-db1.easynews.com", 'sysinfo', 'AverycrypticPW', { RaiseError => 1} ) or die $dbh->errstr;
+
 my $rec_sep = REC_SEP;
 
 my $debug = $SNAG::flags{debug};
@@ -452,6 +457,40 @@ sub new
                     mkdir $dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $dir");
                   }
                   mkdir $rrd_dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $rrd_dir");
+
+	### this bit only needed temporarily for rrd migration
+	if( my $lookup = $dbh->selectrow_hashref("select server_host from snag_server_definitions, snag_server_mappings where server_id = id and snag_server_mappings.name = 'sysrrd' and snag_server_mappings.host = ?", undef, $host ) )
+	{
+		my $start = time;
+
+		my $source_host = $lookup->{server_host};
+		my $command = "rsync -a root\@$source_host:/var/rrd/$host/ /var/rrd/$host/";
+
+		my $rsync_output;
+		open RSYNC, "$command 2>&1 |";
+		while( my $line = <RSYNC> )
+		{
+			$rsync_output .= $line;
+		}
+		my $close_status = close RSYNC;
+		my $exit_status = $? >> 8;
+
+		my $elapsed = time - $start;
+
+		my $result;
+		if( $close_status && !$exit_status && ( not defined $rsync_output ) )
+		{
+			$result = 'success';
+		}
+		else
+		{
+			$result = 'failure';
+		}
+
+		$kernel_call("rrd migrate: host=$host result=$result elapsed=$elapsed close_status=$close_status exit_status=$exit_status rsync_output=$rsync_output source_host=$source_host");
+		exit if $result eq 'failure';
+	}
+
                 }
 
                 eval
