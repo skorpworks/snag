@@ -488,7 +488,12 @@ sub new
 		}
 
 		$kernel->call('logger' => "log" => "rrd migrate: host=$host result=$result elapsed=$elapsed close_status=$close_status exit_status=$exit_status rsync_output=$rsync_output source_host=$source_host");
-		exit if $result eq 'failure';
+
+		if( ( $result eq 'failure' ) && ( length($host) > 1 ) )
+		{
+			system "rm -rf /var/rrd/$host/"; ## yikes
+			exit;
+		}
 	}
 
                 }
