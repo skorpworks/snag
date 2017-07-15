@@ -38,11 +38,13 @@ my $instructions = {
   listening_ports => {
                        'nodashboard' => 1,
                        'nohistory'   => 1,
+                       'ignore'      => 1,
   },
 
   netapp_df => { 'ignore' => ['used'], },
 
   process => { 'ignore' => 1, },
+  mounts => { 'ignore' => 1, },
 
 };
 
@@ -113,7 +115,7 @@ sub new
         my ( $heap, $kernel ) = @_[ HEAP, KERNEL ];
 
         my $coderef = sub {
-          print "START build_monitor_defs ... " if $debug;
+          $kernel->call('logger' => 'log' => "START build_monitor_defs" ) if $debug;
 
           my ( $heap, $kernel ) = @_[ HEAP, KERNEL ];
 
@@ -133,7 +135,7 @@ sub new
 
           $kernel->delay( 'build_monitor_defs' => 600 );
 
-          print "DONE!\n" if $debug;
+          $kernel->call('logger' => 'log' => "DONE build_monitor_defs" ) if $debug;
         };
 
         $kernel->yield( 'sysinfo_query' => $coderef, $_[STATE] );
@@ -307,7 +309,7 @@ sub new
               }
             }
 
-            print "$host\n" if $debug;
+            $kernel->call('logger' => 'log' => "Processing host:$host tables:" . int(keys %{$system_info}) . " seen:$heap->{seen}");
 
             foreach my $table ( keys %{$system_info} )
             {
@@ -319,13 +321,13 @@ sub new
 	      
               if ( ref $instructions->{$table}->{ignore} ne 'ARRAY' && $instructions->{$table}->{ignore} == 1 )
 	      {
-                $kernel->call('logger' => 'log' => "Ignoring table: $table" );
+                $kernel->call('logger' => 'log' => "Processing host:$host. Ignoring table: $table" );
 		next;
 	      }
 
               if ( $table eq 'tags' )
               {
-                print "  updating tags\n" if $debug;
+                $kernel->call('logger' => 'log' => "Processing host:$host. updating tags") if $debug;
 
                 my $new = $system_info->{tags};        
                 my $cat;
@@ -354,7 +356,7 @@ sub new
               {
                 foreach my $conf ( keys %{ $system_info->{$table} } )
                 {
-                  print "  conf $conf ... " if $debug;
+                  $kernel->call('logger' => 'log' => "Processing host:$host. conf:$conf") if $debug;
 
                   my ( $new_contents, $old_contents );
 
@@ -375,7 +377,7 @@ sub new
 
                   unless ( $old_contents eq $new_contents )
                   {
-                    print "changed!\n" if $debug;
+                    $kernel->call('logger' => 'log' => "Processing host:$host. conf:$conf changed") if $debug;
 
                     $heap->{sth}->{$table}->{'delete'}->execute( $host, $conf ) or die $heap->{dbh}->errstr;
 
@@ -460,13 +462,15 @@ sub new
                   }
                   else
                   {
-                    print "no change\n" if $debug;
+                    $kernel->call('logger' => 'log' => "Processing host:$host. conf:$conf no change") if $debug;
                   }
                 }
               }
               else
               {
                 my ( $new_data, $old_data );
+
+                $kernel->call('logger' => 'log' => "Processing host:$host. table:$table") if $debug;
 
                 print "  $table ... " if $debug;
 
@@ -511,7 +515,7 @@ sub new
                       }
                       else
                       {
-                        $kernel->call('logger' => 'log' => "ignore key for $table needs to be an arrayref" );
+                        $kernel->call('logger' => 'log' => "Processing host:$host. ignore key for $table needs to be an arrayref" );
                       }
                     }
                   }
@@ -581,12 +585,12 @@ sub new
                   }
                   else
                   {
-                    print "no change (check 2)\n" if $debug;
+                    $kernel->call('logger' => 'log' => "Processing host:$host. no change (check 2)");
                   }
                 }
                 else
                 {
-                  print "no change (check 1)\n" if $debug;
+                  $kernel->call('logger' => 'log' => "Processing host:$host. no change (check 1)");
                 }
               }
             }
@@ -620,8 +624,7 @@ sub new
           {
             my $msg = "DB Load Error: $@: ";
             $kernel->post( 'client' => 'dashboard' => 'load' => join $rec_sep, ( 'events', $heap->{host}, 'sysinfo', 'database error', 'DB load error', $@, '', $heap->{seen} ) );
-            print "$msg\n" if $debug;
-            $kernel->call('logger' => 'log' => $msg );
+            $kernel->call('logger' => 'log' => "ERROR:$msg");
           }
         }
         return 0;

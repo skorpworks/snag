@@ -607,7 +607,7 @@ sub load_pg
         }
         else
         {
-          $kernel->call('logger' => 'log' => "DEBUG: Alerts: reusing alert $state->{alerts}->{$alert_string}->{aid} for #$alert_string#  #$state->{alerts}->{$alert_string}->{first_seen}# $state->{alerts}->{$alert_string}->{last_seen}# #$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#: $p_seen");
+#          $kernel->call('logger' => 'log' => "DEBUG: Alerts: reusing alert $state->{alerts}->{$alert_string}->{aid} for #$alert_string#  #$state->{alerts}->{$alert_string}->{first_seen}# $state->{alerts}->{$alert_string}->{last_seen}# #$heap->{a_ids}->{seen}->{$state->{alerts}->{$alert_string}->{aid}}#: $p_seen");
           $state->{alerts}->{"$alert_string"}->{count}++;
           $state->{alerts}->{"$alert_string"}->{last_seen}  = $curr_seen;
           $heap->{a_ids}->{seen}->{$state->{alerts}->{"$alert_string"}->{aid}} = 0;

@@ -132,13 +132,13 @@ sub new
 
       $ip = $heap->{remote_ip};
 			
-      ($stdout) = capture_merged
-      {
+      #($stdout) = capture_merged
+      #{
         # don't perform nslookups, as if many one of them time out, then future clients can't 
 	# get through the backlog and no one is happy 
         #$host = nslookup(host => $ip, type => "PTR") || $ip;
         $host = $ip;
-      };
+      #};
 
       $server_data->{last_connect_attempt}->{$ip} = time2str('%Y-%m-%d %T', $now);
 
@@ -150,9 +150,9 @@ sub new
       $heap->{cipher} = $cipher;
       $heap->{key} = $key;
 
-      $kernel->call('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at " . ($now + 20));
+      $kernel->call('logger' => 'log' => "ClientConnected: New connection from $ip ($host) timing out at " . ($now + 120));
 
-      $heap->{handshake_timeout_id} = $kernel->alarm_set('handshake_timeout' => ($now + 20));
+      $heap->{handshake_timeout_id} = $kernel->alarm_set('handshake_timeout' => ($now + 120));
     },
 
     ClientDisconnected => sub
@@ -169,7 +169,7 @@ sub new
       }  
       else
       {
-        $kernel->call('logger' => 'log' => "SNAG::Server Error:  got a disconnect from a server that wasn't connected, ip=$ip, host=$heap->{hostname}");
+        $kernel->call('logger' => 'log' => "SNAG::Server Error: got a disconnect from a server that wasn't connected, ip=$ip, host=$heap->{hostname}");
       }
 
       
@@ -185,8 +185,8 @@ sub new
 
     ClientError => sub
     {
-      my ($kernel, $heap, $syscall_name, $error_number, $error_string) = @_[KERNEL, HEAP, ARG0, ARG1, ARG2];
-      $kernel->call('logger' => 'log' => "SNAG::Server ClientError:  $syscall_name:$error_number:$error_string");
+      my ($kernel, $heap, $syscall_name, $error_number, $error_string, $extra) = @_[KERNEL, HEAP, ARG0, ARG1, ARG2];
+      $kernel->call('logger' => 'log' => "SNAG::Server ClientError: $syscall_name:$error_number:$error_string:$heap->{remote_ip}");
     },
 
 
@@ -196,7 +196,7 @@ sub new
     {
       send => sub
       {
-        my ($kernel, $heap, $data) = @_[KERNEL, HEAP, ARG0];
+        my ($kernel, $heap, $data) = @_[KERNEL, HEAP, ARG0];        
 
         my $serialized = freeze($data);
         my $encrypted = $heap->{cipher}->encrypt($serialized);
@@ -219,7 +219,7 @@ sub new
         my ($kernel, $heap) = @_[KERNEL, HEAP];
         my $now = time;
         $server_data->{timeout}++;
-        $kernel->call('logger' => 'log' => "Handshake Error:  Client sent nothing within time allowed ($now)");
+        $kernel->call('logger' => 'log' => "Handshake Error: Client ($heap->{remote_ip}) sent nothing within time allowed ($now)");
         $kernel->yield('disconnect');
       },
 
