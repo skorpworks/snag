@@ -20,17 +20,18 @@ use File::Spec::Functions qw/catfile/;
 use Statistics::Descriptive;
 use Data::Dumper;
 
-my $max_chunk_size = 100;
+my $max_chunk_size = 500;
 my $hold_period = 120;
 my $parcel_sep = PARCEL_SEP;
 my $line_sep = LINE_SEP;
 my $rec_sep = REC_SEP;
 my $client_conf = CLIENT_CONF;
+
 my $init_handshake_timeout = 200;
 my $parcel_ack_timeout = 600;
 
-my $reconnect_min  = 20;
-my $reconnect_rand = 20;
+my $reconnect_min  = 90;
+my $reconnect_rand = 180;
 
 (my $script_name = SCRIPT_NAME) =~ s/\.\w+$//;
 
@@ -310,6 +311,7 @@ sub new
         ### what if the manager server is down?  Or you get an invalid response?
         ### what happens when two manager functions are sent before the first one gets anything back
         ### what if the manager never responds?
+        $kernel->call('logger' => "log" => "Client: query_server_info: $name");
         $kernel->yield('master' => 'get_server_info' =>  { name => $name, client_host => HOST_NAME, postback => $session->postback('get_server_info_response', $name) } );
       },
 
@@ -323,16 +325,18 @@ sub new
           {
             $ref->{client_queue} = $heap->{client_queue}->{ $ref->{name} };
 
+            $kernel->call('logger' => "log" => "Client: get_server_info_response: creating_connection: $ref->{name}");
             create_connection($ref);
 
             return;
           }
           else
           {
-            $kernel->call('logger' => "log" => "Invalid data in get_server_info_response for $passed_through->[0]:" . Dumper $ref);
+            $kernel->call('logger' => "log" => "Client: get_server_info_response: Invalid data in get_server_info_response for $passed_through->[0]:" . Dumper $ref);
           }
         }
 
+        $kernel->call('logger' => "log" => "Client: get_server_info_response: $passed_through->[0]: delay_add(query_server_info)");
         $kernel->delay_add('query_server_info' => 60, $passed_through->[0]);
       },
     }
@@ -396,6 +400,11 @@ sub create_connection
   }
 
   return if $missing;
+  my $instance = sprintf("%04d", int(rand(9999)));
+  $args->{client_queue}->{attempt} += 1;
+
+  $poe_kernel->call('logger' => 'log' => "Client: create_connection: $args->{name}") if $SNAG::flags{debug};
+  print Dumper $args;
 
   POE::Component::Client::TCP->new
   ( 
@@ -404,7 +413,7 @@ sub create_connection
 
     Filter   => [ "POE::Filter::Line", Literal => $parcel_sep ],
  
-    ConnectTimeout => 10,
+    ConnectTimeout => 15,
 
     Started        => sub
                       {
@@ -415,6 +424,9 @@ sub create_connection
                         $heap->{fallbackip} = $args->{fallbackip} || 0;
                         $heap->{port} = $args->{port};
                         $heap->{client_queue} = $args->{client_queue};
+                        $heap->{instance} = $instance;
+
+                        my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
 
                         $heap->{cipher} = Crypt::CBC->new
                         (
@@ -428,10 +440,10 @@ sub create_connection
                         #FIXME
                         #does not work right now. Need to do some getopt spec work
                         $args->{override} = " ( override: $args->{override})" if defined $args->{override};
-                        $kernel->call('logger' => "log" => "Client: Started: $args->{name}$args->{override}" );
+                        $kernel->call('logger' => "log" => "Client: Started: $args->{name}($tag) $args->{override}" );
                       },
 
-## WTF: [2015-09-21 15:49:45] [26119] SNAG warning: POE::Component::Client::TCP->new() doesn't recognize "Stopped" as a parameter at SNAG/Client.pm line 646.
+# WTF: [2015-09-21 15:49:45] [26119] SNAG warning: POE::Component::Client::TCP->new() doesn't recognize "Stopped" as a parameter at SNAG/Client.pm line 646.
     # Stopped =>        sub
                       # {
                         # my ($kernel, $heap) = @_[ KERNEL, HEAP ];
@@ -443,8 +455,11 @@ sub create_connection
                         my ($kernel, $heap) = @_[ KERNEL, HEAP ];
         
                         delete $heap->{connect_attempts};
+                        delete $heap->{reconnect_time};
 
-                        $kernel->call('logger' => "log" => "Client: Connected: $args->{name} to $heap->{host} on $args->{port}");
+                        my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
+
+                        $kernel->call('logger' => "log" => "Client: Connected: $args->{name}($tag) to $heap->{host} on $args->{port}");
 
                         ### Send handshake
                         $kernel->state('got_server_input' => \&receive_handshake);
@@ -460,32 +475,34 @@ sub create_connection
                         my ($kernel, $heap, $syscall, $num, $error) = @_[ KERNEL, HEAP, ARG0, ARG1, ARG2 ];
           
                         $heap->{connect_attempts}++;
+                        my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
 
-                        my $error_msg = "Client: ConnectError: $args->{name} to $heap->{host} on $heap->{port}: syscall = $syscall, num = $num, error = $error, failed after $heap->{connect_attempts} attempts";
+                        my $error_msg = "Client: ConnectError: $args->{name}($tag) to $heap->{host} on $heap->{port}: syscall = $syscall, num = $num, error = $error, failed after $heap->{connect_attempts} attempts";
  
-                        if ($heap->{connect_attempts} <= 5 && $heap->{fallbackip})
+                        if ($heap->{connect_attempts} <= 6 && $heap->{fallbackip})
                         {
-                          my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
-                          $error_msg .= ", reconnecting to fallback ip $heap->{fallbackip} in $reconnect_time seconds";
-                          $kernel->delay('connect' => $reconnect_time, $heap->{fallbackip});
+                          $heap->{reconnect_time} += int( rand($reconnect_rand) + $reconnect_min) if ($heap->{reconnect_time} < 900);
+                          $error_msg .= " - reconnecting to fallback ip $heap->{fallbackip} in $heap->{reconnect_time} seconds";
+                          $kernel->delay('connect' => $heap->{reconnect_time}, $heap->{fallbackip});
                         }
-                        elsif($heap->{connect_attempts} <= 5 || $args->{name} eq 'master')
+                        elsif($heap->{connect_attempts} <= 6 || $args->{name} eq 'master')
                         {
-                          my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
-                          $error_msg .= ", reconnecting in $reconnect_time seconds";
+                          $heap->{reconnect_time} += int( rand($reconnect_rand) + $reconnect_min) if ($heap->{reconnect_time} < 1200);
+                          $error_msg .= " - reconnecting in $heap->{reconnect_time} seconds";
 
-                          $kernel->delay('connect' => $reconnect_time, $heap->{host});
+                          $kernel->delay('connect' => $heap->{reconnect_time}, $heap->{host});
                         }
                         else
                         {
-                          $error_msg .= ', destroying this session and requerying master server.';
+                          $error_msg .= ' - destroying this session and requerying master server.';
                           
                           $kernel->yield('shutdown');
+                          delete $heap->{reconnect_time};
 
                           $kernel->post('client' => 'query_server_info' => $args->{name});
                         }
 
-                        $kernel->call('logger' => 'log' => $error_msg);
+                        $kernel->call('logger' => 'log' => "$error_msg");
                       },
 
     Disconnected   => sub
@@ -495,9 +512,11 @@ sub create_connection
                         delete $heap->{initiated_connection};
                         delete $heap->{pending_data};
 
+                        my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
+
                         my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
 
-                        $kernel->call('logger' => "log" => "Client:: Disconnected: $args->{name} to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
+                        $kernel->call('logger' => "log" => "Client: Disconnected: $args->{name}($tag) to $heap->{host} on $args->{port}: reconnecting in $reconnect_time seconds");
 
                         $kernel->delay('reconnect' =>  $reconnect_time);
                       },
@@ -507,8 +526,9 @@ sub create_connection
     ServerError    => sub
                       {
                         my ($kernel, $heap, $syscall, $num, $error) = @_[ KERNEL, HEAP, ARG0, ARG1, ARG2 ];
+                        my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
 
-                        $kernel->call('logger' => "log" => "Client ServerError: $args->{name} to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
+                        $kernel->call('logger' => "log" => "Client: ServerError: $args->{name}($tag) to $heap->{host} on $args->{port}: syscall = $syscall, num = $num, error = $error");
                       },
 
     InlineStates   => { 
@@ -645,8 +665,10 @@ sub create_connection
    
                           $msg = 'Unknown reason' unless $msg;
 
+                          my $tag = "$heap->{instance}-$heap->{client_queue}->{attempt}";
+
                           my $reconnect_time = int( rand($reconnect_rand)) + $reconnect_min;
-                          $kernel->call('logger' => "log" => "FORCED DISCONNECT: $args->{name} to $heap->{host} on $args->{port}: $msg, reconnecting in $reconnect_time seconds");
+                          $kernel->call('logger' => "log" => "FORCED DISCONNECT: $args->{name}($tag) to $heap->{host} on $args->{port}: $msg, reconnecting in $reconnect_time seconds");
 
                           delete $heap->{initiated_connection};
                           delete $heap->{pending_data};
