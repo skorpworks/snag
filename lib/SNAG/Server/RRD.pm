@@ -459,42 +459,42 @@ sub new
                   mkdir $rrd_dir, 0750 and $kernel->call('logger' => "log" => "LOAD: Creating $rrd_dir");
 
 	### this bit only needed temporarily for rrd migration
-	if( my $lookup = $dbh->selectrow_hashref("select server_host from snag_server_definitions, snag_server_mappings where server_id = id and snag_server_mappings.name = 'sysrrd' and snag_server_mappings.host = ?", undef, $host ) )
-	{
-		my $start = time;
+	#if( my $lookup = $dbh->selectrow_hashref("select server_host from snag_server_definitions, snag_server_mappings where server_id = id and snag_server_mappings.name = 'sysrrd' and snag_server_mappings.host = ?", undef, $host ) )
+	#{
+	#	my $start = time;
 
-		my $source_host = $lookup->{server_host};
-		my $command = "rsync -a root\@$source_host:/var/rrd/$host/ /var/rrd/$host/";
+	#	my $source_host = $lookup->{server_host};
+	#	my $command = "rsync -a root\@$source_host:/var/rrd/$host/ /var/rrd/$host/";
 
-		my $rsync_output;
-		open RSYNC, "$command 2>&1 |";
-		while( my $line = <RSYNC> )
-		{
-			$rsync_output .= $line;
-		}
-		my $close_status = close RSYNC;
-		my $exit_status = $? >> 8;
+	#	my $rsync_output;
+	#	open RSYNC, "$command 2>&1 |";
+	#	while( my $line = <RSYNC> )
+	#	{
+	#		$rsync_output .= $line;
+	#	}
+	#	my $close_status = close RSYNC;
+	#	my $exit_status = $? >> 8;
 
-		my $elapsed = time - $start;
+	#	my $elapsed = time - $start;
 
-		my $result;
-		if( $close_status && !$exit_status && ( not defined $rsync_output ) )
-		{
-			$result = 'success';
-		}
-		else
-		{
-			$result = 'failure';
-		}
+	#	my $result;
+	#	if( $close_status && !$exit_status && ( not defined $rsync_output ) )
+	#	{
+	#		$result = 'success';
+	#	}
+	#	else
+	#	{
+	#		$result = 'failure';
+	#	}
 
-		$kernel->call('logger' => "log" => "rrd migrate: host=$host result=$result elapsed=$elapsed close_status=$close_status exit_status=$exit_status rsync_output=$rsync_output source_host=$source_host");
+	#	$kernel->call('logger' => "log" => "rrd migrate: host=$host result=$result elapsed=$elapsed close_status=$close_status exit_status=$exit_status rsync_output=$rsync_output source_host=$source_host");
 
-		if( ( $result eq 'failure' ) && ( length($host) > 1 ) )
-		{
-			system "rm -rf /var/rrd/$host/"; ## yikes
-			exit;
-		}
-	}
+	#	if( ( $result eq 'failure' ) && ( length($host) > 1 ) )
+	#	{
+	#		system "rm -rf /var/rrd/$host/"; ## yikes
+	#		exit;
+	#	}
+	#}
 
                 }
 
