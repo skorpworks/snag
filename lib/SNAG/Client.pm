@@ -20,7 +20,7 @@ use File::Spec::Functions qw/catfile/;
 use Statistics::Descriptive;
 use Data::Dumper;
 
-my $max_chunk_size = 500;
+my $max_chunk_size = 100;
 my $hold_period = 120;
 my $parcel_sep = PARCEL_SEP;
 my $line_sep = LINE_SEP;
