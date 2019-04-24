@@ -1010,6 +1010,16 @@ sub system
     my $name;
     foreach (`$SNAG::Dispatch::shared_data->{binaries}->{ip} addr`)
     {
+      #inet6 2001:550:108:0:d1aa:abe2:a6cf:bdb7/64 scope global temporary deprecated dynamic
+      #  valid_lft 86395sec preferred_lft 0sec
+      #inet6 2001:550:108:0:b093:1d77:c31b:fdb/64 scope global temporary deprecated dynamic
+      #  valid_lft 86395sec preferred_lft 0sec
+      #
+      # kludge for now as some servers can have thousands of these.
+      if ( m/inet.*temporary.*deprecated.*dynamic/ )
+      {
+        next;
+      }
  
       #1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN
       #    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
