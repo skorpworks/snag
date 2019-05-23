@@ -27,7 +27,7 @@ GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile'
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
 
-our $VERSION = '5.35';
+our $VERSION = '5.37';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver, $long, $name);

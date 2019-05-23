@@ -978,6 +978,22 @@ sub run_slabinfo
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_act_s', $rrd_min . "g", $time, $data[14]));
       $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_sk_h_c_pps', $rrd_min . "g", $time, $data[5]));
     }
+    elsif (/^kmem_cache\b/)
+    {
+      my (@data) = split /\s+/;
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_ca_act_o', $rrd_min . "g", $time, $data[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_ca_num_o', $rrd_min . "g", $time, $data[2]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_ca_act_s', $rrd_min . "g", $time, $data[14]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_ca_pps', $rrd_min . "g", $time, $data[5]));
+    }
+    elsif (/^kmalloc-1024\b/)
+    {
+      my (@data) = split /\s+/;
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_1024_act_o', $rrd_min . "g", $time, $data[1]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_1024_num_o', $rrd_min . "g", $time, $data[2]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_1024_act_s', $rrd_min . "g", $time, $data[14]));
+      $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'slab_km_1024_pps', $rrd_min . "g", $time, $data[5]));
+    }
   }
   close $proc;
 
