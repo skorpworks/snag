@@ -28,7 +28,7 @@ use Statistics::Descriptive;
 ### this bit only needed temporarily for rrd migration
 use DBI;
 my $dbh;
-$dbh = DBI->connect("dbi:Pg:dbname=sysinfo;host=snag-db1.easynews.com", 'sysinfo', 'AverycrypticPW', { RaiseError => 1} ) or die $dbh->errstr;
+$dbh = DBI->connect("dbi:Pg:dbname=sysinfo;host=snag-db.puregig.net", 'sysinfo', 'AverycrypticPW', { RaiseError => 1} ) or die $dbh->errstr;
 
 my $rec_sep = REC_SEP;
 
