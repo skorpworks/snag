@@ -46,7 +46,6 @@ elsif($SNAG::flags{compile})
         }
         close($fh);
     }
-    $ENV{PAR_GLOBAL_TEMP} = '/opt/spork/tmp';
     my $cmd = "pp $0 --compile --cachedeps=/var/tmp/snag.pp --execute --bundle" . $includes . " -a /opt/snag/snag.conf -o snagc";
 
     print "with cmd $cmd\n";
