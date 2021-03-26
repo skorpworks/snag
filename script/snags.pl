@@ -14,77 +14,68 @@ use SNAG::Client;
 use Getopt::Long;
 use Data::Dumper;
 
-foreach my $arg (@ARGV)
-{
-  $arg =~ s/^\-{1,2}//;
-  $SNAG::flags{$arg} = 1;
+foreach my $arg (@ARGV) {
+    $arg =~ s/^\-{1,2}//;
+    $SNAG::flags{$arg} = 1;
 }
 
-
-if($SNAG::flags{compile})
-{
-  unless($ENV{PAR_SPAWNED})
-  {
-    die "PP_INCLUDES environment variable not set.\n" unless $ENV{PP_INCLUDES};
-    die "SNAGS_INCLUDES environment variable not set.\n" unless $ENV{SNAGS_INCLUDES};
-    print "Compiling $0 to snags ... ";
-    my $includes;
-    for my $include_file ($ENV{PP_INCLUDES}, $ENV{SNAGS_INCLUDES}) {
-        unless ( -r $include_file ) {
-            warn "$include_file does not exist - skipping\n";
-            next;
+if ( $SNAG::flags{compile} ) {
+    unless ( $ENV{PAR_SPAWNED} ) {
+        die "PP_INCLUDES environment variable not set.\n"    unless $ENV{PP_INCLUDES};
+        die "SNAGS_INCLUDES environment variable not set.\n" unless $ENV{SNAGS_INCLUDES};
+        print "Compiling $0 to snags ... ";
+        my $includes;
+        for my $include_file ( $ENV{PP_INCLUDES}, $ENV{SNAGS_INCLUDES} ) {
+            unless ( -r $include_file ) {
+                warn "$include_file does not exist - skipping\n";
+                next;
+            }
+            open( my $fh, '<', $include_file ) || die "Could not open $include_file - $!\n";
+            while (<$fh>) {
+                chomp;
+                next unless (/\w+/);
+                $includes .= " -M $_";
+            }
+            close($fh);
         }
-        open (my $fh, '<', $include_file) || die "Could not open $include_file - $!\n";
-        while (<$fh>) {
-            chomp;
-            next unless (/\w+/);
-            $includes .= " -M $_";
+        my $cmd = "pp $0 --compile --execute --bundle" . $includes . " -a /opt/snag/snag.conf -o snags";
+
+        print "with cmd $cmd\n";
+        my $out = '';
+        open LOG, "$cmd |" || die "DIED: $!\n";
+        while (<LOG>) {
+            print $_;
+            $out .= $_;
         }
-        close($fh);
+
+        print "Done!\n";
+
+        if ( $out =~ /\w/ ) {
+            print "=================== DEBUG ==================\n";
+            print $out;
+        }
     }
-    my $cmd = "pp $0 --compile --execute --bundle" . $includes . " -a /opt/snag/snag.conf -o snags";
-
-    print "with cmd $cmd\n";
-    my $out = '';
-    open LOG, "$cmd |" || die "DIED: $!\n";
-    while (<LOG>)
-    {
-      print $_;
-      $out .= $_;
+    else {
+        print "This is already a compile binary!\n";
     }
 
-    print "Done!\n";
-
-    if($out =~ /\w/)
-    {
-      print "=================== DEBUG ==================\n";
-      print $out;
-    }
-  }
-  else
-  {
-    print "This is already a compile binary!\n";
-  }
-
-  exit;
+    exit;
 }
-
 
 ### Get rid of this once all sources are converted to dispatching
 my %options;
-GetOptions(\%options, 'debug', 'verbose');
+GetOptions( \%options, 'debug', 'verbose' );
 
 my $scriptname = SCRIPT_NAME;
 exit if already_running();
 
-die "Invalid usage of snags.pl!" unless (split /_/, $scriptname) == 2;
-my ($type) = (split /_/, $scriptname)[0];
+die "Invalid usage of snags.pl!" unless ( split /_/, $scriptname ) == 2;
+my ($type) = ( split /_/, $scriptname )[0];
 
-my ($login,$pass,$uid,$gid) = getpwnam('snag');
-if ( defined $uid )
-{
-  $) = $gid;
-  $> = $uid;
+my ( $login, $pass, $uid, $gid ) = getpwnam('snag');
+if ( defined $uid ) {
+    $) = $gid;
+    $> = $uid;
 }
 
 umask(0022);
@@ -101,21 +92,19 @@ $mod_file =~ s/::/\//g;
 $mod_file .= ".pm";
 require $mod_file;
 
-$server->{module}->new
-(
-  Alias		=> $type,
-  Port		=> $server->{port},
-  Key		=> $server->{key},
-  Args		=> $server->{args},
-  Options 	=> \%options,
-);
+$server->{module}->new(
+                        Alias   => $type,
+                        Port    => $server->{port},
+                        Key     => $server->{key},
+                        Args    => $server->{args},
+                        Options => \%options,
+                      );
 
 SNAG::Client->new( $confin->{client} );
 
-$SIG{INT} = $SIG{TERM} = sub
-{
-  $poe_kernel->call('logger' => 'log' => "Killed");
-  exit;
+$SIG{INT} = $SIG{TERM} = sub {
+    $poe_kernel->call( 'logger' => 'log' => "Killed" );
+    exit;
 };
 
 $poe_kernel->run;
