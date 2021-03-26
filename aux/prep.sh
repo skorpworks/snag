@@ -9,6 +9,7 @@ fi
 echo "PP_INCLUDES=$PP_INCLUDES"
 echo "SNAGC_INCLUDES=$SNAGC_INCLUDES"
 echo "SNAGX_INCLUDES=$SNAGX_INCLUDES"
+echo "SNAGS_INCLUDES=$SNAGS_INCLUDES"
 echo "SNAGW_INCLUDES=$SNAGW_INCLUDES"
 
 
@@ -20,6 +21,6 @@ cd $SNAG_BUILD_DIR/snag.git \
 && cd /var/tmp \
 && perl /opt/snag/perls/current/bin/snagc.pl --compile --debug \
 && perl /opt/snag/perls/current/bin/snagw.pl --compile --debug \
-&& perl /opt/snag/perls/current/bin/snagp.pl --compile --debug \
+&& perl /opt/snag/perls/current/bin/snags.pl --compile --debug \
 cd -
 
