@@ -85,13 +85,16 @@ sub new
                     foreach my $ref ( @{ $new_data->{server}->{name}->{sysrrd} } ) {
                         my $host_no_fqdn = $ref->{server_host};
                         $host_no_fqdn =~ s/\..+$//;
+                        my $host_no_fqdn_nozero = $host_no_fqdn;
+                        $host_no_fqdn_nozero =~ s/[-0]//g;
 
                         if (
                             my $get_rrd_count =
                             $gunit_dbh->selectrow_hashref(
-"select count(*) from host_to_ds where server = ? and epoch > extract(epoch from now() - interval '7 day')",
+"select count(*) from host_to_ds where (server = ? or server =) and epoch > extract(epoch from now() - interval '7 day')",
                                 undef,
-                                $host_no_fqdn
+                                $host_no_fqdn,
+                                $host_no_fqdn_nozero
                             )
                            )
                         {
