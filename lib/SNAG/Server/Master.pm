@@ -101,6 +101,7 @@ sub new
                             if ( $get_rrd_count->{count} =~ /^(\d+)$/ ) {
                                 $ref->{mappings} = $get_rrd_count->{count};
                             }
+                            $kernel->call( 'logger' => 'log' => "$host_no_fqdn|$host_no_fqdn_nozero mappings: $ref->{mappings}" );
                         }
                     }
 
@@ -138,6 +139,7 @@ sub new
                             print Dumper $info;
                         }
 
+                        $kernel->call( 'logger' => 'log' => "Using mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}" );
                         return $info;
                     }
                     else {
@@ -157,6 +159,7 @@ sub new
                                   or die $heap->{dbh}->errstr;
                                 $heap->{server_data}->{mapping}->{ $input->{name} }->{ $input->{client_host} } = $info;
                                 $info->{mappings}++;
+                                $kernel->call( 'logger' => 'log' => "Created new mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}" );
 
                                 if ( $SNAG::flags{debug} ) {
                                     print
