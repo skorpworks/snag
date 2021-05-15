@@ -54,7 +54,11 @@ sub new
                 ### does this even need to run more than once?	Should I just run it to compare memory with the db, it should never be different
                 ###  well now we need to keep it to get fresh rrd count readings from gunit db - 20151022 JML
 
+<<<<<<< HEAD
                 $kernel->call( 'logger' => 'log' => " build_server_mappings ... " );
+=======
+                $kernel->call( 'logger' => 'log' => "$host_no_fqdn|$host_no_fqdn_nozero mappings: $ref->{mappings}" ) if $debug;
+>>>>>>> f01581016d2a7f80e6d085a99483bdb5638befd9
 
                 eval {
                     my $new_data;
@@ -119,7 +123,7 @@ sub new
                     $kernel->yield( 'connect' => 60 );
                 }
 
-                print "DONE!\n" if $debug;
+                $kernel->call( 'logger' => 'log' => "DONE!") if $debug;
             },
 
             get_server_info => sub {
@@ -133,11 +137,6 @@ sub new
 
                     if ( defined $heap->{server_data}->{mapping}->{ $input->{name} }->{ $input->{client_host} } ) {
                         my $info = $heap->{server_data}->{mapping}->{ $input->{name} }->{ $input->{client_host} };
-
-                        if ( $SNAG::flags{debug} ) {
-                            print "Returning existing mapping\n";
-                            print Dumper $info;
-                        }
 
                         $kernel->call( 'logger' => 'log' => "Using mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}" );
                         return $info;
@@ -159,13 +158,8 @@ sub new
                                   or die $heap->{dbh}->errstr;
                                 $heap->{server_data}->{mapping}->{ $input->{name} }->{ $input->{client_host} } = $info;
                                 $info->{mappings}++;
-                                $kernel->call( 'logger' => 'log' => "Created new mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}" );
 
-                                if ( $SNAG::flags{debug} ) {
-                                    print
-"Created new mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}\n";
-                                    print Dumper $info;
-                                }
+                                $kernel->call( 'logger' => 'log' => "Created new mapping for: host => $input->{client_host}, name => $input->{name} to server_id => $info->{id}");
                             };
                             if ($@) {
                                 if ( $@ =~ /$error_regex/ ) {
@@ -206,7 +200,7 @@ sub new
                 my ( $heap, $kernel ) = @_[ HEAP, KERNEL ];
                 $kernel->delay( $_[STATE] => 300 );    # run every 5 min
 
-                print "START build_domain_map...\n" if $debug;
+                $kernel->call( 'logger' => 'log' => "build_domain_map..." );
 
                 eval {
                     my $get_nets = $heap->{dbh}
@@ -266,7 +260,7 @@ sub new
                 my ( $heap, $kernel ) = @_[ HEAP, KERNEL ];
                 $kernel->delay( $_[STATE] => 300 );
 
-                print "START build_update_queue... \n" if $debug;
+                $kernel->call( 'logger' => 'log' => "START build_update_queue... " ) if $debug;
 
                 eval {
                     my $data = ();
