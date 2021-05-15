@@ -35,7 +35,6 @@ WriteMakefile
 	  'POE::Filter::Reference' => 0,
 	  'POE::Wheel::Run' => 0,
 	  'POE::Component::EasyDBI' => 0,
-	  'POE::XS::Loop::Poll' => 0,
           'POE::XS::Queue::Array' => 0,
           'POE::Quickie' => 0,
           'URI::Encode' => 0,
