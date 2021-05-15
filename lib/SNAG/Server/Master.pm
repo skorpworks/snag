@@ -54,7 +54,7 @@ sub new
                 ### does this even need to run more than once?	Should I just run it to compare memory with the db, it should never be different
                 ###  well now we need to keep it to get fresh rrd count readings from gunit db - 20151022 JML
 
-                print "START build_server_mappings ... " if $debug;
+                $kernel->call( 'logger' => 'log' => " build_server_mappings ... " );
 
                 eval {
                     my $new_data;
