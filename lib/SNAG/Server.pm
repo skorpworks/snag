@@ -84,29 +84,17 @@ sub new
                 my $stat_prefix = HOST_NAME . "[$alias]";
 
                 $kernel->call( 'logger' => 'log' => "posting server_stats" );
-                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del,
-                               ( $stat_prefix, 'SNAGs_uptime', '1g', $epoch, $uptime ) );
-                $kernel->call( 'logger' => 'log' => join $del,
-                               ( $stat_prefix, 'SNAGs_uptime', '1g', $epoch, $uptime ) );
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_uptime', '1g', $epoch, $uptime ) );
+                $kernel->call( 'logger' => 'log' => join $del, ( $stat_prefix, 'SNAGs_uptime', '1g', $epoch, $uptime ) );
 
-                $kernel->post(
-                               'client' => 'sysrrd' => 'load' => join $del,
-                               (
-                                 $stat_prefix, 'SNAGs_conn', '1g', $epoch,
-                                 ( ( scalar keys %{ $SNAG::Server::server_data->{ips} } ) + 0 )
-                               )
-                             );
-                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del,
-                               ( $stat_prefix, 'SNAGs_parcel', '1g', $epoch, ( $server_data->{parcels} + 0 ) ) );
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_ips', '1g', $epoch, ( ( scalar keys %{ $SNAG::Server::server_data->{ips} } ) + 0 )));
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_parcel', '1g', $epoch, ( $server_data->{parcels} + 0 ) ) );
                 $SNAG::Server::server_data->{parcels} = 0;
-                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del,
-                               ( $stat_prefix, 'SNAGs_cons', '1g', $epoch, ( $server_data->{conn} + 0 ) ) );
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_conn', '1g', $epoch, ( $server_data->{conn} + 0 ) ) );
                 $SNAG::Server::server_data->{conn} = 0;
-                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del,
-                               ( $stat_prefix, 'SNAGs_cons', '1g', $epoch, ( $server_data->{disconn} + 0 ) ) );
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_disconn', '1g', $epoch, ( $server_data->{disconn} + 0 ) ) );
                 $SNAG::Server::server_data->{disconn} = 0;
-                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del,
-                               ( $stat_prefix, 'SNAGs_cons', '1g', $epoch, ( $server_data->{timeout} + 0 ) ) );
+                $kernel->post( 'client' => 'sysrrd' => 'load' => join $del, ( $stat_prefix, 'SNAGs_timeout', '1g', $epoch, ( $server_data->{timeout} + 0 ) ) );
                 $SNAG::Server::server_data->{timeout} = 0;
                 $kernel->call( 'logger' => 'log' => "done server_stats" );
             },

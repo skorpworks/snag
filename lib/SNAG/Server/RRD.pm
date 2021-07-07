@@ -25,13 +25,6 @@ use Date::Format;
 
 use Statistics::Descriptive;
 
-### this bit only needed temporarily for rrd migration
-use DBI;
-my $dbh;
-$dbh =
-  DBI->connect( "dbi:Pg:dbname=sysinfo;host=snag-db.puregig.net", 'sysinfo', 'AverycrypticPW', { RaiseError => 1 } )
-  or die $dbh->errstr;
-
 my $rec_sep = REC_SEP;
 
 my $debug   = $SNAG::flags{debug};
@@ -337,7 +330,7 @@ sub new
                 delete $stats->{hosts};
                 delete $stats->{multi};
 
-                push @{$stat_ref}, $stat_prefix . ":SNAGs_scan:1g:$time:$stats->{easydbi}->{scan}";
+		push @{$stat_ref}, $stat_prefix . ":SNAGs_scan:1g:$time:" . ( $stats->{easydbi}->{scan} || 0 );
                 $stats->{easydbi}->{scan} = 0;
 
                 push @{$stat_ref}, $stat_prefix . ":SNAGs_mem_rrd:1g:$time:" .       ( total_size($rrd) + 0 );
@@ -352,9 +345,9 @@ sub new
                     push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_max:1g:$time:" . $statistics->max();
                     push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_mean:1g:$time:" . $statistics->mean();
                     push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_hmean:1g:$time:" . $statistics->harmonic_mean();
-                    push @{$stat_ref},
-                      $stat_prefix . ":rrd_loadtime_stddev:1g:$time:" . $statistics->standard_deviation();
-                    push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_pct75:1g:$time:" . $statistics->percentile(75);
+                    push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_stddev:1g:$time:" . $statistics->standard_deviation();
+                    ## broken?		
+                    #push @{$stat_ref}, $stat_prefix . ":rrd_loadtime_pct75:1g:$time:" . $statistics->percentile(75);
                     @load_stats = ();
                 }
 
@@ -431,45 +424,6 @@ sub new
                                     }
                                     mkdir $rrd_dir, 0750
                                       and $kernel->call( 'logger' => "log" => "LOAD: Creating $rrd_dir" );
-
-                                    ### this bit only needed temporarily for rrd migration
-#if( my $lookup = $dbh->selectrow_hashref("select server_host from snag_server_definitions, snag_server_mappings where server_id = id and snag_server_mappings.name = 'sysrrd' and snag_server_mappings.host = ?", undef, $host ) )
-#{
-#	my $start = time;
-
-                                    #	my $source_host = $lookup->{server_host};
-                                    #	my $command = "rsync -a root\@$source_host:/var/rrd/$host/ /var/rrd/$host/";
-
-                                    #	my $rsync_output;
-                                    #	open RSYNC, "$command 2>&1 |";
-                                    #	while( my $line = <RSYNC> )
-                                    #	{
-                                    #		$rsync_output .= $line;
-                                    #	}
-                                    #	my $close_status = close RSYNC;
-                                    #	my $exit_status = $? >> 8;
-
-                                    #	my $elapsed = time - $start;
-
-                                    #	my $result;
-                                    #	if( $close_status && !$exit_status && ( not defined $rsync_output ) )
-                                    #	{
-                                    #		$result = 'success';
-                                    #	}
-                                    #	else
-                                    #	{
-                                    #		$result = 'failure';
-                                    #	}
-
-#	$kernel->call('logger' => "log" => "rrd migrate: host=$host result=$result elapsed=$elapsed close_status=$close_status exit_status=$exit_status rsync_output=$rsync_output source_host=$source_host");
-
-                                    #	if( ( $result eq 'failure' ) && ( length($host) > 1 ) )
-                                    #	{
-                                    #		system "rm -rf /var/rrd/$host/"; ## yikes
-                                    #		exit;
-                                    #	}
-                                    #}
-
                                 }
 
                                 eval {
