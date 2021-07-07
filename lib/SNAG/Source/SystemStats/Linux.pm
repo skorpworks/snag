@@ -32,7 +32,11 @@ $io_fields->{'wsec/s'}->{ds}     = 'iowss';
 $io_fields->{'rkB/s'}->{ds}      = 'iorkbs';
 $io_fields->{'wkB/s'}->{ds}      = 'iowkbs';
 $io_fields->{'avgrq-sz'}->{ds}   = 'avgrqsz';
+$io_fields->{'areq-sz'}->{ds}   = 'avgrqsz'; ### centos8
+$io_fields->{'rareq-sz'}->{ds}   = 'rareqsz'; ### centos8
+$io_fields->{'wareq-sz'}->{ds}   = 'wareqsz'; ### centos8
 $io_fields->{'avgqu-sz'}->{ds}   = 'avgqusz';
+$io_fields->{'aqu-sz'}->{ds}   = 'avgqusz'; ### centos8
 $io_fields->{'await'}->{ds}      = 'await';
 $io_fields->{'r_await'}->{ds}    = 'rawait';
 $io_fields->{'w_await'}->{ds}    = 'wawait';
@@ -366,7 +370,7 @@ sub supp_iostat_io_child_stdio
   #sdj               0.00     0.00    0.20    0.00     0.80     0.00     8.00     0.08  390.00  390.00    0.00 390.00   7.77
 
 
-  if ($output =~ /^Device:/)
+  if ($output =~ /^Device:?/)
   {
     $heap->{iostat_io_count}++;
     if ($heap->{iostat_io_count} == 1)
@@ -392,13 +396,23 @@ sub supp_iostat_io_child_stdio
     {
       FIELD: foreach my $key (keys %{$io_fields})
       {
+        unless( defined $io_fields->{"$key"}->{idx} )
+        {
+                next;
+        }
+
+        unless( defined $io_fields->{"$key"}->{ds} )
+        {
+                next;
+        }
+
         #kludge until i can find out where spikes are coming from
         if ($key eq '%util' && $stats[$io_fields->{"$key"}->{idx}] > 100)
         {
           $poe_kernel->call('logger' => 'log' => "SysStats::Linux::iostat_io bogus line $output");
           next FIELD unless ($stats[$io_fields->{"$key"}->{idx}] < 1000)
         }
-        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", $io_fields->{"$key"}->{ds}, "1g", $time, $stats[$io_fields->{"$key"}->{idx}])) if defined $io_fields->{"$key"}->{idx};
+        $kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$mp\]", $io_fields->{"$key"}->{ds}, "1g", $time, $stats[$io_fields->{"$key"}->{idx}]));
       }
     }
   }
@@ -414,6 +428,112 @@ sub supp_iostat_io_child_close
   my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
   delete $heap->{running_states}->{run_iostat_io};
   delete $heap->{iostat_io_wheel};
+}
+
+#####################################################################################
+############  IOSTAT ZFS  ############################################################
+#####################################################################################
+sub run_iostat_zfs
+{
+	my ($kernel, $heap) = @_[KERNEL, HEAP];
+
+	if( -e '/proc/spl/kstat/zfs/arcstats' )
+	{
+		$heap->{iostat_zfs_wheel} = POE::Wheel::Run->new 
+		(  
+			Program      => [ 'zpool', 'iostat', '-Hpy', $stat_quanta, 1 ],
+			StdioFilter  => POE::Filter::Line->new(),    
+			StderrFilter => POE::Filter::Line->new(),    
+			StdoutEvent  => 'supp_iostat_zfs_child_stdio',       
+			StderrEvent  => 'supp_iostat_zfs_child_stderr',       
+			CloseEvent   => "supp_iostat_zfs_child_close",
+		);
+
+# ENG-850
+#The file is /proc/spl/kstat/zfs/arcstats and the most useful metrics from that are c, c_max (overlaid on the same graph would be good), size, (which is a sum of {overhead,hdr,metadata,data,anon,dbuf,dnode,bonus}_size – breaking it out could be useful), arc_meta_used, arc_meta_max (similar to c and c_max, same graph)
+
+		my $host = HOST_NAME;
+		open IN, '/proc/spl/kstat/zfs/arcstats';
+		while( my $line = <IN> )
+		{
+			chomp $line;
+
+			my $time = $heap->{run_epoch} || time;
+
+			my ($name, $type, $data) = split /\s+/, $line, 3;
+
+			### only keep these for now i guess
+			if(
+				$name =~ /size$/
+				|| $name eq 'c'
+				|| $name =~ /^c_(min|max)$/ 
+				|| $name =~ /^arc_meta/
+			)
+			{
+        			$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ($host, 'zfsa_' . $name, '1g', $time, $data ));
+			}
+		}
+		close IN;
+	}
+	else
+	{
+		delete $heap->{running_states}->{run_iostat_zfs};
+	}
+}
+
+sub supp_iostat_zfs_child_stdio
+{
+	my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+
+#              capacity     operations     bandwidth
+#pool        alloc   free   read  write   read  write
+#----------  -----  -----  -----  -----  -----  -----
+#localdata   42.3G  2.68T      7    495   765K  57.9M
+#localdata2  2.88T  22.5T      3     70   401K  39.2M
+#----------  -----  -----  -----  -----  -----  -----
+
+#-[root@pod-dev.iad.easynews.com]-[1.38/7.07/8.25]-57%-7d4h7m-2020-09-01T21:17:09-
+#-[/tmp/par-726f6f74:#]- zpool iostat -Hpy 2
+#localdata	45587767296	2943709470720	477	0	46453980	0
+#localdata2	3164245528576	24735862026240	28	2801	183381	1894070779
+
+	my $time = $heap->{run_epoch};
+	my $host = HOST_NAME;
+
+	my @fields = split /\s+/, $output;
+
+	## basic ass validation
+	if( ( scalar @fields == 7 ) && ( $fields[-1] =~ /^\d+$/ ) )
+	{
+		my ($pool, $cap_alloc, $cap_free, $ops_read, $ops_write, $bw_read, $bw_write) = @fields;
+
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'zpool_ior', '1g', $time, $ops_read ));
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'zpool_iow', '1g', $time, $ops_write ));
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'zpool_bwr', '1g', $time, $bw_read ));
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'zpool_bww', '1g', $time, $bw_write ));
+
+		my $cap_tot = $cap_alloc + $cap_free;
+		my $cap_pct = sprintf('%.0f', ( $cap_alloc / $cap_tot ) );
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'dsk_cap', '1g', $time, sprintf('%.0f', ( $cap_tot / 1000 ) ) ) ); ### convert to K so DISK graph can be used
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'dsk_used', '1g', $time, sprintf('%.0f', ( $cap_alloc / 1000 ) ) ) ); ### convert to K so DISK graph can be used
+        	$kernel->post('client' => 'sysrrd' => 'load' => join RRD_SEP, ("$host\[$pool\]", 'dsk_pct', '1g', $time, $cap_pct ));
+	}
+	else
+	{
+  		$poe_kernel->call('logger' => 'log' => "SysStats::Linux::supp_iostat_zfs_child_stdio: $output");
+	}
+}
+
+sub supp_iostat_zfs_child_stderr
+{
+  my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+}
+
+sub supp_iostat_zfs_child_close
+{
+	my ($kernel, $heap, $output, $wheel_id) = @_[KERNEL, HEAP, ARG0, ARG1];
+	delete $heap->{running_states}->{run_iostat_zfs};
+	delete $heap->{iostat_zfs_wheel};
 }
 
 #####################################################################################

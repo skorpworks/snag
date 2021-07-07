@@ -13,6 +13,8 @@ use SNAG::Client;
 use Getopt::Long;
 use Data::Dumper::Concise;
 
+use lib '/opt/snag/lib/perl5/';
+
 foreach my $arg (@ARGV)
 {
   $arg =~ s/^\-{1,2}//;
@@ -42,7 +44,7 @@ if($SNAG::flags{compile})
         }
         close($fh);
     }
-    my $cmd = "pp $0 --compile --execute --bundle" . $includes . " -a /opt/snag/snag.conf -o snagp";
+    my $cmd = "pp $0 --compile --execute --unicode --bundle" . $includes . " -a /opt/snag/snag.conf -o snagp";
 
     print "with cmd $cmd\n";
     my $out = '';

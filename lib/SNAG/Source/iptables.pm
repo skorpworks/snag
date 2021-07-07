@@ -58,7 +58,7 @@ sub new
 					{
 						my $wheel = POE::Wheel::Run->new
 						(
-							Program      => [ $path, '-L', '-nxv' ],
+							Program      => [ $path, '-L', '-w', '-nxv' ],
 							StdioFilter  => POE::Filter::Line->new(),
 							StderrFilter => POE::Filter::Line->new(),
 							StdoutEvent  => 'iptables_stdout',

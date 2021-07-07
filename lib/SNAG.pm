@@ -27,7 +27,7 @@ GetOptionsFromArray( \@argv_cp, \%flags, 'debug+', 'verbose+', 'init', 'compile'
                      'source=s', 'module=s', 'nowait', 'startatend', 'fullset', 'syslog!',
           );
 
-our $VERSION = '5.44';
+our $VERSION = '5.45';
 sub VERSION { $VERSION };
 
 my ($os, $dist, $ver, $long, $name);
@@ -450,12 +450,24 @@ sub already_running
   }
   else
   {
-    require Proc::ProcessTable;
+        require Proc::ProcessTable;
 
-    my $full_script = "^($^X |perl |.{0,0}).*$0\$";
+        my $full_script = "^($^X |perl |.{0,0}).*$0\$";
 
-    #return grep { $_->fname eq SCRIPT_NAME && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
-    return grep { $_->cmndline =~ /^$full_script/ && $_->pid != $$ } @{(Proc::ProcessTable->new)->table};
+        my $already_running;
+        foreach my $proc ( @{(Proc::ProcessTable->new)->table} )
+        {
+                my $cmndline = $proc->cmndline;
+                $cmndline =~ s/\s+$//;
+                $cmndline =~ s/^\s+//;
+
+                if( $cmndline =~ /^$full_script/ && $proc->pid != $$ )
+                {
+                        $already_running++;
+                }
+        }
+
+        return $already_running;
   }
 }
 
