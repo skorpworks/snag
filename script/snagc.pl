@@ -90,6 +90,8 @@ logger();
 
 daemonize unless $debug;
 
+umask(0007);
+
 my $confin = CONF;
 
 my $client;

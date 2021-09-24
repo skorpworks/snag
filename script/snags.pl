@@ -78,7 +78,7 @@ if ( defined $uid ) {
     $> = $uid;
 }
 
-umask(0022);
+umask(0027);
 
 logger();
 daemonize() unless $SNAG::flags{debug};
